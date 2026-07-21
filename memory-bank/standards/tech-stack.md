@@ -33,7 +33,7 @@ Date: 21 July 2026
 ## Deployment
 
 - Platform: Vercel
-- Staging URL: [รอใส่ลิงก์หลังจากกด Deploy เสร็จ]
+- Staging URL: https://sdpx-ultrasmooth-s1ux.vercel.app/
 
 ## AI Tools
 
