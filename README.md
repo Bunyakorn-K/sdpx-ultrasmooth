@@ -1,35 +1,42 @@
 # PairEval
 
-> ระบบประเมินผลนักศึกษาแบบ Pairwise Comparison — a university student-evaluation system built on pairwise comparison.
+> A university student-evaluation system built on pairwise comparison.
 
 Instead of scoring each submission on an absolute scale, PairEval asks reviewers a simpler question: **“which of these two is better?”** These pairwise judgments are aggregated into consistent, objective rankings — reducing bias and grading fatigue.
 
-**Live:** https://sdpx-ultrasmooth.vercel.app
+- **Production:** https://sdpx-ultrasmooth.vercel.app
+- **Staging:** https://sdpx-ultrasmooth-s1ux.vercel.app/
+
+## Project Status
+
+PairEval is currently an early landing-page scaffold. The repository is transitioning from its original Pages Router scaffold to the App Router architecture described below. Authentication, persistence, comparison workflows, ranking logic, and reviewer dashboards are planned capabilities and are not implemented yet.
 
 ## Tech Stack
 
-| Layer      | Choice                                             |
-| ---------- | -------------------------------------------------- |
-| Framework  | [Next.js](https://nextjs.org) 16 (Pages Router)    |
-| Language   | TypeScript                                         |
-| Styling    | Tailwind CSS v4                                     |
-| Backend    | Next.js API Routes (`src/pages/api`)               |
-| Database   | PostgreSQL via [Supabase](https://supabase.com)    |
-| Auth       | Google OAuth (Supabase Auth)                       |
-| Deployment | [Vercel](https://vercel.com)                       |
+| Layer | Choice | Status |
+| --- | --- | --- |
+| Framework | [Next.js](https://nextjs.org) 16 App Router | Migration target |
+| Language | TypeScript | Installed |
+| Styling | Tailwind CSS v4 | Installed |
+| Backend | Next.js Route Handlers and server-side modules | Planned |
+| Database | PostgreSQL on [Supabase](https://supabase.com) with Drizzle ORM | Planned |
+| Auth | Better Auth with Google OAuth | Planned |
+| Server state | TanStack Query | Planned |
+| Client state | Jotai | Planned |
+| Utilities | Remeda | Planned |
+| Deployment | [Vercel](https://vercel.com) | Active |
+
+Only Next.js, React, TypeScript, and Tailwind CSS are currently installed. Planned libraries will be added when their corresponding features are implemented.
 
 ## Getting Started
 
-Requires [Node.js](https://nodejs.org) 20+ and [Bun](https://bun.sh) (the repo uses `bun.lock`).
+Install [Bun](https://bun.sh) before starting; `bun.lock` is the canonical lockfile.
 
 ```bash
 # 1. Install dependencies
-bun install
+bun install --frozen-lockfile
 
-# 2. Set up environment variables
-cp .env.example .env.local   # then fill in the values below
-
-# 3. Run the dev server
+# 2. Run the development server
 bun dev
 ```
 
@@ -37,35 +44,49 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 
 ### Environment Variables
 
-Create a `.env.local` file with your Supabase project credentials:
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-```
+The current landing page does not require application environment variables. Database and authentication variables will be documented in `.env.example` when those integrations are implemented. Never commit real credentials.
 
 ## Scripts
 
-| Command     | Description                          |
-| ----------- | ----------------------------------- |
-| `bun dev`   | Start the development server        |
-| `bun run build` | Build for production            |
-| `bun start` | Run the production build            |
+| Command | Description |
+| --- | --- |
+| `bun dev` | Start the development server |
+| `bun run build` | Build for production |
+| `bun run start` | Run the production build |
 
-## Project Structure
+No lint or automated test scripts are configured yet.
 
-```
+## App Router Migration
+
+New product routes belong in `src/app`. The current landing page remains under `src/pages` until it is migrated and verified; do not define the same URL in both routers.
+
+### Current Structure
+
+```text
 src/
-├── pages/            # Routes (Pages Router)
+├── pages/            # Legacy routes during migration
 │   ├── _app.tsx      # App wrapper — global CSS & shared providers
 │   ├── _document.tsx # Custom HTML document
 │   ├── index.tsx     # Landing page
-│   └── api/          # API routes (→ /api/*)
+│   └── api/          # Legacy API routes
 └── styles/
     └── globals.css   # Tailwind entry & global styles
 ```
 
-Imports use the `#/*` path alias, which maps to `src/*` (e.g. `import "#/styles/globals.css"`).
+### Target Structure
+
+```text
+src/
+├── app/                 # App Router routes, layouts, and route handlers
+├── components/          # Reusable presentation components
+├── features/<feature>/  # Feature-owned UI, queries, state, and domain logic
+├── db/                  # Drizzle client, schema, and migrations
+├── lib/                 # Shared integrations, including Better Auth
+├── pages/               # Removed after route migration is complete
+└── styles/              # Global styles
+```
+
+Imports use the `#/*` path alias, which maps to `src/*`, for example `import "#/styles/globals.css"`.
 
 ## Branching & Contributing
 
@@ -73,7 +94,7 @@ Imports use the `#/*` path alias, which maps to `src/*` (e.g. `import "#/styles/
 - `develop` — integration branch for ongoing work
 
 Open feature branches off `develop`, then submit a pull request back into it.
-All AI-generated code must be read and understood before it is committed.
+Use Conventional Commits and read all AI-generated code before committing it. See [`AGENTS.md`](AGENTS.md) for architecture rules, quality gates, and the definition of done.
 
 ## Team
 
