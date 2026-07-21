@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@heroui/styles";
 
 :root {
   --background: #ffffff;
@@ -23,4 +24,11 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Elements animated in by anime.js start hidden to avoid a flash of
+   content before the entrance animation runs. The <noscript> fallback
+   in the page restores visibility when JavaScript is unavailable. */
+.reveal {
+  opacity: 0;
 }
