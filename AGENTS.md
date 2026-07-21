@@ -132,7 +132,6 @@ A change is complete only when its requested behavior is implemented, relevant e
 ## Git and Review Workflow
 
 - Preserve unrelated working-tree changes and stage only files belonging to the task.
-- Use `uunw <uunw@proton.me>` for commits in this repository.
 - Use Conventional Commits: `type(scope): concise summary`. Common types are `feat`, `fix`, `docs`, `refactor`, `test`, `build`, `ci`, and `chore`.
 - Review every AI-generated change before committing; the contributor must be able to explain it.
 - Do not commit, push, deploy, or create a pull request unless the user requests that action.

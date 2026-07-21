@@ -65,7 +65,7 @@ export default function Home() {
             <span className="rounded-full border border-black/8 px-3 py-1 text-xs font-medium text-zinc-500 dark:border-white/12 dark:text-zinc-400">
               University Evaluation System
             </span>
-            <h1 className="max-w-2xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+            <h1 className="max-w-2xl text-4xl font-semibold leading-tight tracking-tight text-yellow-700 dark:text-yellow-400 sm:text-5xl">
               Fairer student evaluation through pairwise comparison
             </h1>
             <p className="max-w-xl text-lg leading-8 text-zinc-600 dark:text-zinc-400">
