@@ -32,8 +32,8 @@ Surface contradictions instead of silently choosing an interpretation. Keep curr
 - Tooling: Bun is the package manager; `bun.lock` is the canonical lockfile.
 - Configuration: React Compiler and React Strict Mode are enabled.
 - Imports: `#/*` maps to `src/*`.
-- Available scripts: `dev`, `build`, and `start` only.
-- No lint, automated test, database, authentication, or Git-hook tooling is installed yet.
+- Available scripts: `dev`, `build`, `start`, `test`, and `test:e2e`.
+- `bun run test` runs Vitest unit tests; `bun run test:e2e` runs Playwright browser smoke tests.
 
 ## Target Architecture
 

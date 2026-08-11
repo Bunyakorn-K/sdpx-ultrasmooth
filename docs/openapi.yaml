@@ -1,0 +1,29 @@
+openapi: 3.0.3
+info:
+  title: PairEval HTTP Surface
+  version: 0.1.0
+  description: |
+    Minimal contract for the currently implemented PairEval landing page.
+    Authentication, evaluation, ranking, and persistence APIs are not implemented.
+  license:
+    name: Proprietary
+    url: https://github.com/Bunyakorn-K/sdpx-ultrasmooth
+servers:
+  - url: https://sdpx-ultrasmooth-s1ux.vercel.app
+    description: Recorded staging endpoint; verify before use.
+security: []
+paths:
+  /:
+    get:
+      operationId: getHomepage
+      summary: Render the PairEval landing page
+      description: Returns the HTML landing page for Issue #7.
+      responses:
+        "200":
+          description: Homepage rendered successfully.
+          content:
+            text/html:
+              schema:
+                type: string
+        "404":
+          description: Deployment or route is unavailable.
