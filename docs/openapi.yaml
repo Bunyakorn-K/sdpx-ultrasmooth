@@ -1,10 +1,12 @@
 openapi: 3.0.3
 info:
   title: PairEval HTTP Surface
-  version: 0.1.0
+  version: 0.2.0
   description: |
     Minimal contract for the currently implemented PairEval landing page.
     Authentication, evaluation, ranking, and persistence APIs are not implemented.
+    The /api/test/* paths are test-only helpers backed by an in-memory store;
+    they return 404 in production builds.
   license:
     name: Proprietary
     url: https://github.com/Bunyakorn-K/sdpx-ultrasmooth
@@ -27,3 +29,69 @@ paths:
                 type: string
         "404":
           description: Deployment or route is unavailable.
+  /api/test/seed:
+    post:
+      operationId: seedTestData
+      summary: Replace the in-memory test data set
+      description: |
+        Test-only endpoint backing E2E labs. Accepts a JSON array of records or
+        an object shaped { records: [...] }, assigns sequential string ids, and
+        replaces any previously seeded state.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: array
+                  items:
+                    $ref: "#/components/schemas/SeedRecord"
+                - type: object
+                  required:
+                    - records
+                  properties:
+                    records:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/SeedRecord"
+      responses:
+        "200":
+          description: Seed applied; returns the stored count and items.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SeedRecord"
+        "400":
+          description: Body is not valid JSON or has an unexpected shape.
+        "404":
+          description: Endpoint is disabled in production builds.
+  /api/test/cleanup:
+    post:
+      operationId: cleanupTestData
+      summary: Clear all in-memory test data
+      description: Test-only endpoint; clears every seeded record.
+      responses:
+        "200":
+          description: Store cleared.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cleared:
+                    type: boolean
+        "404":
+          description: Endpoint is disabled in production builds.
+components:
+  schemas:
+    SeedRecord:
+      type: object
+      description: Arbitrary JSON record; the system adds a sequential string id.
+      additionalProperties: true

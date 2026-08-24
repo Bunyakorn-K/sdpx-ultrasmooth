@@ -23,8 +23,9 @@
 
 ## Verification results
 
-- `bun run test`: 2 tests passed; latest observed duration 1.02s.
-- `bun run test:e2e --reporter=line`: 1 Chromium test passed; latest observed duration 1.9s.
-- `bunx tsc --noEmit`: passed with no diagnostics.
-- `bun run build`: compiled successfully.
+- `bun run test`: 5 tests passed; latest observed duration 1.3s on 2026-08-24 (homepage tests plus the new `tests/unit` sanity and test-data store tests).
+- `bun run test:e2e --reporter=line`: 1 Chromium test passed; latest observed duration 1.9s on 2026-08-11.
+- `bunx tsc --noEmit`: passed with no diagnostics; re-passed on 2026-08-24 after the seed/cleanup additions.
+- `bun run build`: compiled successfully; re-run on 2026-08-24 with the new API routes registered as dynamic.
+- `bun run lint:api`: OpenAPI document validated with Redocly CLI.
 - Unit suite stayed below the WS-03 ten-second budget.
