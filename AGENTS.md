@@ -98,9 +98,16 @@ bun install --frozen-lockfile  # install exactly from bun.lock
 bun dev                        # local development server
 bun run lint                   # type-check and OpenAPI schema linting
 bun run test                   # run Vitest unit test suite
+bun run test:coverage          # generate test coverage report
 bun run test:e2e               # run Playwright E2E smoke tests
 bun run build                  # production build and type integration check
 bun run start                  # serve a completed production build
+
+# Docker & Environment Loop (WS-05)
+docker compose up              # run app and database in one command
+docker compose -f compose.test.yaml up unit --abort-on-container-exit --exit-code-from unit
+docker compose -f compose.test.yaml --profile e2e up e2e --abort-on-container-exit --exit-code-from e2e
+docker compose -f compose.test.yaml down -v
 ```
 
 ## Rules for Agents
