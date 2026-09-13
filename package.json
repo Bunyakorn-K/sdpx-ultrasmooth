@@ -8,6 +8,7 @@
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "lint": "tsc --noEmit && redocly lint docs/openapi.yaml",
     "lint:api": "redocly lint docs/openapi.yaml"
