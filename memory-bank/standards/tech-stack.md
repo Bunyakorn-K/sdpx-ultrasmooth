@@ -34,6 +34,7 @@ Date: 21 July 2026
 
 - Platform: Vercel
 - Staging URL: https://sdpx-ultrasmooth-s1ux.vercel.app/
+- Commit-to-live time: 1 นาที 45 วินาที (วัดเมื่อ WS-01)
 
 ## AI Tools
 

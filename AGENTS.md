@@ -96,11 +96,27 @@ The target request flow is: UI → Server Component or TanStack Query → server
 ```bash
 bun install --frozen-lockfile  # install exactly from bun.lock
 bun dev                        # local development server
+bun run lint                   # type-check and OpenAPI schema linting
+bun run test                   # run Vitest unit test suite
+bun run test:coverage          # generate test coverage report
+bun run test:e2e               # run Playwright E2E smoke tests
 bun run build                  # production build and type integration check
 bun run start                  # serve a completed production build
+
+# Docker & Environment Loop (WS-05)
+docker compose up              # run app and database in one command
+docker compose -f compose.test.yaml up unit --abort-on-container-exit --exit-code-from unit
+docker compose -f compose.test.yaml --profile e2e up e2e --abort-on-container-exit --exit-code-from e2e
+docker compose -f compose.test.yaml down -v
 ```
 
-Do not claim lint or tests passed while those scripts do not exist. When adding linting or tests, expose stable `bun run lint` and `bun test` commands in `package.json` and document their scope.
+## Rules for Agents
+
+- ต้องรัน test ให้เขียวก่อนเสนอ diff เสมอ
+- ถ้า test แดง ให้แก้ code — ห้ามแก้หรือลบ test เพื่อให้ผ่าน
+- ห้ามใส่ค่า secret ลงไฟล์ใด ๆ ใช้ env var เท่านั้น
+- ห้ามแก้ `docs/adr/` และ `memory-bank/` โดยไม่ถามก่อน
+- แก้ทีละเรื่อง — diff ที่เกิน ~200 บรรทัดให้หยุดถามก่อน
 
 ## Coding Standards
 

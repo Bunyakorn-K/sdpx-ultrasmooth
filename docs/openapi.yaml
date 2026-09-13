@@ -1,42 +1,233 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: PairEval HTTP Surface
-  version: 0.2.0
+  version: 0.3.0
   description: |
-    Minimal contract for the currently implemented PairEval landing page.
-    Authentication, evaluation, ranking, and persistence APIs are not implemented.
-    The /api/test/* paths are test-only helpers backed by an in-memory store;
-    they return 404 in production builds.
+    API Contract for PairEval university student-evaluation system.
+    Supports roster onboarding, forced-choice pairwise evaluation, score computation,
+    and testing lifecycle endpoints.
   license:
     name: Proprietary
     url: https://github.com/Bunyakorn-K/sdpx-ultrasmooth
 servers:
   - url: https://sdpx-ultrasmooth-s1ux.vercel.app
-    description: Recorded staging endpoint; verify before use.
-security: []
+    description: Staging environment
+  - url: https://sdpx-ultrasmooth.vercel.app
+    description: Production environment
+security:
+  - BearerAuth: []
 paths:
   /:
     get:
       operationId: getHomepage
       summary: Render the PairEval landing page
-      description: Returns the HTML landing page for Issue #7.
+      description: Returns the HTML landing page for Issue #7 (US-01).
+      security: []
       responses:
-        "200":
+        '200':
           description: Homepage rendered successfully.
           content:
             text/html:
               schema:
                 type: string
-        "404":
-          description: Deployment or route is unavailable.
+        '404':
+          description: Route not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/rosters/import:
+    post:
+      operationId: importRosterCsv
+      summary: Import student roster via CSV
+      description: Parses and atomically imports students into classroom groups (US-02).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - classroomId
+                - file
+              properties:
+                classroomId:
+                  type: integer
+                  example: 101
+                file:
+                  type: string
+                  format: binary
+                  description: CSV file with headers student_id,name,email,group_name
+      responses:
+        '201':
+          description: Roster imported successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RosterImportResult'
+        '400':
+          description: Invalid CSV syntax or row format error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/evaluations/pairs:
+    get:
+      operationId: getAssignedPairs
+      summary: Get evaluation pairs for the current student
+      description: Returns the assigned pairwise evaluation pairs for an assignment (US-03).
+      parameters:
+        - name: assignmentId
+          in: query
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: List of evaluation pairs.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - assignmentId
+                  - pairs
+                properties:
+                  assignmentId:
+                    type: integer
+                  pairs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EvaluationPair'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Assignment not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/evaluations/comparisons:
+    post:
+      operationId: submitComparison
+      summary: Submit forced-choice comparison result
+      description: Submits a student evaluation choice on a 6-point forced-choice scale (US-03).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - pairAssignmentId
+                - choice
+              properties:
+                pairAssignmentId:
+                  type: integer
+                  example: 42
+                choice:
+                  type: integer
+                  minimum: 1
+                  maximum: 6
+                  description: 1 (Strongly prefer A) to 6 (Strongly prefer B). No neutral 0.
+                  example: 2
+      responses:
+        '201':
+          description: Comparison recorded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComparisonRecord'
+        '400':
+          description: Invalid choice value outside 1-6 range.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Comparison already submitted for this pair.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/assignments/{id}/scores:
+    get:
+      operationId: getAssignmentScores
+      summary: Calculate and retrieve band-mapped student scores
+      description: Applies Quality Index formula with score floor to calculate final grades (US-04).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Calculated student score reports.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - assignmentId
+                  - scoreFloor
+                  - scoreCeiling
+                  - scores
+                properties:
+                  assignmentId:
+                    type: integer
+                  scoreFloor:
+                    type: number
+                    example: 60.0
+                  scoreCeiling:
+                    type: number
+                    example: 100.0
+                  scores:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StudentScore'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Assignment not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Unprocessable entity due to incomplete evaluation submissions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/test/seed:
     post:
       operationId: seedTestData
       summary: Replace the in-memory test data set
-      description: |
-        Test-only endpoint backing E2E labs. Accepts a JSON array of records or
-        an object shaped { records: [...] }, assigns sequential string ids, and
-        replaces any previously seeded state.
+      description: Test-only helper backing integration and E2E tests. Returns 404 in production.
+      security: []
       requestBody:
         required: true
         content:
@@ -45,7 +236,7 @@ paths:
               oneOf:
                 - type: array
                   items:
-                    $ref: "#/components/schemas/SeedRecord"
+                    $ref: '#/components/schemas/SeedRecord'
                 - type: object
                   required:
                     - records
@@ -53,10 +244,10 @@ paths:
                     records:
                       type: array
                       items:
-                        $ref: "#/components/schemas/SeedRecord"
+                        $ref: '#/components/schemas/SeedRecord'
       responses:
-        "200":
-          description: Seed applied; returns the stored count and items.
+        '200':
+          description: Seed applied; returns stored count and items.
           content:
             application/json:
               schema:
@@ -67,19 +258,28 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: "#/components/schemas/SeedRecord"
-        "400":
-          description: Body is not valid JSON or has an unexpected shape.
-        "404":
-          description: Endpoint is disabled in production builds.
+                      $ref: '#/components/schemas/SeedRecord'
+        '400':
+          description: Invalid request body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Endpoint disabled in production.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/test/cleanup:
     post:
       operationId: cleanupTestData
       summary: Clear all in-memory test data
-      description: Test-only endpoint; clears every seeded record.
+      description: Test-only endpoint; clears all seeded records. Returns 404 in production.
+      security: []
       responses:
-        "200":
-          description: Store cleared.
+        '200':
+          description: Test data store cleared.
           content:
             application/json:
               schema:
@@ -87,11 +287,118 @@ paths:
                 properties:
                   cleared:
                     type: boolean
-        "404":
-          description: Endpoint is disabled in production builds.
+        '404':
+          description: Endpoint disabled in production.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          example: Bad Request
+        message:
+          type: string
+          example: Missing required field or invalid format
+        statusCode:
+          type: integer
+          example: 400
     SeedRecord:
       type: object
       description: Arbitrary JSON record; the system adds a sequential string id.
       additionalProperties: true
+    RosterImportResult:
+      type: object
+      required:
+        - importedCount
+        - classroomId
+      properties:
+        importedCount:
+          type: integer
+          example: 45
+        classroomId:
+          type: integer
+          example: 101
+    EvaluationPair:
+      type: object
+      required:
+        - pairAssignmentId
+        - itemA
+        - itemB
+      properties:
+        pairAssignmentId:
+          type: integer
+          example: 1
+        itemA:
+          type: object
+          required:
+            - id
+            - name
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        itemB:
+          type: object
+          required:
+            - id
+            - name
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+    ComparisonRecord:
+      type: object
+      required:
+        - id
+        - pairAssignmentId
+        - choice
+        - status
+      properties:
+        id:
+          type: integer
+          example: 12
+        pairAssignmentId:
+          type: integer
+          example: 42
+        choice:
+          type: integer
+          example: 2
+        status:
+          type: string
+          example: saved
+    StudentScore:
+      type: object
+      required:
+        - studentId
+        - studentName
+        - qualityIndex
+        - finalScore
+      properties:
+        studentId:
+          type: string
+          example: '67015080'
+        studentName:
+          type: string
+          example: Bunyakorn Ketkeaw
+        qualityIndex:
+          type: number
+          example: 0.82
+        finalScore:
+          type: number
+          example: 92.8
