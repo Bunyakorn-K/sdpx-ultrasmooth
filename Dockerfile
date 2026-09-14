@@ -13,6 +13,7 @@ RUN bun install --frozen-lockfile
 
 # Stage 2: Build the Next.js application
 FROM node:24-alpine AS build
+RUN apk add --no-cache libc6-compat
 # Set working directory for build process
 WORKDIR /app
 # Copy installed dependencies from deps stage

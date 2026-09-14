@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import Head from "next/head";
+import Link from "next/link";
 import { Geist } from "next/font/google";
 import { Button, Card, Chip } from "@heroui/react";
 import { animate, stagger, createScope, type Scope } from "animejs";
@@ -89,9 +90,7 @@ export default function Home() {
               ))}
             </ul>
 
-            <Button variant="primary" size="sm">
-              Sign in
-            </Button>
+            <Link href="/login"><Button variant="solid" color="primary" size="sm">Sign in</Button></Link>
           </nav>
         </header>
 
@@ -135,9 +134,7 @@ export default function Home() {
               </Card.Description>
             </Card.Header>
             <Card.Content className="flex justify-center pb-8">
-              <Chip color="default" variant="soft" size="sm">
-                Coming soon
-              </Chip>
+              <Button as={Link} href="/login" variant="solid" color="primary">Start M1 Demo</Button>
             </Card.Content>
           </Card>
         </main>
