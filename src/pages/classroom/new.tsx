@@ -2,7 +2,7 @@ import { useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { Geist } from "next/font/google";
-import { Button, Card, Input } from "@heroui/react";
+import { Button, Card, } from "@heroui/react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,13 +41,17 @@ export default function CreateClassroom() {
           <Card className="p-8 border border-black/12 shadow-sm dark:border-white/15 dark:bg-zinc-950 mb-6">
             <h2 className="text-xl font-semibold mb-4">Classroom Details</h2>
             <div className="mb-6">
-              <Input 
-                label="Classroom Name" 
-                placeholder="e.g. 2110336 Software Engineering" 
-                value={className}
-                onChange={(e) => setClassName(e.target.value)}
-                isRequired
-              />
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Classroom Name <span className="text-red-500">*</span></label>
+                <input 
+                  type="text"
+                  className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="e.g. 2110336 Software Engineering" 
+                  value={className}
+                  onChange={(e) => setClassName(e.target.value)}
+                  required
+                />
+              </div>
             </div>
 
             <h2 className="text-xl font-semibold mb-4 mt-8">Import Students (CSV)</h2>
@@ -68,8 +72,8 @@ export default function CreateClassroom() {
             </div>
             
             <div className="flex justify-between items-center mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
-              <Button variant="flat" onPress={() => router.push("/")}>Cancel</Button>
-              <Button color="primary" onPress={handleNext}>Continue to Assignment</Button>
+              <Button variant="ghost" onPress={() => router.push("/")}>Cancel</Button>
+              <Button variant="primary" onPress={handleNext}>Continue to Assignment</Button>
             </div>
           </Card>
         </div>

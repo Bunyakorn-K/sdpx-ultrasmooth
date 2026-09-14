@@ -42,13 +42,13 @@ export default function Scores() {
               <h1 className="text-2xl font-bold">Step 3: Evaluation Results</h1>
             </div>
             <Link href="/">
-              <Button variant="flat">Back to Home</Button>
+              <Button variant="ghost">Back to Home</Button>
             </Link>
           </div>
 
           <div className="mb-6 flex gap-4">
-            <Chip variant="flat" color="primary">Classroom: {classroom}</Chip>
-            <Chip variant="flat" color="secondary">Assignment: {assignment}</Chip>
+            <Chip variant="soft" color="accent">Classroom: {classroom}</Chip>
+            <Chip variant="soft" color="default">Assignment: {assignment}</Chip>
           </div>
 
           <Card className="p-0 border border-black/12 shadow-sm dark:border-white/15 dark:bg-zinc-950 overflow-hidden">
@@ -67,7 +67,7 @@ export default function Scores() {
                     <td className="p-4 font-medium">{item.rank}</td>
                     <td className="p-4">{item.name}</td>
                     <td className="p-4 font-bold text-indigo-600 dark:text-indigo-400">{item.score.toFixed(1)} / 10</td>
-                    <td className="p-4"><Chip size="sm" color="success" variant="dot">Evaluated</Chip></td>
+                    <td className="p-4"><Chip size="sm" color="success" variant="soft">Evaluated</Chip></td>
                   </tr>
                 ))}
               

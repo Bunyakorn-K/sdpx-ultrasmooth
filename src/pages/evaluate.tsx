@@ -148,7 +148,7 @@ export default function EvaluateWorkspace() {
           ))}
 
           <div className="flex justify-end mt-8 border-t border-black/10 dark:border-white/10 pt-6">
-            <Button color="primary" size="lg" onPress={handleSubmit} data-testid="submit-evaluation">
+            <Button variant="primary" size="lg" onPress={handleSubmit} data-testid="submit-evaluation">
               Submit Evaluation
             </Button>
           </div>

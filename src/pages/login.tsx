@@ -35,7 +35,7 @@ export default function Login() {
           <p className="text-zinc-500 mb-8">Demo Mode: No password required</p>
           
           <Button 
-            color="primary" 
+            variant="primary" 
             size="lg" 
             className="w-full"
             onPress={handleMockLogin}

@@ -90,7 +90,7 @@ export default function Home() {
               ))}
             </ul>
 
-            <Link href="/login"><Button variant="solid" color="primary" size="sm">Sign in</Button></Link>
+            <Link href="/login"><Button variant="primary" size="sm">Sign in</Button></Link>
           </nav>
         </header>
 
@@ -134,7 +134,7 @@ export default function Home() {
               </Card.Description>
             </Card.Header>
             <Card.Content className="flex justify-center pb-8">
-              <Button as={Link} href="/login" variant="solid" color="primary">Start M1 Demo</Button>
+              <Link href="/login"><Button variant="primary">Start M1 Demo</Button></Link>
             </Card.Content>
           </Card>
         </main>

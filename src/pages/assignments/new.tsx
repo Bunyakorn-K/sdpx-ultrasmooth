@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { Geist } from "next/font/google";
-import { Button, Card, Input } from "@heroui/react";
+import { Button, Card, } from "@heroui/react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -59,22 +59,30 @@ export default function CreateAssignment() {
           <Card className="p-8 border border-black/12 shadow-sm dark:border-white/15 dark:bg-zinc-950 mb-6">
             <h2 className="text-xl font-semibold mb-4">Assignment Details</h2>
             <div className="mb-6">
-              <Input 
-                label="Assignment Name" 
-                placeholder="e.g. Final Project Presentation" 
-                value={assignmentName}
-                onChange={(e) => setAssignmentName(e.target.value)}
-                isRequired
-              />
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Assignment Name <span className="text-red-500">*</span></label>
+                <input 
+                  type="text"
+                  className="w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="e.g. Final Project Presentation" 
+                  value={assignmentName}
+                  onChange={(e) => setAssignmentName(e.target.value)}
+                  required
+                />
+              </div>
             </div>
             
             <div className="mb-6">
-               <Input 
-                 label="Evaluation Criterion"
-                 defaultValue="User Experience"
-                 description="For this demo, we will use a single criterion as per M1 requirements."
-                 isReadOnly
-               />
+               <div className="flex flex-col gap-2">
+                 <label className="text-sm font-medium">Evaluation Criterion</label>
+                 <input 
+                   type="text"
+                   className="w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 px-3 py-2 text-sm text-zinc-500 cursor-not-allowed"
+                   defaultValue="User Experience"
+                   readOnly
+                 />
+                 <span className="text-xs text-zinc-500">For this demo, we will use a single criterion as per M1 requirements.</span>
+               </div>
             </div>
 
             <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg mb-6 border border-indigo-100 dark:border-indigo-800">
@@ -85,11 +93,11 @@ export default function CreateAssignment() {
             </div>
             
             <div className="flex justify-between items-center mt-8 pt-6 border-t border-zinc-200 dark:border-zinc-800">
-              <Button variant="flat" onPress={() => router.back()}>Back</Button>
+              <Button variant="ghost" onPress={() => router.back()}>Back</Button>
               <Button 
-                color="primary" 
+                variant="primary" 
                 onPress={handlePublish}
-                isLoading={isGenerating}
+                isDisabled={isGenerating}
               >
                 {isGenerating ? "Generating Pairs..." : "Publish & Generate Pairs"}
               </Button>
