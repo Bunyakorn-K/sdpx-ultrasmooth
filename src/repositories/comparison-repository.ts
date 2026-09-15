@@ -6,6 +6,9 @@ export interface Comparison {
   itemBId: number;
   choice: number; // 1 to 6
   status: 'draft' | 'saved' | 'submitted';
+  // Present on DB-backed comparisons (see DrizzleComparisonRepository); the
+  // in-memory FakeComparisonRepository used in tests doesn't need it.
+  pairAssignmentId?: number;
 }
 
 export interface ComparisonRepository {
