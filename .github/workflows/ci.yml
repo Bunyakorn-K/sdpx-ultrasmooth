@@ -127,3 +127,26 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+  performance:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run Performance Tests
+        run: k6 run --summary-export=performance/results.json performance/load-test.js
+        env:
+          BASE_URL: ${{ vars.STAGING_URL }}
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: k6-results-${{ github.sha }}
+          path: performance/results.json
