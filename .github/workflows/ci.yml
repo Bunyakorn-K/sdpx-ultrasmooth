@@ -42,7 +42,7 @@ jobs:
       # อย่าลืมแก้คำสั่ง test ใน package.json หรือรันด้วยคำสั่งที่สร้าง JUnit XML
       # เช่น npm test -- --coverage --reporter=junit --outputFile=test-results/unit.xml
       - name: Unit Tests with Coverage
-        run: npm test -- --coverage
+        run: npm test -- --coverage --reporter=junit --outputFile=test-results/unit.xml
 
       - name: Test Summary
         uses: dorny/test-reporter@v3
