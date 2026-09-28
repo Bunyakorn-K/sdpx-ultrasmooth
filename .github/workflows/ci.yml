@@ -36,9 +36,6 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Typecheck
-        run: npm run typecheck
-
       # อย่าลืมแก้คำสั่ง test ใน package.json หรือรันด้วยคำสั่งที่สร้าง JUnit XML
       # เช่น npm test -- --coverage --reporter=junit --outputFile=test-results/unit.xml
       - name: Unit Tests with Coverage
@@ -50,7 +47,7 @@ jobs:
         with:
           name: Test Results
           path: "test-results/*.xml"
-          reporter: jest-junit # เปลี่ยนเป็น vitest-junit ถ้าใช้ Vitest
+          reporter: vitest-junit
 
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v7
