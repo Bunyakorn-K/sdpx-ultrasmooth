@@ -95,6 +95,13 @@ jobs:
 
       - run: npx playwright install --with-deps chromium
 
+      # --- เพิ่ม 2 ขั้นตอนนี้เข้าไปครับ ---
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Run Database Migrations
+        run: npm run db:migrate
+      # --------------------------------
+
       - name: Run E2E Tests
         run: npx playwright test
 
