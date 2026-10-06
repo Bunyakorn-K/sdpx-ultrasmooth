@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">91.66% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/12</span>
+                <span class='fraction'>11/12</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">80% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/5</span>
+                <span class='fraction'>4/5</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">91.66% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/12</span>
+                <span class='fraction'>11/12</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -108,36 +108,36 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// Server-only in-memory store backing the /api/test/* endpoints.
 // Deliberately not a real database: E2E labs need deterministic seed and
@@ -146,13 +146,13 @@
 &nbsp;
 export type SeedRecord = Record&lt;string, unknown&gt;;
 &nbsp;
-const store = <span class="cstat-no" title="statement not covered" >new Map&lt;string, SeedRecord&gt;();</span>
+const store = new Map&lt;string, SeedRecord&gt;();
 &nbsp;
-let nextId = <span class="cstat-no" title="statement not covered" >0;</span>
+let nextId = 0;
 &nbsp;
-function <span class="fstat-no" title="function not covered" >reset() {</span>
-<span class="cstat-no" title="statement not covered" >  store.clear();</span>
-<span class="cstat-no" title="statement not covered" >  nextId = 0;</span>
+function reset() {
+  store.clear();
+  nextId = 0;
 }
 &nbsp;
 // Test-only surface; must never answer in production builds.
@@ -160,22 +160,22 @@ export function <span class="fstat-no" title="function not covered" >isTestDataA
 <span class="cstat-no" title="statement not covered" >  return process.env.NODE_ENV !== "production";</span>
 }
 &nbsp;
-export function <span class="fstat-no" title="function not covered" >seedRecords(r</span>ecords: SeedRecord[]): { count: number; items: SeedRecord[] } {
+export function seedRecords(records: SeedRecord[]): { count: number; items: SeedRecord[] } {
   // Seeding replaces prior state so every E2E run starts identical.
-<span class="cstat-no" title="statement not covered" >  reset();</span>
-<span class="cstat-no" title="statement not covered" >  for (const record of records) {</span>
-    const id = <span class="cstat-no" title="statement not covered" >String(++nextId);</span>
-<span class="cstat-no" title="statement not covered" >    store.set(id, { ...record, id });</span>
+  reset();
+  for (const record of records) {
+    const id = String(++nextId);
+    store.set(id, { ...record, id });
   }
-<span class="cstat-no" title="statement not covered" >  return { count: store.size, items: listRecords() };</span>
+  return { count: store.size, items: listRecords() };
 }
 &nbsp;
-export function <span class="fstat-no" title="function not covered" >listRecords(): SeedRecord[] {</span>
-<span class="cstat-no" title="statement not covered" >  return [...store.values()];</span>
+export function listRecords(): SeedRecord[] {
+  return [...store.values()];
 }
 &nbsp;
-export function <span class="fstat-no" title="function not covered" >clearRecords(): void {</span>
-<span class="cstat-no" title="statement not covered" >  reset();</span>
+export function clearRecords(): void {
+  reset();
 }
 &nbsp;</pre></td></tr></table></pre>
 
@@ -184,7 +184,7 @@ export function <span class="fstat-no" title="function not covered" >clearRecord
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-09-13T10:37:38.059Z
+                at 2026-10-06T07:15:39.301Z
             </div>
         <script src="../prettify.js"></script>
         <script>

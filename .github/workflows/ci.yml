@@ -28,18 +28,23 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
 
       - name: Install dependencies
-        run: npm install
+        run: bun install --frozen-lockfile
 
       - name: Lint
-        run: npm run lint
+        run: bun run lint
 
-      # อย่าลืมแก้คำสั่ง test ใน package.json หรือรันด้วยคำสั่งที่สร้าง JUnit XML
-      # เช่น npm test -- --coverage --reporter=junit --outputFile=test-results/unit.xml
       - name: Unit Tests with Coverage
-        run: npm test -- --coverage --reporter=junit --outputFile=test-results/unit.xml
+        run: bun run test:coverage --reporter=junit --outputFile=test-results/unit.xml
 
       - name: Test Summary
         uses: dorny/test-reporter@v3
@@ -54,7 +59,7 @@ jobs:
         if: always()
         with:
           name: coverage-${{ github.sha }}
-          path: coverage/
+          path: docs/coverage/
 
   e2e-tests:
     needs: lint-and-unit-test
@@ -84,26 +89,28 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-      - run: npm install
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+      - run: bun install --frozen-lockfile
 
       - name: Cache Playwright browsers
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
 
-      - run: npx playwright install --with-deps chromium
+      - run: bunx playwright install --with-deps chromium
 
-      # --- เพิ่ม 2 ขั้นตอนนี้เข้าไปครับ ---
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
       - name: Run Database Migrations
-        run: npm run db:migrate
-      # --------------------------------
+        run: bun run db:migrate
 
       - name: Run E2E Tests
-        run: npx playwright test
+        run: bun run test:e2e
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v7
@@ -112,6 +119,30 @@ jobs:
           name: playwright-report-${{ github.sha }}
           path: playwright-report/
           retention-days: 7
+
+  deploy-staging:
+    needs: [lint-and-unit-test, e2e-tests]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify staging project
+        run: |
+          if [ -z "$VERCEL_PROJECT_ID" ] || [ "$VERCEL_PROJECT_ID" = "$PRODUCTION_PROJECT_ID" ]; then
+            echo "Configure a separate VERCEL_STAGING_PROJECT_ID secret for staging."
+            exit 1
+          fi
+        env:
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_STAGING_PROJECT_ID }}
+          PRODUCTION_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Deploy to Staging
+        run: npx vercel --prod --token "$VERCEL_TOKEN" --yes
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_STAGING_PROJECT_ID }}
 
   deploy-production:
     needs: [lint-and-unit-test, e2e-tests]
@@ -129,9 +160,10 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
   performance:
-    needs: deploy-production
+    needs: deploy-staging
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment: staging
 
     steps:
       - uses: actions/checkout@v7
@@ -139,10 +171,28 @@ jobs:
       - name: Setup k6
         uses: grafana/setup-k6-action@v1
 
+      - name: Wait for staging readiness
+        env:
+          BASE_URL: ${{ vars.STAGING_URL }}
+        run: |
+          if [[ ! "$BASE_URL" =~ ^https:// ]] || [ "${BASE_URL%/}" = "https://sdpx-ultrasmooth.vercel.app" ]; then
+            echo "Set STAGING_URL to the separate HTTPS staging project."
+            exit 1
+          fi
+          for attempt in {1..12}; do
+            if curl --fail --silent --show-error "$BASE_URL/api/health" | grep -q '"status":"ok"'; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Staging did not become ready."
+          exit 1
+
       - name: Run Performance Tests
         run: k6 run --summary-export=performance/results.json performance/load-test.js
         env:
-          BASE_URL: https://sdpx-ultrasmooth.vercel.app
+          BASE_URL: ${{ vars.STAGING_URL }}
+          PERF_TEST_EMAIL: ${{ vars.PERF_TEST_EMAIL }}
 
       - name: Upload Results
         uses: actions/upload-artifact@v7

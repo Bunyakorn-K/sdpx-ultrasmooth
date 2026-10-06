@@ -8,7 +8,7 @@ Source: [Bunyakorn-K/sdpx-ultrasmooth#7](https://github.com/Bunyakorn-K/sdpx-ult
 
 | Requirement | Implemented contract | Evidence |
 | --- | --- | --- |
-| Visitor entering the URL sees the homepage | `src/pages/index.tsx` renders the PairEval landing page at `/` | `tests/e2e/homepage.spec.ts` opens `/` and asserts the visible hero heading and product label |
+| Visitor entering the URL sees the homepage | `src/app/page.tsx` renders the PairEval landing page at `/` | `tests/e2e/specs/smoke.spec.ts` opens `/` and asserts the visible hero heading and product label |
 | Homepage communicates PairEval purpose | Hero heading and `University Evaluation System` label are rendered | `src/features/home/index.test.tsx` |
 | Homepage provides basic navigation | `#home`, `#how-it-works`, and `#about` links plus `Sign in` entry point exist | `src/features/home/index.test.tsx` |
 

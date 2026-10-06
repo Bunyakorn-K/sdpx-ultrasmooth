@@ -3,6 +3,7 @@ import { expect, test } from '../fixtures';
 test.describe('Evaluation Workspace Feature', () => {
   test('evaluator can complete pairwise comparisons', async ({ page }) => {
     await page.goto('/evaluate');
+    await expect(page).toHaveTitle('Workspace — PairEval');
     
     // Check initial state
     await expect(page.getByText('Group Evaluation')).toBeVisible();

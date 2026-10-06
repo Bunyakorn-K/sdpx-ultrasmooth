@@ -1,38 +1,69 @@
-import http from "k6/http";
-import { check, sleep } from "k6";
-import { Rate } from "k6/metrics";
+﻿import http from "k6/http";
+import { check, group, sleep } from "k6";
+import { Rate, Trend } from "k6/metrics";
 
-// Custom metrics
 const errorRate = new Rate("errors");
+const classroomLatency = new Trend("classroom_list_latency", true);
 
 export const options = {
   stages: [
-    { duration: "30s", target: 5 }, // ramp up
-    { duration: "1m", target: 10 }, // steady state
-    { duration: "30s", target: 0 }, // ramp down
+    { duration: "30s", target: 5 },
+    { duration: "1m", target: 10 },
+    { duration: "30s", target: 0 },
   ],
   thresholds: {
-    http_req_duration: ["p(95)<500"], // 95% ของ request ต้องเร็วกว่า 500ms
-    http_req_failed: ["rate<0.01"],   // Error ต้องน้อยกว่า 1%
-    errors: ["rate<0.05"],            // Custom error rate น้อยกว่า 5%
+    http_req_duration: ["p(95)<500"],
+    http_req_failed: ["rate<0.01"],
+    errors: ["rate<0.05"],
+    classroom_list_latency: ["p(95)<300"],
+    "http_req_duration{name:classroom_list}": ["p(95)<300"],
   },
 };
 
-const BASE_URL = __ENV.BASE_URL || "https://sdpx-ultrasmooth.vercel.app";
+const baseUrl = (__ENV.BASE_URL || "").replace(/\/+$/, "");
+const testEmail = __ENV.PERF_TEST_EMAIL;
 
-// โค้ดส่วนนี้คือ User Journey ที่ VU แต่ละตัวจะรันซ้ำๆ
+if (!/^https:\/\//.test(baseUrl) || baseUrl === "https://sdpx-ultrasmooth.vercel.app") {
+  throw new Error("BASE_URL must point to the separate HTTPS staging project.");
+}
+if (!testEmail) {
+  throw new Error("PERF_TEST_EMAIL must identify a staging test account.");
+}
+
 export default function () {
-  // ยิงไปที่หน้าแรกของตัวเว็บ (Homepage) เพื่อเช็คว่าเว็บเข้าได้ปกติไหม
-  const res = http.get(`${BASE_URL}/`);
+  group("Browse and sign in", () => {
+    const home = http.get(`${baseUrl}/`, { tags: { name: "homepage" } });
+    check(home, { "homepage status is 200": (response) => response.status === 200 });
+    errorRate.add(home.status !== 200);
+    sleep(1);
 
-  // ตรวจสอบว่าได้ HTTP Status 200 (OK) กลับมา
-  check(res, {
-    "homepage status is 200": (r) => r.status === 200,
+    const signIn = http.post(
+      `${baseUrl}/api/auth/dev-sign-in`,
+      JSON.stringify({ email: testEmail }),
+      { headers: { "Content-Type": "application/json" }, tags: { name: "sign_in" } },
+    );
+    check(signIn, { "sign-in status is 200": (response) => response.status === 200 });
+    errorRate.add(signIn.status !== 200);
+    sleep(1);
   });
 
-  // บันทึกสถิติ Error ถ้าหน้าเว็บไม่ได้ส่ง 200 กลับมา
-  errorRate.add(res.status !== 200);
+  group("Review classrooms and sign out", () => {
+    const classrooms = http.get(`${baseUrl}/api/classrooms`, { tags: { name: "classroom_list" } });
+    classroomLatency.add(classrooms.timings.duration);
+    check(classrooms, {
+      "classroom list status is 200": (response) => response.status === 200,
+      "classroom list has an array": (response) => {
+        if (response.status !== 200) return false;
+        const body = response.json();
+        return Array.isArray(body.classrooms);
+      },
+    });
+    errorRate.add(classrooms.status !== 200);
+    sleep(1);
 
-  // sleep จำลองเวลาที่ผู้ใช้งานหยุดอ่านหน้าเว็บ (Think time)
-  sleep(1);
+    const signOut = http.post(`${baseUrl}/api/auth/sign-out`, null, { tags: { name: "sign_out" } });
+    check(signOut, { "sign-out status is 200": (response) => response.status === 200 });
+    errorRate.add(signOut.status !== 200);
+    sleep(1);
+  });
 }

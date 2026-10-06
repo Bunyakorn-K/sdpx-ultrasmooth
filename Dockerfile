@@ -5,7 +5,7 @@ RUN apk add --no-cache libc6-compat curl bash
 # Set the container working directory
 WORKDIR /app
 # Install bun globally for fast deterministic lockfile installs
-RUN npm install -g bun@1.2.4
+RUN npm install -g bun@1.3.14
 # Copy dependency manifests first to leverage Docker layer caching
 COPY package.json bun.lock ./
 # Install dependencies using frozen lockfile
@@ -25,7 +25,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Set production node environment for compilation
 ENV NODE_ENV=production
 # Install bun for building with next
-RUN npm install -g bun@1.2.4 && bun run build
+RUN npm install -g bun@1.3.14 && bun run build
 
 # Stage 3: Test runner stage for CI and local verification
 FROM node:24-alpine AS test

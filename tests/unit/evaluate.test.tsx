@@ -1,8 +1,8 @@
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import EvaluateWorkspace from "../../src/pages/evaluate";
+import EvaluateWorkspace from "../../src/features/demo/EvaluateDemo";
 
-vi.mock("next/router", () => ({
+vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), back: vi.fn() }),
 }));
 

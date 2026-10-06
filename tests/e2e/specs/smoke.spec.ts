@@ -13,5 +13,6 @@ test.describe('Homepage Smoke Check', () => {
     await expect(homePage.homeLink).toBeVisible();
     await expect(homePage.howItWorksLink).toBeVisible();
     await expect(homePage.aboutLink).toBeVisible();
+    await expect(page).toHaveTitle('PairEval — Pairwise Student Evaluation');
   });
 });

@@ -10,7 +10,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 PairEval is a university student-evaluation system based on pairwise comparison. A reviewer sees two submissions side by side, selects the stronger one, and the system turns repeated comparisons into a more consistent ranking.
 
-The repository is currently an early landing-page scaffold. Authentication, comparison workflows, ranking logic, persistence, and reviewer dashboards are target capabilities, not implemented features. Do not describe them as working until verified in the live code.
+The repository has a landing page, demo routes, and early database-backed evaluation flows. Authentication is a development cookie stub; Better Auth and Google OAuth remain target capabilities. Describe a feature as working only after verifying it in the live code.
 
 ## Sources of Truth
 
@@ -27,7 +27,7 @@ Surface contradictions instead of silently choosing an interpretation. Keep curr
 
 - Runtime: Next.js 16.2.10 and React 19.2.4.
 - Language: TypeScript 5 in strict, no-emit mode.
-- Router: Pages Router under `src/pages`; `src/pages/index.tsx` is the landing page.
+- Router: App Router under `src/app`; `src/app/page.tsx` is the landing page.
 - Styling: Tailwind CSS 4 through `src/styles/globals.css`.
 - Tooling: Bun is the package manager; `bun.lock` is the canonical lockfile.
 - Configuration: React Compiler and React Strict Mode are enabled.
@@ -51,8 +51,7 @@ These libraries are approved targets but are not currently dependencies. Install
 
 ## Router Transition Rules
 
-- Treat `src/pages` as legacy code that remains supported during migration.
-- Put new routes in `src/app`; do not add new Pages Router routes.
+- Put all new routes in `src/app`; the Pages Router migration is complete.
 - Never define the same URL in both routers.
 - Migrate one complete route at a time, preserving behavior, metadata, loading states, and error handling.
 - Do not delete a legacy route until its App Router replacement has been verified.
@@ -72,7 +71,6 @@ src/components/          Reusable presentation components
 src/features/<feature>/  Feature-owned UI, queries, state, and domain logic
 src/db/                  Drizzle client, schema, and migrations
 src/lib/                 Shared server/client integrations, including auth
-src/pages/               Legacy Pages Router routes during migration
 src/styles/              Global styles
 public/                  Static assets
 memory-bank/             Product decisions and project standards
@@ -155,4 +153,4 @@ A change is complete only when its requested behavior is implemented, relevant e
 
 ## Deployment
 
-Vercel is the deployment platform. The documented production URL is `https://sdpx-ultrasmooth.vercel.app`, and the documented staging URL is `https://sdpx-ultrasmooth-s1ux.vercel.app/`. Run a production build before deployment, use Vercel-managed environment variables, and verify the target URL and critical flows after every release.
+Vercel is the deployment platform. The documented production URL is `https://sdpx-ultrasmooth.vercel.app`. Staging requires a separate Vercel project and its URL in the GitHub `STAGING_URL` variable. Run a production build before deployment, use Vercel-managed environment variables, and verify the target URL and critical flows after every release.

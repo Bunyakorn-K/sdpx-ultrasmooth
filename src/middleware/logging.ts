@@ -1,23 +1,22 @@
-// src/middleware/logging.ts
-import { randomUUID } from 'node:crypto';
-import { logger } from '../lib/logger';
+import { randomUUID } from "node:crypto";
+import { logger } from "#/lib/logger";
 
-export function requestLogger(req: any, res: any, next: any) {
-  const start = Date.now();
-  req.id = req.headers['x-request-id'] ?? randomUUID();
-  res.setHeader('x-request-id', req.id);
+export function getRequestId(request: Request): string {
+  const candidate = request.headers.get("x-request-id");
+  return candidate && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(candidate)
+    ? candidate
+    : randomUUID();
+}
 
-  res.on('finish', () => {
-    logger.info({
-      event: 'http_request',
-      requestId: req.id,
-      method: req.method,
-      path: req.route?.path ?? req.path,
-      statusCode: res.statusCode,
-      duration_ms: Date.now() - start,
-      userId: req.user?.id,
-    });
-  });
+interface RequestLog {
+  requestId: string;
+  method: string;
+  path: string;
+  statusCode: number;
+  durationMs: number;
+  userId?: number;
+}
 
-  if (next) next();
+export function logRequest({ durationMs, ...fields }: RequestLog) {
+  logger.info({ event: "http_request", ...fields, duration_ms: durationMs });
 }

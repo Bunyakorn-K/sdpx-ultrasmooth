@@ -1,5 +1,14 @@
 # Performance Report — WS-07
 
+## Current status
+
+The measurements below are from a failed localhost run on 28 September 2026.
+Every classroom request failed, so the low latency is error-response time, not
+application performance. This is not a valid staging baseline. The current k6
+journey targets the separate staging project and its results must replace this
+report and `performance/baseline.json` after staging is configured and measured.
+Do not use the historical numbers below as a passing performance result.
+
 ## Setup
 
 - Target: Localhost (รออัปเดตเป็น Staging URL ตอนนำไปใช้จริง)

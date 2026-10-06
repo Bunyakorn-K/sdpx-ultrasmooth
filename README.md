@@ -5,28 +5,28 @@
 Instead of scoring each submission on an absolute scale, PairEval asks reviewers a simpler question: **“which of these two is better?”** These pairwise judgments are aggregated into consistent, objective rankings — reducing bias and grading fatigue.
 
 - **Production:** https://sdpx-ultrasmooth.vercel.app
-- **Staging:** https://sdpx-ultrasmooth-s1ux.vercel.app/
+- **Staging:** Separate Vercel project pending; its URL must be set as the GitHub `STAGING_URL` variable.
 
 ## Project Status
 
-PairEval is currently an early landing-page scaffold. The repository is transitioning from its original Pages Router scaffold to the App Router architecture described below. Authentication, persistence, comparison workflows, ranking logic, and reviewer dashboards are planned capabilities and are not implemented yet.
+PairEval now uses the App Router for every route. The landing page and demo flow are available, alongside early database-backed classroom and evaluation flows. Sign-in still uses a development cookie stub; Better Auth and Google OAuth are planned.
 
 ## Tech Stack
 
 | Layer | Choice | Status |
 | --- | --- | --- |
-| Framework | [Next.js](https://nextjs.org) 16 App Router | Migration target |
+| Framework | [Next.js](https://nextjs.org) 16 App Router | Active |
 | Language | TypeScript | Installed |
 | Styling | Tailwind CSS v4 | Installed |
-| Backend | Next.js Route Handlers and server-side modules | Planned |
-| Database | PostgreSQL on [Supabase](https://supabase.com) with Drizzle ORM | Planned |
+| Backend | Next.js Route Handlers and server-side modules | Active |
+| Database | PostgreSQL with Drizzle ORM; Supabase hosting is a deployment target | Active locally |
 | Auth | Better Auth with Google OAuth | Planned |
 | Server state | TanStack Query | Planned |
 | Client state | Jotai | Planned |
 | Utilities | Remeda | Planned |
 | Deployment | [Vercel](https://vercel.com) | Active |
 
-Only Next.js, React, TypeScript, and Tailwind CSS are currently installed. Planned libraries will be added when their corresponding features are implemented.
+See `package.json` and `bun.lock` for installed libraries. Planned libraries will be added when their corresponding features are implemented.
 
 ## Getting Started
 
@@ -44,7 +44,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 
 ### Environment Variables
 
-The current landing page does not require application environment variables. Database and authentication variables will be documented in `.env.example` when those integrations are implemented. Never commit real credentials.
+The landing page does not need environment variables. Database-backed routes require `DATABASE_URL`; see `.env.example` for placeholders. Never commit real credentials.
 
 ## Scripts
 
@@ -54,37 +54,14 @@ The current landing page does not require application environment variables. Dat
 | `bun run build` | Build for production |
 | `bun run start` | Run the production build |
 
-No lint or automated test scripts are configured yet.
+Run `bun run lint`, `bun run test`, `bun run test:coverage`, and `bun run test:e2e` for the current quality gates.
 
-## App Router Migration
+## App Router
 
-New product routes belong in `src/app`. The current landing page remains under `src/pages` until it is migrated and verified; do not define the same URL in both routers.
-
-### Current Structure
-
-```text
-src/
-├── pages/            # Legacy routes during migration
-│   ├── _app.tsx      # App wrapper — global CSS & shared providers
-│   ├── _document.tsx # Custom HTML document
-│   ├── index.tsx     # Landing page
-│   └── api/          # Legacy API routes
-└── styles/
-    └── globals.css   # Tailwind entry & global styles
-```
-
-### Target Structure
-
-```text
-src/
-├── app/                 # App Router routes, layouts, and route handlers
-├── components/          # Reusable presentation components
-├── features/<feature>/  # Feature-owned UI, queries, state, and domain logic
-├── db/                  # Drizzle client, schema, and migrations
-├── lib/                 # Shared integrations, including Better Auth
-├── pages/               # Removed after route migration is complete
-└── styles/              # Global styles
-```
+All application routes, including the landing page at `/`, live in `src/app`.
+The interactive landing page is in `src/features/home`; the legacy demo flow
+uses client components in `src/features/demo`. The root layout imports
+`src/styles/globals.css`.
 
 Imports use the `#/*` path alias, which maps to `src/*`, for example `import "#/styles/globals.css"`.
 
