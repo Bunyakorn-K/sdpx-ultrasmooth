@@ -26,7 +26,7 @@
 - **Fixtures:** src/lib/test-data.ts in-memory test data store พร้อม endpoint /api/test/seed และ /api/test/cleanup
 - **Boundary Mocks:** 
 ext/head, 
-ext/font/google, nimejs
+ext/font/google, animejs
 
 ## Fidelity Check (WS-03)
 
@@ -38,7 +38,7 @@ ext/font/google, nimejs
 
 ## Verification Results
 
-- un run test: 11 tests passed across 4 test files (duration ~2.4s, well below the 10s budget).
-- un run test:coverage: generated HTML and JSON coverage reports in docs/coverage/.
-- un run lint: passed type check and Redocly OpenAPI validation.
-- un run build: Next.js production build succeeded.
+- bun run test: 11 tests passed across 4 test files (duration ~2.4s, well below the 10s budget).
+- bun run test:coverage: generated HTML and JSON coverage reports in docs/coverage/.
+- bun run lint: passed type check and Redocly OpenAPI validation.
+- bun run build: Next.js production build succeeded.

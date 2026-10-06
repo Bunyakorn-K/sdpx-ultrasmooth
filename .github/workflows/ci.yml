@@ -9,7 +9,7 @@ on:
 permissions:
   contents: read
   actions: read
-  checks: write # จำเป็นสำหรับ dorny/test-reporter ในการสร้าง Test Summary
+  checks: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
