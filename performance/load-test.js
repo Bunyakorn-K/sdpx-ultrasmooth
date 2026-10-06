@@ -18,7 +18,7 @@ export const options = {
   },
 };
 
-const BASE_URL = __ENV.BASE_URL || "https://sdpx-ultrasmooth-s1ux.vercel.app";
+const BASE_URL = __ENV.BASE_URL || "https://sdpx-ultrasmooth.vercel.app";
 
 // โค้ดส่วนนี้คือ User Journey ที่ VU แต่ละตัวจะรันซ้ำๆ
 export default function () {

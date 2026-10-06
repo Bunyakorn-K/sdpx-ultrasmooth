@@ -113,23 +113,23 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
-  deploy-staging:
+  deploy-production:
     needs: [lint-and-unit-test, e2e-tests]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment: staging
+    environment: production
 
     steps:
       - uses: actions/checkout@v7
-      - name: Deploy to Staging
-        run: npx vercel --token "$VERCEL_TOKEN" --yes
+      - name: Deploy to Production
+        run: npx vercel --prod --token "$VERCEL_TOKEN" --yes
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
   performance:
-    needs: deploy-staging
+    needs: deploy-production
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 
@@ -142,7 +142,7 @@ jobs:
       - name: Run Performance Tests
         run: k6 run --summary-export=performance/results.json performance/load-test.js
         env:
-          BASE_URL: ${{ vars.STAGING_URL }}
+          BASE_URL: https://sdpx-ultrasmooth.vercel.app
 
       - name: Upload Results
         uses: actions/upload-artifact@v7
