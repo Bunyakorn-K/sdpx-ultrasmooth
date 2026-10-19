@@ -4,12 +4,16 @@ import Link from "next/link";
 import { ManagedAuthForm } from "#/features/auth/ManagedAuthForm";
 import { devAuthEnabled } from "#/lib/auth-policy";
 import { getAuth } from "#/lib/neon-auth";
+import { getCurrentUser } from "#/lib/auth";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 
-export default function SignInPage() {
+export default async function SignInPage() {
+  // A live session skips the form; getCurrentUser validates it, so a stale cookie cannot loop.
+  if (await getCurrentUser()) redirect("/classrooms");
   if (!devAuthEnabled()) return <main className="flex min-h-screen flex-col items-center justify-center gap-7 bg-[#f5fbf8] px-6 py-16 text-slate-800">
     <Link href="/" className="font-serif text-3xl italic text-emerald-800">PairEval.</Link>
     <div className="text-center"><p className="mb-3 text-xs uppercase tracking-[0.2em]">Welcome back</p>
