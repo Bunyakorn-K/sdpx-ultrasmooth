@@ -521,10 +521,53 @@ paths:
                       name: { type: [string, 'null'] }
                       role: { type: string, enum: [teacher, student] }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/assignments:
+    get:
+      operationId: listMyAssignments
+      summary: Assignments the caller can open; joinCode only for the teacher
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assignments:
+                    type: array
+                    items: { $ref: '#/components/schemas/AssignmentSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      operationId: createStandaloneAssignment
+      summary: Create an assignment with its own join code (teachers only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 200 }
+                deadlineUtc: { type: ['string', 'null'], format: date-time }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/Assignment' }
+                  - type: object
+                    properties:
+                      joinCode: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: Only teachers create assignments. }
   /api/classrooms/join:
     post:
       operationId: joinClassroom
-      summary: Join a classroom using its invitation code (AC-CLASS-01)
+      summary: Join an assignment with its join code (the code of its hidden classroom)
       requestBody:
         required: true
         content:
@@ -543,6 +586,7 @@ paths:
                 type: object
                 properties:
                   classroomId: { type: integer }
+                  assignmentId: { type: ['integer', 'null'], description: The assignment to open next }
         '400': { description: Invalid invitation code. }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { description: Only students may join classrooms. }
@@ -728,6 +772,16 @@ components:
         status: { type: string, enum: [DRAFT, PUBLISHED] }
         groupMaxScore: { type: string }
         deadlineUtc: { type: ['string', 'null'], format: date-time }
+    AssignmentSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        status: { type: string, enum: [DRAFT, PUBLISHED] }
+        deadlineUtc: { type: ['string', 'null'], format: date-time }
+        classroomId: { type: integer }
+        role: { type: string, enum: [INSTRUCTOR, STUDENT] }
+        joinCode: { type: string, description: Present only for the teacher }
     VotingReadiness:
       type: object
       properties:

@@ -28,10 +28,10 @@ export default async function EvaluatePage({
   return (
     <PageShell maxWidth="max-w-2xl">
       <Link
-        href={`/classrooms/${classroomId}`}
+        href={`/classrooms/${classroomId}/assignments/${assignmentId}/groups`}
         className="text-xs text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400"
       >
-        ← Back to classroom
+        ← Back to groups
       </Link>
       <RatingWorkspace assignmentId={assignmentId} />
     </PageShell>

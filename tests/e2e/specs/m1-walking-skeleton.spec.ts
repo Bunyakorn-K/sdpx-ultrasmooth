@@ -4,13 +4,13 @@ import { expect, test } from '@playwright/test';
 // Postgres (no fixture DB/seeding here — see docs/erd.md note on why:
 // Docker isn't available on this dev machine, so there's no ephemeral test
 // database to reset between runs yet; each run creates its own uniquely
-// named classroom/assignment/emails so it doesn't collide with prior runs).
+// named assignment/emails so it doesn't collide with prior runs).
 //
 // Note: waits use 'load', not 'networkidle' — Next's dev-mode HMR keeps a
 // persistent WebSocket open, so 'networkidle' never actually fires and just
 // hangs until its own timeout.
 test.describe('M1 walking skeleton', () => {
-  test('login → classroom → CSV import → assignment → questions → groups → start voting → rate → see results', async ({ page }) => {
+  test('login → assignment → join code → questions → groups → start voting → rate → see results', async ({ page }) => {
     test.setTimeout(60_000);
     const suffix = Math.random().toString(36).slice(2, 8);
     const instructorEmail = `instructor-${suffix}@e2e.test`;
@@ -23,36 +23,29 @@ test.describe('M1 walking skeleton', () => {
     await page.getByRole('button', { name: 'Sign in' }).click();
     await expect(page).toHaveURL(/\/classrooms$/, { timeout: 15_000 });
 
-    // 2. Create classroom
-    await page.getByRole('link', { name: 'New classroom' }).click();
-    const classroomName = `E2E Classroom ${suffix}`;
-    await page.getByPlaceholder('CS491 - Senior Project').fill(classroomName);
-    await page.getByRole('button', { name: 'Create classroom' }).click();
-    await expect(page.getByRole('heading', { name: classroomName })).toBeVisible({ timeout: 15_000 });
-
-    const classroomId = page.url().match(/classrooms\/(\d+)/)?.[1];
-    expect(classroomId).toBeTruthy();
-
-    // 3. Import roster CSV — FR-CLASS-01/02/03
-    const csv = [
-      'email,group_name,display_name',
-      ...studentEmails.map((email, i) => `${email},Group ${Math.floor(i / 2) + 1},Student ${i + 1}`),
-    ].join('\n');
-
-    await page.setInputFiles('input[type="file"]', {
-      name: 'roster.csv',
-      mimeType: 'text/csv',
-      buffer: Buffer.from(csv),
-    });
-    await page.getByRole('button', { name: 'Import' }).click();
-    await expect(page.getByText(/Imported 6 students/)).toBeVisible({ timeout: 15_000 });
-
-    // 4. Create assignment (single criterion, group side only — M1 scope)
+    // 2. Create an assignment directly (no classroom step)
     const assignmentName = `Milestone ${suffix}`;
-    await page.getByPlaceholder('New assignment name').fill(assignmentName);
-    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    await page.getByLabel('Assignment name').fill(assignmentName);
+    await page.getByRole('button', { name: 'Create assignment' }).click();
     await expect(page).toHaveURL(/\/assignments\/\d+$/, { timeout: 15_000 });
-    const assignmentId = page.url().match(/assignments\/(\d+)/)?.[1];
+    const [, classroomId, assignmentId] = page.url().match(/classrooms\/(\d+)\/assignments\/(\d+)/) ?? [];
+    expect(assignmentId).toBeTruthy();
+    const joinCode = await page.locator('code').first().textContent();
+    expect(joinCode).toBeTruthy();
+
+    // 3. Seed student accounts. Under dev auth a brand-new account counts as a
+    // teacher, so students come from the roster boundary before joining by code.
+    const csv = ['email,group_name,display_name', ...studentEmails.map((email, i) => `${email},Roster,Student ${i + 1}`)].join('\n');
+    expect((await page.request.post(`/api/classrooms/${classroomId}/roster/import`, {
+      multipart: { file: { name: 'roster.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) } },
+    })).ok()).toBeTruthy();
+
+    // 4. The join code leads a student to this assignment
+    await page.request.post('/api/auth/dev-sign-in', { data: { email: studentEmails[0] } });
+    const joined = await (await page.request.post('/api/classrooms/join', { data: { code: joinCode } })).json();
+    expect(String(joined.assignmentId)).toBe(assignmentId);
+    await page.request.post('/api/auth/dev-sign-in', { data: { email: instructorEmail } });
+    await page.goto(`/classrooms/${classroomId}/assignments/${assignmentId}`);
 
     // 5. Add a 5-point question
     await page.getByPlaceholder('e.g. How clear was the presentation?').fill('How clear was the work?');

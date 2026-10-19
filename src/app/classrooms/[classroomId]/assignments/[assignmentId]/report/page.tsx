@@ -31,7 +31,7 @@ export default async function ReportPage({
       <h1 className="font-serif text-3xl">Participation</h1>
       <p>{participation.submitted} / {participation.assigned} scores given</p>
       <p className="text-sm text-slate-500">Group score and voting results are visible only to your teacher.</p>
-      <Link href={`/classrooms/${classroomId}`} className="text-emerald-800 underline">Back to classroom</Link>
+      <Link href={`/classrooms/${classroomId}/assignments/${assignmentId}/groups`} className="text-emerald-800 underline">Back to groups</Link>
     </PageShell>;
   }
 
@@ -39,10 +39,10 @@ export default async function ReportPage({
     <PageShell maxWidth="max-w-2xl">
       <div className="rounded-xl border border-black/10 bg-white px-4 py-3 dark:border-white/12 dark:bg-zinc-950">
         <Link
-          href={`/classrooms/${classroomId}`}
+          href={`/classrooms/${classroomId}/assignments/${assignmentId}`}
           className="text-xs text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400"
         >
-          ← Back to classroom
+          ← Back to assignment
         </Link>
         <h1 className="text-xl font-semibold">PairEval: {assignment.name} — สรุปคะแนน</h1>
       </div>

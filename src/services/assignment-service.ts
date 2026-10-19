@@ -1,7 +1,7 @@
-import { and, count, eq } from "drizzle-orm";
+import { and, asc, count, eq } from "drizzle-orm";
 
 import { db, type DbClient } from "#/db/client";
-import { assignments, criteria, groupEntities } from "#/db/schema";
+import { assignments, classroomMembers, classrooms, criteria, groupEntities } from "#/db/schema";
 import { uniqueSlug } from "#/lib/slug";
 import { votingReadiness } from "#/services/voting-readiness";
 
@@ -20,6 +20,39 @@ export async function createAssignment(
     createdBy: userId,
   }).returning();
   return assignment;
+}
+
+/**
+ * Teachers create assignments directly. Each one gets its own hidden
+ * classroom, whose slug is the join code, so membership and permission checks
+ * keep working unchanged.
+ */
+export async function createStandaloneAssignment(userId: number, input: { name: string; deadlineUtc?: string | null }) {
+  return db.transaction(async (tx) => {
+    const [classroom] = await tx.insert(classrooms)
+      .values({ name: input.name, slug: uniqueSlug(input.name), createdBy: userId }).returning();
+    await tx.insert(classroomMembers).values({ classroomId: classroom.id, userId, role: "INSTRUCTOR" });
+    const [assignment] = await tx.insert(assignments).values({
+      classroomId: classroom.id,
+      name: input.name,
+      slug: uniqueSlug(input.name),
+      deadlineUtc: input.deadlineUtc ? new Date(input.deadlineUtc) : null,
+      createdBy: userId,
+    }).returning();
+    return { ...assignment, joinCode: classroom.slug };
+  });
+}
+
+/** Every assignment the user can open, through any classroom they belong to. */
+export async function listMyAssignments(userId: number) {
+  return db.select({
+    id: assignments.id, name: assignments.name, status: assignments.status, deadlineUtc: assignments.deadlineUtc,
+    classroomId: assignments.classroomId, role: classroomMembers.role, joinCode: classrooms.slug,
+  }).from(classroomMembers)
+    .innerJoin(classrooms, eq(classrooms.id, classroomMembers.classroomId))
+    .innerJoin(assignments, eq(assignments.classroomId, classroomMembers.classroomId))
+    .where(eq(classroomMembers.userId, userId))
+    .orderBy(asc(assignments.createdAt));
 }
 
 export async function listAssignments(classroomId: number) {
