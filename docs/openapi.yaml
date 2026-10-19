@@ -276,10 +276,10 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
-  /api/assignments/{assignmentId}/feasibility:
+  /api/assignments/{assignmentId}/readiness:
     get:
-      operationId: getFeasibility
-      summary: Pairing feasibility, computed on demand (PRD Â§8.2)
+      operationId: getVotingReadiness
+      summary: Whether voting can start (instructor only)
       parameters:
         - $ref: '#/components/parameters/AssignmentId'
       responses:
@@ -290,25 +290,107 @@ paths:
               schema:
                 type: object
                 properties:
-                  feasibility: { $ref: '#/components/schemas/Feasibility' }
-  /api/assignments/{assignmentId}/publish:
-    post:
-      operationId: publishAssignment
-      summary: Generate and persist pairs; DRAFT â†’ PUBLISHED
+                  readiness: { $ref: '#/components/schemas/VotingReadiness' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/assignments/{assignmentId}/questions:
+    get:
+      operationId: listQuestions
+      summary: Voting questions, each scored 1-5 per group
       parameters:
         - $ref: '#/components/parameters/AssignmentId'
       responses:
         '200':
-          description: Published.
+          description: OK
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  feasibility: { $ref: '#/components/schemas/Feasibility' }
-                  published: { type: boolean }
+                  questions:
+                    type: array
+                    items: { $ref: '#/components/schemas/Question' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      operationId: addQuestion
+      summary: Add a voting question (instructor, before voting starts)
+      parameters:
+        - $ref: '#/components/parameters/AssignmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, minLength: 1, maxLength: 300 }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Question' }
+        '400':
+          description: Invalid question text.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Voting has already started.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+    delete:
+      operationId: deleteQuestion
+      summary: Remove a voting question (instructor, before voting starts)
+      parameters:
+        - $ref: '#/components/parameters/AssignmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [questionId]
+              properties:
+                questionId: { type: integer }
+      responses:
+        '204':
+          description: Deleted.
+        '400':
+          description: Invalid question ID.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Voting has already started.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+  /api/assignments/{assignmentId}/publish:
+    post:
+      operationId: startVoting
+      summary: Start voting; DRAFT -> PUBLISHED
+      parameters:
+        - $ref: '#/components/parameters/AssignmentId'
+      responses:
+        '200':
+          description: Voting started.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  readiness: { $ref: '#/components/schemas/VotingReadiness' }
+                  started: { type: boolean }
         '422':
-          description: Infeasible â€” no pairs generated.
+          description: Not ready - needs at least 1 question and 2 groups.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
@@ -652,15 +734,18 @@ components:
         status: { type: string, enum: [DRAFT, PUBLISHED] }
         groupMaxScore: { type: string }
         deadlineUtc: { type: ['string', 'null'], format: date-time }
-    Feasibility:
+    VotingReadiness:
       type: object
       properties:
-        feasible: { type: boolean }
-        totalPairs: { type: integer }
-        coverageUsed: { type: integer }
-        workloadPerEvaluator: { type: integer }
-        reduced: { type: boolean }
+        ready: { type: boolean }
+        questionCount: { type: integer }
+        groupCount: { type: integer }
         message: { type: string }
+    Question:
+      type: object
+      properties:
+        id: { type: integer }
+        text: { type: string }
     EvaluationPair:
       type: object
       properties:

@@ -1,6 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "#/db/client";
-import { assignmentGroupMembers, assignments, classroomMembers, classrooms, comparisons, criteria, groupEntities, pairAssignments } from "#/db/schema";
+import { assignmentGroupMembers, assignments, classroomMembers, classrooms, comparisons, criteria, groupEntities, pairAssignments, ratings } from "#/db/schema";
 
 export async function deleteClassroom(classroomId: number, ownerId: number) {
   return db.transaction(async (tx) => {
@@ -13,6 +13,7 @@ export async function deleteClassroom(classroomId: number, ownerId: number) {
     const pairIds = tx.select({ id: pairAssignments.id }).from(pairAssignments).where(inArray(pairAssignments.assignmentId, assignmentIds));
     await tx.delete(comparisons).where(inArray(comparisons.pairAssignmentId, pairIds));
     await tx.delete(pairAssignments).where(inArray(pairAssignments.assignmentId, assignmentIds));
+    await tx.delete(ratings).where(inArray(ratings.assignmentId, assignmentIds));
     await tx.delete(criteria).where(inArray(criteria.assignmentId, assignmentIds));
     await tx.delete(assignmentGroupMembers).where(inArray(assignmentGroupMembers.assignmentId, assignmentIds));
     await tx.delete(classroomMembers).where(eq(classroomMembers.classroomId, classroomId));

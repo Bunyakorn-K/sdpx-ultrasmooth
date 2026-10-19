@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 
 import { apiError, notFound, unauthorized } from "#/lib/api-error";
 import { getClassroomRole, getCurrentUser } from "#/lib/auth";
-import { AssignmentNotDraftError, getAssignment, publishAssignment } from "#/services/assignment-service";
+import { AssignmentNotDraftError, getAssignment, startVoting } from "#/services/assignment-service";
 
+// Starts voting. The route keeps its original name; status PUBLISHED means voting is open.
 export async function POST(_request: Request, { params }: { params: Promise<{ assignmentId: string }> }) {
   const { assignmentId: assignmentIdParam } = await params;
   const assignmentId = Number(assignmentIdParam);
@@ -18,9 +19,9 @@ export async function POST(_request: Request, { params }: { params: Promise<{ as
   if (role !== "INSTRUCTOR") return notFound("Assignment not found.");
 
   try {
-    const result = await publishAssignment(assignmentId);
-    if (!result.published) {
-      return apiError(422, "INFEASIBLE", result.feasibility.message, result.feasibility);
+    const result = await startVoting(assignmentId);
+    if (!result.started) {
+      return apiError(422, "NOT_READY", result.readiness.message, result.readiness);
     }
     return NextResponse.json(result);
   } catch (error) {
