@@ -8,7 +8,6 @@ interface RosterRow {
   email: string;
   status: "PENDING" | "ACTIVE";
   lastLoginAt: string | null;
-  groupName: string | null;
 }
 
 export interface RosterTableHandle {
@@ -38,11 +37,7 @@ export const RosterTable = forwardRef<RosterTableHandle, { classroomId: number }
   const filtered = (roster ?? []).filter((row) => {
     const needle = search.trim().toLowerCase();
     if (!needle) return true;
-    return (
-      row.email.toLowerCase().includes(needle) ||
-      (row.displayName ?? "").toLowerCase().includes(needle) ||
-      (row.groupName ?? "").toLowerCase().includes(needle)
-    );
+    return row.email.toLowerCase().includes(needle) || (row.displayName ?? "").toLowerCase().includes(needle);
   });
 
   return (
@@ -58,11 +53,10 @@ export const RosterTable = forwardRef<RosterTableHandle, { classroomId: number }
         />
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[480px] text-left text-sm">
+        <table className="w-full min-w-[400px] text-left text-sm">
           <thead>
             <tr className="border-b border-black/10 text-xs uppercase tracking-wide text-zinc-500 dark:border-white/12">
               <th className="py-2 pr-4">Name</th>
-              <th className="py-2 pr-4">Group</th>
               <th className="py-2 pr-4">Status</th>
               <th className="py-2">Last active</th>
             </tr>
@@ -70,14 +64,14 @@ export const RosterTable = forwardRef<RosterTableHandle, { classroomId: number }
           <tbody>
             {roster === null && (
               <tr>
-                <td colSpan={4} className="py-4 text-zinc-500">
+                <td colSpan={3} className="py-4 text-zinc-500">
                   Loading…
                 </td>
               </tr>
             )}
             {roster !== null && filtered.length === 0 && (
               <tr>
-                <td colSpan={4} className="py-4 text-zinc-500">
+                <td colSpan={3} className="py-4 text-zinc-500">
                   No students yet — import a roster CSV above.
                 </td>
               </tr>
@@ -88,7 +82,6 @@ export const RosterTable = forwardRef<RosterTableHandle, { classroomId: number }
                   <div className="font-medium">{row.displayName ?? row.email}</div>
                   <div className="text-xs text-zinc-500">{row.email}</div>
                 </td>
-                <td className="py-2 pr-4">{row.groupName ?? "—"}</td>
                 <td className="py-2 pr-4">
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${
