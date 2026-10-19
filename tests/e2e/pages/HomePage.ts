@@ -4,6 +4,8 @@ export class HomePage {
   readonly heading: Locator;
   readonly universityLabel: Locator;
   readonly signInButton: Locator;
+  readonly brandLink: Locator;
+  readonly createAccountLink: Locator;
   readonly homeLink: Locator;
   readonly howItWorksLink: Locator;
   readonly aboutLink: Locator;
@@ -14,6 +16,9 @@ export class HomePage {
     });
     this.universityLabel = page.getByText('University Evaluation System');
     this.signInButton = page.getByRole('button', { name: /sign in/i });
+    const navigation = page.getByRole('navigation', { name: 'Main' });
+    this.brandLink = navigation.getByRole('link', { name: 'PairEval.' });
+    this.createAccountLink = navigation.getByRole('link', { name: 'Create account' });
     this.homeLink = page.getByRole('link', { name: 'Home', exact: true });
     this.howItWorksLink = page.getByRole('link', { name: 'How it works', exact: true });
     this.aboutLink = page.getByRole('link', { name: 'About', exact: true });

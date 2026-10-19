@@ -1,107 +1,85 @@
-# PairEval
+﻿# PairEval
 
-> A university student-evaluation system built on pairwise comparison.
+PairEval supports two roles, **teacher** and **student**, for assignment-based
+group work and pairwise voting. Teachers create classrooms and assignments,
+students enroll in assignment groups, and only classroom teachers can read results.
+The landing page follows `public/design.jpg` with a light, pastel editorial style.
 
-Instead of scoring each submission on an absolute scale, PairEval asks reviewers a simpler question: **“which of these two is better?”** These pairwise judgments are aggregated into consistent, objective rankings — reducing bias and grading fatigue.
+## Current implementation
 
-- **Production:** https://sdpx-ultrasmooth.vercel.app
-- **Staging:** https://sdpx-ultrasmooth-s1ux.vercel.app/
+- Next.js 16.4.2 / React 19.2.4 / strict TypeScript / Tailwind 4.
+- Existing landing and demo routes use Pages Router; product routes use App Router.
+- Drizzle ORM and the existing `postgres` driver own the application schema.
+- Managed Better Auth is integrated through Neon's SDK. Live provisioning and
+  real signup verification still require an authenticated Neon project.
+- `INSTRUCTOR` remains the database spelling of teacher; no admin role exists.
+- TanStack Query, Jotai, and Remeda are future options, not installed features.
 
-## Project Status
-
-PairEval is currently an early landing-page scaffold. The repository is transitioning from its original Pages Router scaffold to the App Router architecture described below. Authentication, persistence, comparison workflows, ranking logic, and reviewer dashboards are planned capabilities and are not implemented yet.
-
-## Tech Stack
-
-| Layer | Choice | Status |
-| --- | --- | --- |
-| Framework | [Next.js](https://nextjs.org) 16 App Router | Migration target |
-| Language | TypeScript | Installed |
-| Styling | Tailwind CSS v4 | Installed |
-| Backend | Next.js Route Handlers and server-side modules | Planned |
-| Database | PostgreSQL on [Supabase](https://supabase.com) with Drizzle ORM | Planned |
-| Auth | Better Auth with Google OAuth | Planned |
-| Server state | TanStack Query | Planned |
-| Client state | Jotai | Planned |
-| Utilities | Remeda | Planned |
-| Deployment | [Vercel](https://vercel.com) | Active |
-
-Only Next.js, React, TypeScript, and Tailwind CSS are currently installed. Planned libraries will be added when their corresponding features are implemented.
-
-## Getting Started
-
-Install [Bun](https://bun.sh) before starting; `bun.lock` is the canonical lockfile.
+## Run locally
 
 ```bash
-# 1. Install dependencies
 bun install --frozen-lockfile
-
-# 2. Run the development server
+docker compose up -d db
+# Inject environment variables from your secret manager/runtime.
+bun run db:migrate
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the app.
+Open http://localhost:3000. See `.env.example` for variable names and
+[Neon setup](docs/neon-setup.md) for secret-free provisioning and live verification.
+`DATABASE_URL_UNPOOLED` is preferred for migrations. New users are students;
+`TEACHER_AUTH_IDS` controls teacher eligibility on the server. A teacher creates
+and shares a classroom invitation code; students join and choose/create groups
+before voting is published. Existing roster CSV import remains available.
 
-### Environment Variables
+`bun dev` enables local fixture sign-in by default and binds to 127.0.0.1.
+At `/sign-in`, choose **Use Teacher** or **Use Student** (no password).
+This creates `teacher@paireval.test`, `student@paireval.test`, and their shared
+**Development classroom** on first use. Data persists in your local database;
+groups are still created only within an assignment. Start the local database
+above and apply migrations using its connection settings from `.env.example`.
+Set `ENABLE_DEV_AUTH=0` at runtime to use managed Neon Auth instead.
 
-The current landing page does not require application environment variables. Database and authentication variables will be documented in `.env.example` when those integrations are implemented. Never commit real credentials.
+Never save real credentials in project files, logs, screenshots, or Git. The
+non-production `ENABLE_DEV_AUTH=1` fixture mode is only for disposable
+local regression databases; it preserves historical demo identity behavior and
+is not a managed Auth test or a safe shared deployment configuration.
 
-## Scripts
+## Verification
 
-| Command | Description |
-| --- | --- |
-| `bun dev` | Start the development server |
-| `bun run build` | Build for production |
-| `bun run start` | Run the production build |
-
-No lint or automated test scripts are configured yet.
-
-## App Router Migration
-
-New product routes belong in `src/app`. The current landing page remains under `src/pages` until it is migrated and verified; do not define the same URL in both routers.
-
-### Current Structure
-
-```text
-src/
-├── pages/            # Legacy routes during migration
-│   ├── _app.tsx      # App wrapper — global CSS & shared providers
-│   ├── _document.tsx # Custom HTML document
-│   ├── index.tsx     # Landing page
-│   └── api/          # Legacy API routes
-└── styles/
-    └── globals.css   # Tailwind entry & global styles
+```bash
+bun run test
+bun run lint
+bun run build
+bun run test:coverage
+bun run test:e2e
+# Disposable database named paireval_test, with ALLOW_TEST_DATABASE=1:
+bun run test:workflows
+# Real managed Auth, configured app, verification-ready test mailbox if required:
+bun run test:auth:live
 ```
 
-### Target Structure
+Historical browser tests require explicit fixture auth against a disposable
+Postgres database. Managed signup/session proof is a separate live check and
+must not be inferred from those tests. See [WS evidence](docs/ws-01-08-status.md)
+and [story drafts](docs/backlog.md) for scope and remaining external evidence.
 
-```text
-src/
-├── app/                 # App Router routes, layouts, and route handlers
-├── components/          # Reusable presentation components
-├── features/<feature>/  # Feature-owned UI, queries, state, and domain logic
-├── db/                  # Drizzle client, schema, and migrations
-├── lib/                 # Shared integrations, including Better Auth
-├── pages/               # Removed after route migration is complete
-└── styles/              # Global styles
+## Docker
+
+```bash
+docker compose up
+docker compose -f compose.test.yaml up unit --abort-on-container-exit --exit-code-from unit
+docker compose -f compose.test.yaml --profile e2e up e2e --abort-on-container-exit --exit-code-from e2e
+# Remove only this Compose project's disposable test resources when finished:
+docker compose -f compose.test.yaml down -v
 ```
 
-Imports use the `#/*` path alias, which maps to `src/*`, for example `import "#/styles/globals.css"`.
+The test database uses tmpfs. Docker dev runs committed migrations before Next.
+Auth environment variables must still be injected for managed sign-in. Docker
+browser tests deliberately enable fixture identity only in their isolated service.
 
-## Branching & Contributing
+## Deployment
 
-- `main` — stable / production
-- `develop` — integration branch for ongoing work
-
-Open feature branches off `develop`, then submit a pull request back into it.
-Use Conventional Commits and read all AI-generated code before committing it. See [`AGENTS.md`](AGENTS.md) for architecture rules, quality gates, and the definition of done.
-
-## Team
-
-| Student ID | Name                  |
-| ---------- | --------------------- |
-| 67015026   | ฉัตรนรินทร บุญแสง       |
-| 67015052   | ธนพนธ์ ภูพานทอง        |
-| 67015067   | นนทพันธ์ อินทวงศ์       |
-| 67015080   | บุณยกร เกตุแก้ว         |
-| 67015193   | สิรภพ แสงสุข           |
+Vercel is the selected host. Recorded production/staging URLs are historical
+metadata, not evidence that this change has been deployed. No commit, push,
+remote configuration change, or deployment is performed by local verification.

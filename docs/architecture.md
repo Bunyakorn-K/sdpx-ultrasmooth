@@ -1,38 +1,37 @@
-# Architecture Diagram
+﻿# Architecture
 
 ```mermaid
 flowchart LR
-    U[Student / Instructor Browser] -->|HTTP / HTML| FE[Next.js App Router]
-    FE -->|fetch /api| API[API Route Handlers]
-    API -->|cookie session| AUTH[Dev stub auth<br/>TEMPORARY]
-    API -->|Internal Call| PAIR[Pairing Engine<br/>max-flow allocation]
-    API -->|Internal Call| SCORE[Quality Index +<br/>Scoring Service]
-    PAIR -->|Drizzle ORM| DB[(PostgreSQL)]
-    SCORE -->|Drizzle ORM| DB
-    API -->|Drizzle ORM| DB
+    B[Teacher / Student Browser] -->|HTTPS| WEB[Next.js Pages landing + App product routes]
+    B -->|Same-origin SDK requests| AUTHAPI[Auth Route Handler]
+    AUTHAPI -->|Managed Better Auth| NEON[Neon Auth]
+    WEB -->|Verified session + direct service call| DOMAIN[Assignment / Group / Voting services]
+    WEB -->|Interactive fetch| API[App Route Handlers]
+    API -->|Session and classroom role checks| DOMAIN
+    DOMAIN -->|Drizzle ORM| PG[(Lakebase Postgres)]
+    NEON -->|Managed identity and sessions| NAS[(neon_auth schema)]
 ```
 
-## Current state (M1)
+Managed Auth is integrated but not yet proven against a provisioned branch.
+The CLI is installed; linking/enabling Auth requires the owner's Neon sign-in.
+The public application schema is controlled by Drizzle migrations; Neon manages
+its own auth schema. Services call the database directly, with no internal HTTP
+calls from Server Components.
 
-- **Auth**: a dev-only cookie (`pe_uid`) set by `POST /api/auth/dev-sign-in` — see
-  `src/lib/auth.ts`. Google OAuth / Better Auth (the target architecture — see
-  `memory-bank/standards/tech-stack.md`) is not wired up yet; no credentials
-  were available when M1 was built. `getCurrentUser()`/`getClassroomRole()`
-  are the only two functions the rest of the app depends on, so swapping in
-  real auth later only touches that one file.
-- **Pairing Engine**: `src/services/pairing-service.ts`. Group-side only
-  (individual/peer evaluation is M2). Feasibility per PRD §8.2; allocation is
-  modeled as max-flow (source → evaluator capacity=quota → pair capacity=1 if
-  eligible → sink capacity=coverage) rather than a plain greedy, because the
-  "never evaluate your own group" exclusions make a naive per-evaluator
-  greedy get stuck short of a valid balanced assignment in some group-size
-  configurations.
-- **Scoring**: two paths exist side by side. `src/services/scoring-service.ts`
-  is the original, already-tested binary win-rate service (kept as-is, still
-  used by its own tests). `src/services/quality-index.ts` implements the PRD
-  §9.1 weighted 6-point table correctly (attributing points by *display
-  position*, not item A/B order) and is what the real `/scores` and
-  `/my-report` endpoints use, via `src/services/report-service.ts`.
-- **Data**: real PostgreSQL via Drizzle (`src/db/`), not the in-memory
-  `src/lib/test-data.ts` store (that stays as the stopgap backing only the
-  pre-existing `/api/test/seed|cleanup` endpoints).
+Teacher eligibility comes from exact managed subjects in `TEACHER_AUTH_IDS`.
+Classroom membership (`INSTRUCTOR`/`STUDENT`) scopes teacher/student access to
+resources. A new signup cannot choose teacher. Only a verified email identity can
+claim an imported roster account. Unsigned legacy cookies are ignored unless the
+explicit isolated fixture mode is enabled, and always ignored in production.
+
+Groups and answers are assignment-scoped. One user may select one group per
+assignment. Enrollment and publication lock the same assignment row, preventing
+late group changes and duplicate publication. The existing max-flow engine
+allocates comparisons without either compared group's members. Submitted votes
+feed the existing quality-index/scoring services. Results require a classroom
+teacher; a student can see their own completion counts, not scores or others' votes.
+
+The historical classroom-group path is retained only for assignments without
+scoped groups, preserving existing CSV workflows. The in-memory `/api/test/*`
+fixtures are separate from the real disposable Postgres workflow verification.
+They are disabled in production and are not the application's persistence layer.

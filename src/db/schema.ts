@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   bigint,
   integer,
   numeric,
@@ -11,6 +12,7 @@ import {
   unique,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const userStatusEnum = pgEnum("user_status", ["PENDING", "ACTIVE"]);
 export const classroomRoleEnum = pgEnum("classroom_role", ["INSTRUCTOR", "STUDENT"]);
@@ -19,6 +21,7 @@ export const comparisonStatusEnum = pgEnum("comparison_status", ["draft", "saved
 
 export const users = pgTable("user", {
   id: serial("id").primaryKey(),
+  authSubject: text("auth_subject"),
   emailNormalized: text("email_normalized").notNull(),
   emailRaw: text("email_raw").notNull(),
   displayName: text("display_name"),
@@ -27,6 +30,7 @@ export const users = pgTable("user", {
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
 }, (table) => [
   uniqueIndex("user_email_normalized_idx").on(table.emailNormalized),
+  uniqueIndex("user_auth_subject_idx").on(table.authSubject),
 ]);
 
 export const classrooms = pgTable("classroom", {
@@ -42,12 +46,14 @@ export const classrooms = pgTable("classroom", {
 export const groupEntities = pgTable("group_entity", {
   id: serial("id").primaryKey(),
   classroomId: integer("classroom_id").notNull().references(() => classrooms.id),
+  assignmentId: integer("assignment_id").references((): AnyPgColumn => assignments.id),
   name: text("name").notNull(),
   artifactUrl: text("artifact_url"),
   description: text("description"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
-  unique("group_entity_classroom_name_unique").on(table.classroomId, table.name),
+  unique("group_entity_classroom_name_unique").on(table.classroomId, table.assignmentId, table.name),
+  uniqueIndex("group_entity_legacy_name_idx").on(table.classroomId, table.name).where(sql`${table.assignmentId} is null`),
 ]);
 
 export const classroomMembers = pgTable("classroom_member", {
@@ -88,6 +94,13 @@ export const criteria = pgTable("criterion", {
   weightPct: numeric("weight_pct", { precision: 5, scale: 2 }).notNull().default("100"),
   displayOrder: integer("display_order").notNull().default(0),
 });
+
+export const assignmentGroupMembers = pgTable("assignment_group_member", {
+  id: serial("id").primaryKey(),
+  assignmentId: integer("assignment_id").notNull().references(() => assignments.id),
+  groupId: integer("group_id").notNull().references(() => groupEntities.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+}, (table) => [unique("assignment_group_member_unique").on(table.assignmentId, table.userId)]);
 
 export const pairAssignments = pgTable("pair_assignment", {
   id: serial("id").primaryKey(),

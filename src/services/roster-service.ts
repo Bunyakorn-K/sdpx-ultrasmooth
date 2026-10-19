@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import { db } from "#/db/client";
 import { classroomMembers, groupEntities } from "#/db/schema";
@@ -118,7 +118,7 @@ export async function importRoster(classroomId: number, csvText: string): Promis
       const [existing] = await tx
         .select()
         .from(groupEntities)
-        .where(and(eq(groupEntities.classroomId, classroomId), eq(groupEntities.name, name)));
+        .where(and(eq(groupEntities.classroomId, classroomId), isNull(groupEntities.assignmentId), eq(groupEntities.name, name)));
 
       if (existing) {
         groupIdByName.set(name, existing.id);

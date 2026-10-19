@@ -37,7 +37,9 @@ export async function getGroupScores(assignmentId: number): Promise<GroupScoresR
   const [criterion] = await db.select().from(criteria).where(eq(criteria.assignmentId, assignmentId));
   if (!criterion) throw new Error("Assignment has no criterion");
 
-  const groups = await db.select().from(groupEntities).where(eq(groupEntities.classroomId, assignment.classroomId));
+  const allGroups = await db.select().from(groupEntities).where(eq(groupEntities.classroomId, assignment.classroomId));
+  const scoped = allGroups.filter((group) => group.assignmentId === assignmentId);
+  const groups = scoped.length ? scoped : allGroups.filter((group) => group.assignmentId === null);
   const qualityByGroup = new Map(
     (await computeQualityIndexForCriterion(assignmentId, criterion.id)).map((row) => [row.itemId, row]),
   );
@@ -73,6 +75,13 @@ export interface StudentReport {
   maxScore: number;
   criterionName: string;
   participation: { assigned: number; submitted: number };
+}
+
+export async function getParticipation(assignmentId: number, userId: number) {
+  const rows = await db.select({ status: comparisons.status }).from(pairAssignments)
+    .leftJoin(comparisons, eq(comparisons.pairAssignmentId, pairAssignments.id))
+    .where(and(eq(pairAssignments.assignmentId, assignmentId), eq(pairAssignments.evaluatorUserId, userId)));
+  return { assigned: rows.length, submitted: rows.filter((row) => row.status === "submitted").length };
 }
 
 export async function getStudentReport(assignmentId: number, userId: number): Promise<StudentReport> {

@@ -1,7 +1,11 @@
 <!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
 <!-- END:nextjs-agent-rules -->
 
 # PairEval Engineering Guide
@@ -10,7 +14,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 PairEval is a university student-evaluation system based on pairwise comparison. A reviewer sees two submissions side by side, selects the stronger one, and the system turns repeated comparisons into a more consistent ranking.
 
-The repository is currently an early landing-page scaffold. Authentication, comparison workflows, ranking logic, persistence, and reviewer dashboards are target capabilities, not implemented features. Do not describe them as working until verified in the live code.
+The repository contains a landing page, classroom/assignment workflows, PostgreSQL persistence, pairing/scoring, and teacher/student authorization. Neon managed Better Auth is integrated in code; provisioning and real signup verification remain pending authenticated setup. Keep local fixture verification separate from managed-service and production evidence.
 
 ## Sources of Truth
 
@@ -25,9 +29,9 @@ Surface contradictions instead of silently choosing an interpretation. Keep curr
 
 ## Current Repository State
 
-- Runtime: Next.js 16.2.10 and React 19.2.4.
+- Runtime: Next.js 16.4.2 and React 19.2.4 (Next.js updated for security fixes).
 - Language: TypeScript 5 in strict, no-emit mode.
-- Router: Pages Router under `src/pages`; `src/pages/index.tsx` is the landing page.
+- Router: App Router for product routes; legacy Pages Router under `src/pages`, including the landing page.
 - Styling: Tailwind CSS 4 through `src/styles/globals.css`.
 - Tooling: Bun is the package manager; `bun.lock` is the canonical lockfile.
 - Configuration: React Compiler and React Strict Mode are enabled.
@@ -39,15 +43,15 @@ Surface contradictions instead of silently choosing an interpretation. Keep curr
 
 - Use the Next.js App Router for new product work and TypeScript across client and server code.
 - Use Tailwind CSS for styling.
-- Use PostgreSQL hosted by Supabase for persistence.
+- Use Lakebase Postgres through Neon for persistence, per the owner's explicit hosting decision.
 - Use Drizzle ORM as the only application-level database access layer and for schema migrations.
-- Use Better Auth for sessions and Google OAuth; do not create a parallel Supabase Auth session model.
+- Use Neon managed Better Auth for sessions, initially email/password. Google OAuth is not yet configured; do not create parallel sessions.
 - Use TanStack Query for interactive client-side server state and cache synchronization.
 - Use Jotai for local or cross-component UI state, not remote data or authenticated sessions.
 - Use Remeda for non-trivial, pure data transformations when native methods would be less clear.
 - Deploy on Vercel. Treat recorded deployment endpoints as metadata that must be verified before use.
 
-These libraries are approved targets but are not currently dependencies. Install a library only when the task needs it, use its current official integration guidance, and commit the resulting `package.json` and `bun.lock` changes together.
+Inspect `package.json` for installed libraries. TanStack Query, Jotai, and Remeda remain approved targets rather than implemented integrations. Install a library only when the task needs it, use its current official guidance, and keep `package.json` and `bun.lock` changes together.
 
 ## Router Transition Rules
 
@@ -82,7 +86,7 @@ Keep feature-specific code together. Do not introduce a generic abstraction unti
 
 ## Data and State Boundaries
 
-The target request flow is: UI → Server Component or TanStack Query → server boundary → domain logic → Drizzle → Supabase PostgreSQL.
+The target request flow is: UI → Server Component or interactive query → server boundary → domain logic → Drizzle → Lakebase Postgres.
 
 - Keep Drizzle and privileged database credentials in server-only modules.
 - Treat the Drizzle schema and committed migrations as the database source of truth; avoid untracked dashboard-only schema changes.
@@ -134,7 +138,7 @@ docker compose -f compose.test.yaml down -v
 
 - Never commit or print secrets, OAuth credentials, database URLs, session keys, or user data.
 - `.env*` files are ignored. If an example file is introduced, explicitly allow `.env.example` in `.gitignore` and include placeholders only.
-- Use least-privilege Supabase credentials and never expose service-role access to the browser.
+- Use least-privilege database credentials and never expose privileged access to the browser.
 - Validate authorization at the server boundary; hiding UI is not access control.
 - Use Husky for Git hooks and run `secretlint` before commits once those tools are installed.
 - Manage deployed configuration with Vercel environment variables, not committed files.

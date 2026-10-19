@@ -50,13 +50,13 @@ export function CsvImportPanel({ classroomId, onImported }: { classroomId: numbe
         Columns: <code>email</code>, <code>group_name</code>, <code>student_id</code> (optional),{" "}
         <code>display_name</code> (optional). Any invalid row rejects the whole file.
       </p>
-      <form onSubmit={handleSubmit} className="flex items-center gap-3">
+      <form onSubmit={handleSubmit} className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
         <input
           ref={fileInputRef}
           type="file"
           accept=".csv,text/csv"
           required
-          className="text-sm file:mr-3 file:rounded-full file:border-0 file:bg-indigo-600 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white"
+          className="w-full min-w-0 text-sm file:mr-3 file:rounded-full file:border-0 file:bg-indigo-600 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white sm:w-auto"
         />
         <Button type="submit" size="sm" variant="secondary" isDisabled={pending}>
           {pending ? "Importing…" : "Import"}

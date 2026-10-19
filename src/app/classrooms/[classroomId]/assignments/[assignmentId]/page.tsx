@@ -10,6 +10,7 @@ import { PageShell } from "#/components/PageShell";
 import { AssignmentDashboardPanel } from "#/features/assignment/AssignmentDashboardPanel";
 import { InstructorScoresTable } from "#/features/report/InstructorScoresTable";
 import { RosterTable } from "#/features/classroom/RosterTable";
+import { AssignmentGroups } from "#/features/assignment/AssignmentGroups";
 
 export default async function AssignmentDashboardPage({
   params,
@@ -55,6 +56,7 @@ export default async function AssignmentDashboardPage({
       />
 
       <InstructorScoresTable assignmentId={assignmentId} published={assignment.status === "PUBLISHED"} />
+      <AssignmentGroups assignmentId={assignmentId} teacher open={assignment.status === "DRAFT" && (!assignment.deadlineUtc || assignment.deadlineUtc > new Date())} />
 
       <RosterTable classroomId={classroomId} />
     </PageShell>

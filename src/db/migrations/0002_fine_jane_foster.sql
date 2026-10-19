@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "group_entity_legacy_name_idx" ON "group_entity" USING btree ("classroom_id","name") WHERE "group_entity"."assignment_id" is null;

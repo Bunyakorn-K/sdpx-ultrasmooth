@@ -16,7 +16,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ass
   if (!assignment) return notFound("Assignment not found.");
 
   const role = await getClassroomRole(assignment.classroomId, user.id);
-  if (!role) return notFound("Assignment not found.");
+  if (role !== "INSTRUCTOR") return notFound("Assignment not found.");
 
   const report = await getStudentReport(assignmentId, user.id);
   return NextResponse.json(report);

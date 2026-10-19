@@ -1,11 +1,9 @@
 import { Geist } from "next/font/google";
+import Link from "next/link";
+import { SignOutButton } from "#/features/auth/SignOutButton";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 
-// Full-bleed background (matches the homepage's bg-zinc-50/dark:bg-black)
-// with a centered, max-width content column — kept as one shared shell so
-// every new page's background actually spans the viewport instead of being
-// boxed in by the same max-width as its content.
 export function PageShell({
   children,
   maxWidth = "max-w-3xl",
@@ -17,9 +15,17 @@ export function PageShell({
 }) {
   return (
     <div
-      className={`${geistSans.className} flex min-h-screen ${center ? "items-center" : ""} bg-zinc-50 font-sans text-zinc-900 dark:bg-black dark:text-zinc-100`}
+      className={`${geistSans.className} relative isolate flex min-h-screen flex-col overflow-x-clip bg-[#f5fbf8] font-sans text-[#2d3c43]`}
     >
-      <div className={`mx-auto flex w-full ${maxWidth} flex-col gap-6 px-6 py-12 sm:py-16`}>{children}</div>
+      <div aria-hidden="true" className="pointer-events-none absolute -right-40 -top-60 -z-10 h-[600px] w-[550px] rotate-[-25deg] rounded-[130px] bg-[#e8f6fa]" />
+      <header className="border-b border-emerald-900/10 bg-white/80">
+        <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-6 sm:px-12" aria-label="Workspace">
+          <Link href="/classrooms" className="font-serif text-3xl italic tracking-tight text-[#ee6069]">PairEval.</Link>
+          <div className="flex items-center gap-6 text-sm text-emerald-800"><Link href="/classrooms" className="hover:underline">Classrooms</Link><SignOutButton /></div>
+        </nav>
+      </header>
+      <main className={`workspace-content mx-auto flex w-full flex-1 ${maxWidth} flex-col gap-7 px-6 py-10 sm:py-14 ${center ? "justify-center" : ""}`}>{children}</main>
+      <footer className="mx-auto flex w-full max-w-6xl flex-wrap justify-between gap-3 border-t border-emerald-900/10 px-6 py-6 text-xs text-slate-500 sm:px-12"><span>PairEval.</span><span>A fresh perspective on student work.</span></footer>
     </div>
   );
 }

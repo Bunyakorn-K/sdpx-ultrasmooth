@@ -1,4 +1,4 @@
-services:
+﻿services:
   test-db:
     image: postgres:17-alpine
     environment:
@@ -22,18 +22,19 @@ services:
     depends_on:
       test-db:
         condition: service_healthy
-    command: npm test
+    command: bun run test
 
   e2e:
     build:
       context: .
-      target: build
+      target: e2e
     environment:
       DATABASE_URL: postgres://testuser:testpass@test-db:5432/testdb
       BASE_URL: http://localhost:3000
+      ENABLE_DEV_AUTH: '1'
       NODE_ENV: test
     depends_on:
       test-db:
         condition: service_healthy
-    command: npx playwright test
+    command: sh -c "bun run db:migrate && bun run test:e2e"
     profiles: ["e2e"]

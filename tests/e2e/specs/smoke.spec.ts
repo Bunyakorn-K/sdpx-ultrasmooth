@@ -10,8 +10,12 @@ test.describe('Homepage Smoke Check', () => {
     await expect(homePage.heading).toBeVisible();
     await expect(homePage.universityLabel).toBeVisible();
     await expect(homePage.signInButton).toBeVisible();
-    await expect(homePage.homeLink).toBeVisible();
-    await expect(homePage.howItWorksLink).toBeVisible();
-    await expect(homePage.aboutLink).toBeVisible();
+    await expect(homePage.brandLink).toBeVisible();
+    await expect(homePage.createAccountLink).toBeVisible();
+    await expect(homePage.createAccountLink).toHaveAttribute('href', '/sign-up');
+    await expect(homePage.signInButton.locator('..')).toHaveAttribute('href', '/sign-in');
+    await expect(homePage.homeLink).toHaveCount(0);
+    await expect(homePage.howItWorksLink).toHaveCount(0);
+    await expect(homePage.aboutLink).toHaveCount(0);
   });
 });

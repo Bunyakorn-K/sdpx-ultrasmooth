@@ -9,6 +9,7 @@ import { listAssignments } from "#/services/assignment-service";
 import { PageShell } from "#/components/PageShell";
 import { ClassroomRosterSection } from "#/features/classroom/ClassroomRosterSection";
 import { AssignmentSection } from "#/features/classroom/AssignmentSection";
+import { DeleteClassroomButton } from "#/features/classroom/DeleteClassroomButton";
 
 export default async function ClassroomPage({
   params,
@@ -30,8 +31,12 @@ export default async function ClassroomPage({
   return (
     <PageShell>
       <div className="rounded-xl border border-black/10 bg-white px-4 py-3 dark:border-white/12 dark:bg-zinc-950">
-        <p className="text-xs uppercase tracking-wide text-zinc-500">Classroom</p>
-        <h1 className="text-xl font-semibold">{classroom.name}</h1>
+        <div className="mb-3 flex items-start justify-between gap-4">
+          <p className="pt-2 text-xs uppercase tracking-[0.15em] text-zinc-500">Classroom</p>
+          {role === "INSTRUCTOR" && classroom.createdBy === user.id && <DeleteClassroomButton classroomId={classroomId} name={classroom.name} />}
+        </div>
+        <h1 className="break-words text-xl font-semibold">{classroom.name}</h1>
+        {role === "INSTRUCTOR" && <p className="mt-3 text-sm text-slate-600">Student invitation code: <code className="rounded bg-emerald-50 px-2 py-1">{classroom.slug}</code></p>}
       </div>
 
       {role === "INSTRUCTOR" ? (
@@ -47,7 +52,7 @@ export default async function ClassroomPage({
 }
 
 async function StudentAssignmentList({ classroomId }: { classroomId: number }) {
-  const assignments = (await listAssignments(classroomId)).filter((a) => a.status === "PUBLISHED");
+  const assignments = await listAssignments(classroomId);
 
   if (assignments.length === 0) {
     return (
@@ -66,17 +71,17 @@ async function StudentAssignmentList({ classroomId }: { classroomId: number }) {
             <span>{assignment.name}</span>
             <span className="flex gap-3 text-xs">
               <Link
+                href={`/classrooms/${classroomId}/assignments/${assignment.id}/groups`}
+                className="text-indigo-600 hover:underline dark:text-indigo-400"
+              >
+                {assignment.status === "DRAFT" ? "Choose group →" : "View group →"}
+              </Link>
+              {assignment.status === "PUBLISHED" && <Link
                 href={`/classrooms/${classroomId}/assignments/${assignment.id}/evaluate`}
                 className="text-indigo-600 hover:underline dark:text-indigo-400"
               >
-                Evaluate →
-              </Link>
-              <Link
-                href={`/classrooms/${classroomId}/assignments/${assignment.id}/report`}
-                className="text-indigo-600 hover:underline dark:text-indigo-400"
-              >
-                My score →
-              </Link>
+                Vote →
+              </Link>}
             </span>
           </li>
         ))}

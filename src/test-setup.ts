@@ -13,3 +13,4 @@ Object.defineProperty(window, "matchMedia", {
     dispatchEvent: vi.fn(),
   })),
 });
+import "@testing-library/jest-dom/vitest";

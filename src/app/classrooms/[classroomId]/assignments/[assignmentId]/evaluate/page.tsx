@@ -19,7 +19,7 @@ export default async function EvaluatePage({
   if (!user) redirect("/sign-in");
 
   const role = await getClassroomRole(classroomId, user.id);
-  if (!role) notFound();
+  if (role !== "STUDENT") notFound();
 
   const assignment = await getAssignment(assignmentId);
   if (!assignment || assignment.classroomId !== classroomId) notFound();
