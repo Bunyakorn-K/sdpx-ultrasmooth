@@ -77,6 +77,8 @@ describe("generateGroupPairs — invariants (INV-1..INV-5)", () => {
         });
 
         expect(feasibility.feasible).toBe(true);
+        // Every pair receives exactly the reported coverage — no partial allocation.
+        expect(pairs).toHaveLength(feasibility.totalPairs * feasibility.coverageUsed);
         const groupIdByUserId = new Map(evaluators.map((e) => [e.userId, e.groupId]));
 
         // INV-1: no evaluator receives a pair containing their own group.
@@ -128,4 +130,38 @@ describe("generateGroupPairs — invariants (INV-1..INV-5)", () => {
       });
     }
   }
+});
+
+describe("ungrouped evaluators", () => {
+  it("teacher-provided answers with no members are feasible when students have not joined", () => {
+    const groups = makeGroups([0, 0, 0]);
+    const evaluators = [1, 2, 3, 4].map((userId) => ({ userId, groupId: null }));
+    const { feasibility, pairs } = generateGroupPairs({ groups, evaluators, seed: 7, targetCoverage: 5, maxWorkload: 8 });
+
+    expect(feasibility.feasible).toBe(true);
+    expect(feasibility.coverageUsed).toBe(4);
+    expect(pairs).toHaveLength(12);
+  });
+
+  it("classmates outside the groups cover pairs that grouped students cannot", () => {
+    // An empty answer group makes pair (1, 2) unreachable by grouped students alone.
+    const groups = makeGroups([2, 2, 0]);
+    expect(computeFeasibility({ groups, targetCoverage: 5, maxWorkload: 8 }).feasible).toBe(false);
+
+    const evaluators = [...makeEvaluators(groups), { userId: 100, groupId: null }, { userId: 101, groupId: null }];
+    const { feasibility, pairs } = generateGroupPairs({ groups, evaluators, seed: 3, targetCoverage: 5, maxWorkload: 8 });
+    expect(feasibility.feasible).toBe(true);
+    for (const pair of pairs) {
+      const ownGroup = evaluators.find((e) => e.userId === pair.evaluatorUserId)?.groupId;
+      expect([pair.itemAId, pair.itemBId]).not.toContain(ownGroup);
+    }
+    expect(pairs.some((pair) => pair.itemAId === 1 && pair.itemBId === 2)).toBe(true);
+  });
+
+  it("explains which constraint makes the room infeasible", () => {
+    const result = computeFeasibility({ groups: makeGroups([2, 2, 0]), targetCoverage: 5, maxWorkload: 8 });
+    expect(result.message).toContain("ไม่มีนักศึกษานอกสองกลุ่มนั้น");
+    expect(computeFeasibility({ groups: makeGroups([0, 0]), targetCoverage: 1, maxWorkload: 8 }).message)
+      .toContain("ยังไม่มีนักศึกษา");
+  });
 });

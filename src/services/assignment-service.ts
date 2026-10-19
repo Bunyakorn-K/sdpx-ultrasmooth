@@ -78,9 +78,15 @@ async function loadGroupsAndEvaluators(classroomId: number, assignmentId: number
   if (enrolledGroups.length > 0) {
     const enrolled = await database.select().from(assignmentGroupMembers)
       .where(eq(assignmentGroupMembers.assignmentId, assignmentId));
+    const students = await database.select({ userId: classroomMembers.userId }).from(classroomMembers)
+      .where(and(eq(classroomMembers.classroomId, classroomId), eq(classroomMembers.role, "STUDENT")));
+    const groupByUser = new Map(enrolled.map((member) => [member.userId, member.groupId]));
+    // Students who did not join a group still vote, on any pair (e.g. teacher-provided answers).
+    const ungrouped = students.filter((student) => !groupByUser.has(student.userId))
+      .map((student) => ({ userId: student.userId, groupId: null }));
     return {
       groups: enrolledGroups.map((group) => ({ id: group.id, size: enrolled.filter((m) => m.groupId === group.id).length })),
-      evaluators: enrolled.map((member) => ({ userId: member.userId, groupId: member.groupId })),
+      evaluators: [...enrolled.map((member) => ({ userId: member.userId, groupId: member.groupId })), ...ungrouped],
     };
   }
   const members = await database
@@ -112,11 +118,12 @@ export async function getAssignmentFeasibility(assignmentId: number) {
   const assignment = await getAssignment(assignmentId);
   if (!assignment) return null;
 
-  const { groups } = await loadGroupsAndEvaluators(assignment.classroomId, assignmentId);
+  const { groups, evaluators } = await loadGroupsAndEvaluators(assignment.classroomId, assignmentId);
   return computeFeasibility({
     groups,
     targetCoverage: assignment.targetCoverage,
     maxWorkload: assignment.maxWorkload,
+    ungroupedEvaluators: evaluators.filter((evaluator) => evaluator.groupId === null).length,
   });
 }
 
