@@ -491,8 +491,8 @@ paths:
         '204': { description: Group and its enrollments deleted atomically. }
         '400': { description: Invalid group ID. }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { description: Group outside assignment, assignment missing, or caller is not a classroom teacher. }
-        '409': { description: Published, deadline passed, or deletion could not be completed. }
+        '404': { description: "Group outside assignment, assignment missing, or caller is not a classroom teacher." }
+        '409': { description: "Published, deadline passed, or deletion could not be completed." }
     get:
       operationId: listAssignmentGroups
       summary: List group answers and the caller's selection (AC-GROUP-01)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { useHydrated } from "#/lib/use-hydrated";
 
 // PRD §9.1 / §7.5 — exact 6-point forced-choice labels, no neutral option
 // (D1). FR-A11Y-01/02: proper WAI-ARIA radiogroup pattern with text labels,
@@ -23,6 +24,7 @@ export function ForcedChoiceGroup({
   onChange: (value: number) => void;
   label?: string;
 }) {
+  const ready = useHydrated();
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const selectedIndex = OPTIONS.findIndex((option) => option.value === value);
 
@@ -70,6 +72,7 @@ export function ForcedChoiceGroup({
               refs.current[index] = el;
             }}
             type="button"
+            disabled={!ready}
             role="radio"
             aria-checked={isSelected}
             tabIndex={isTabbable ? 0 : -1}

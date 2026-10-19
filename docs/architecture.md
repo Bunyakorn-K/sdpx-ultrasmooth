@@ -1,5 +1,10 @@
 ﻿# Architecture
 
+Product routes and HTTP boundaries live in `src/app/`. Legacy Pages Router
+entry points keep their URLs, while the four local-storage demo screens live
+in `src/features/demo/`. The demos are not the persisted classroom workflow;
+real teacher/student work starts at `/classrooms`.
+
 ```mermaid
 flowchart LR
     B[Teacher / Student Browser] -->|HTTPS| WEB[Next.js Pages landing + App product routes]

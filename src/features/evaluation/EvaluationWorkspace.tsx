@@ -32,11 +32,18 @@ export function EvaluationWorkspace({ assignmentId }: { assignmentId: number }) 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    fetch(`/api/assignments/${assignmentId}/pairs`)
+    let active = true;
+    const controller = new AbortController();
+    fetch(`/api/assignments/${assignmentId}/pairs`, { signal: controller.signal })
       .then((res) => (res.ok ? res.json() : Promise.reject(res)))
-      .then((body) => setPairs(body.pairs))
-      .catch(() => { setError("Could not load your comparisons. Reload to try again."); setPairs([]); });
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+      .then((body) => { if (active) setPairs(body.pairs); })
+      .catch(() => { if (active) { setError("Could not load your comparisons. Reload to try again."); setPairs([]); } });
+    return () => {
+      // Strict Mode restarts effects; an obsolete response must not reset a vote.
+      active = false;
+      controller.abort();
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [assignmentId]);
 
   const savePair = useCallback(
