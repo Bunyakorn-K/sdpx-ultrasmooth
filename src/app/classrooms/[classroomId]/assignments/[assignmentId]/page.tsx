@@ -24,14 +24,14 @@ export default async function AssignmentDashboardPage({
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
 
-  const role = await getClassroomRole(classroomId, user.id);
+  // Independent reads run together; nothing renders until the role check passes.
+  const [role, assignment, [classroom]] = await Promise.all([
+    getClassroomRole(classroomId, user.id),
+    getAssignment(assignmentId),
+    db.select().from(classrooms).where(eq(classrooms.id, classroomId)),
+  ]);
   if (role !== "INSTRUCTOR") notFound();
-
-  const assignment = await getAssignment(assignmentId);
-  if (!assignment || assignment.classroomId !== classroomId) notFound();
-
-  const [classroom] = await db.select().from(classrooms).where(eq(classrooms.id, classroomId));
-  if (!classroom) notFound();
+  if (!assignment || assignment.classroomId !== classroomId || !classroom) notFound();
 
   return (
     <PageShell>
