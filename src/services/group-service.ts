@@ -1,15 +1,28 @@
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db } from "#/db/client";
-import { assignments, assignmentGroupMembers, groupEntities } from "#/db/schema";
+import { assignments, assignmentGroupMembers, groupEntities, users } from "#/db/schema";
 import { GroupRuleError, parseGroupInput, requireOpenEnrollment } from "./group-rules";
 
-export async function listAssignmentGroups(assignmentId: number, userId: number) {
-  const groups = await db.select({ id: groupEntities.id, name: groupEntities.name,
-    description: groupEntities.description, artifactUrl: groupEntities.artifactUrl })
-    .from(groupEntities).where(eq(groupEntities.assignmentId, assignmentId));
-  const [membership] = await db.select().from(assignmentGroupMembers).where(and(
-    eq(assignmentGroupMembers.assignmentId, assignmentId), eq(assignmentGroupMembers.userId, userId)));
-  return { groups, myGroupId: membership?.groupId ?? null };
+export async function listAssignmentGroups(assignmentId: number, userId: number, teacher = false) {
+  const [groups, members] = await Promise.all([
+    db.select({ id: groupEntities.id, name: groupEntities.name,
+      description: groupEntities.description, artifactUrl: groupEntities.artifactUrl })
+      .from(groupEntities).where(eq(groupEntities.assignmentId, assignmentId)).orderBy(asc(groupEntities.id)),
+    db.select({ groupId: assignmentGroupMembers.groupId, userId: users.id,
+      displayName: users.displayName, email: users.emailRaw })
+      .from(assignmentGroupMembers).innerJoin(users, eq(users.id, assignmentGroupMembers.userId))
+      .where(eq(assignmentGroupMembers.assignmentId, assignmentId)).orderBy(asc(assignmentGroupMembers.id)),
+  ]);
+  const myGroupId = members.find((member) => member.userId === userId)?.groupId ?? null;
+  return {
+    myGroupId,
+    groups: groups.map((group) => {
+      const groupMembers = members.filter((member) => member.groupId === group.id);
+      // Only instructors see who joined; students just see how many.
+      return { ...group, memberCount: groupMembers.length,
+        members: teacher ? groupMembers.map(({ userId: id, displayName, email }) => ({ id, name: displayName ?? email })) : [] };
+    }),
+  };
 }
 
 export async function deleteAssignmentGroup(assignmentId: number, groupId: number) {
@@ -32,6 +45,12 @@ export async function enrollGroup(assignmentId: number, userId: number, teacher:
     const [assignment] = await tx.select().from(assignments).where(eq(assignments.id, assignmentId)).for("update");
     if (!assignment) throw new GroupRuleError(404, "Assignment not found.");
     requireOpenEnrollment(assignment);
+    if (!teacher) {
+      // One group per student per assignment: no switching, and no creating extra groups.
+      const [membership] = await tx.select({ groupId: assignmentGroupMembers.groupId }).from(assignmentGroupMembers)
+        .where(and(eq(assignmentGroupMembers.assignmentId, assignmentId), eq(assignmentGroupMembers.userId, userId)));
+      if (membership) throw new GroupRuleError(409, "You already joined a group for this assignment.");
+    }
     const input = body && typeof body === "object" ? body as Record<string, unknown> : {};
     let groupId: number;
     if (input.groupId !== undefined) {
@@ -49,8 +68,7 @@ export async function enrollGroup(assignmentId: number, userId: number, teacher:
       groupId = group.id;
     }
     if (!teacher) {
-      await tx.insert(assignmentGroupMembers).values({ assignmentId, groupId, userId })
-        .onConflictDoUpdate({ target: [assignmentGroupMembers.assignmentId, assignmentGroupMembers.userId], set: { groupId } });
+      await tx.insert(assignmentGroupMembers).values({ assignmentId, groupId, userId });
     }
     return { groupId };
   });

@@ -1,7 +1,12 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
 
-type Group = { id: number; name: string; description: string | null; artifactUrl: string | null };
+type Group = {
+  id: number; name: string; description: string | null; artifactUrl: string | null;
+  memberCount: number; members: { id: number; name: string }[];
+};
+// Teachers watch students join while enrollment is open.
+const TEACHER_REFRESH_MS = 10_000;
 export function AssignmentGroups({ assignmentId, teacher = false, open }: {
   assignmentId: number; teacher?: boolean; open: boolean;
 }) {
@@ -19,6 +24,14 @@ export function AssignmentGroups({ assignmentId, teacher = false, open }: {
     setMyGroupId(body.myGroupId);
   }
   useEffect(() => { load().catch(() => setError("Could not load assignment groups.")); }, [assignmentId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!teacher || !open) return;
+    const refresh = () => { if (document.visibilityState === "visible") load().catch(() => {}); };
+    const timer = window.setInterval(refresh, TEACHER_REFRESH_MS);
+    document.addEventListener("visibilitychange", refresh);
+    return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", refresh); };
+  }, [assignmentId, teacher, open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const joined = !teacher && myGroupId !== null;
 
   async function save(body: unknown) {
     setPending(true);
@@ -53,7 +66,10 @@ export function AssignmentGroups({ assignmentId, teacher = false, open }: {
   return <section className="space-y-5 rounded-2xl border border-emerald-900/10 bg-white p-5 text-slate-800">
     <div><p className="text-xs uppercase tracking-widest text-emerald-700">Assignment workspace</p>
       <h2 className="mt-2 font-serif text-2xl">{teacher ? "Groups & answers to compare" : "Choose your group"}</h2>
-      <p className="mt-2 text-sm text-slate-500">{open ? "Create or choose a group before your teacher starts voting." : "Enrollment is closed. Your group is locked for voting."}</p>
+      <p className="mt-2 text-sm text-slate-500">{!open ? "Enrollment is closed. Your group is locked for voting."
+        : teacher ? "Students appear under their group as they join."
+        : joined ? "You're in a group for this assignment. Ask your teacher if you need to change it."
+        : "Create or choose a group before your teacher starts voting."}</p>
     </div>
     {groups === null && !error && <p role="status">Loading groups…</p>}
     {groups?.length === 0 && <p className="text-sm">No groups yet. {open ? "Add the first one below." : "Ask your teacher for help."}</p>}
@@ -63,12 +79,15 @@ export function AssignmentGroups({ assignmentId, teacher = false, open }: {
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6m4-6v6" /></svg>Delete
         </button>}
         {group.id === myGroupId ? <span className="text-xs text-emerald-800">Your group</span>
-          : !teacher && open && <button disabled={pending} onClick={() => save({ groupId: group.id })} className="text-sm text-emerald-800 underline">Join group</button>}
+          : !teacher && open && !joined && <button disabled={pending} onClick={() => save({ groupId: group.id })} className="text-sm text-emerald-800 underline">Join group</button>}
       </div>
+      <p className="mt-1 text-xs text-slate-500">{group.memberCount === 0 ? "No members yet"
+        : `${group.memberCount} member${group.memberCount === 1 ? "" : "s"}`}
+        {teacher && group.members.length > 0 && `: ${group.members.map((member) => member.name).join(", ")}`}</p>
       {group.description && <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">{group.description}</p>}
       {group.artifactUrl && <a href={group.artifactUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm text-emerald-800 underline">View submission</a>}
     </li>)}</ul>
-    {open && <form onSubmit={create} className="space-y-3 border-t border-slate-100 pt-5">
+    {open && !joined && <form onSubmit={create} className="space-y-3 border-t border-slate-100 pt-5">
       <h3 className="font-medium">{teacher ? "Add a group answer" : "Create a group for this assignment"}</h3>
       <label className="block text-sm">Group name<input className={fieldClass} name="name" required maxLength={100} /></label>
       <label className="block text-sm">Answer / submission description<textarea className={fieldClass} name="description" maxLength={4000} rows={3} /></label>

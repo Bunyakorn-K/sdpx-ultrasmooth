@@ -41,6 +41,12 @@ export function AssignmentDashboardPanel({ assignment: initial }: { assignment: 
   }
 
   useEffect(loadFeasibility, [assignment.id]);
+  // Group joins change feasibility, so keep it current while the teacher waits to publish.
+  useEffect(() => {
+    if (assignment.status !== "DRAFT") return;
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible") loadFeasibility(); }, 10_000);
+    return () => window.clearInterval(timer);
+  }, [assignment.id, assignment.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSave(event: React.FormEvent) {
     event.preventDefault();
