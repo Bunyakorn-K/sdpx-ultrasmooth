@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { db } from "#/db/client";
-import { classroomMembers, groupEntities, users } from "#/db/schema";
+import { classroomMembers, users } from "#/db/schema";
 import { notFound, unauthorized } from "#/lib/api-error";
 import { getClassroomRole, getCurrentUser } from "#/lib/auth";
 
@@ -23,11 +23,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cla
       email: users.emailRaw,
       status: users.status,
       lastLoginAt: users.lastLoginAt,
-      groupName: groupEntities.name,
     })
     .from(classroomMembers)
     .innerJoin(users, eq(classroomMembers.userId, users.id))
-    .leftJoin(groupEntities, eq(classroomMembers.groupId, groupEntities.id))
     .where(and(eq(classroomMembers.classroomId, classroomId), eq(classroomMembers.role, "STUDENT")));
 
   return NextResponse.json({ roster });

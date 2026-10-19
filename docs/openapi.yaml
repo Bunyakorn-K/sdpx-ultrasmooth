@@ -629,7 +629,6 @@ components:
         email: { type: string }
         status: { type: string, enum: [PENDING, ACTIVE] }
         lastLoginAt: { type: ['string', 'null'], format: date-time }
-        groupName: { type: ['string', 'null'] }
     RosterImportResult:
       type: object
       properties:
