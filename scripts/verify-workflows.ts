@@ -28,14 +28,19 @@ async function verify() {
   phase = "assignment enrollment and isolation";
   const otherAssignment = await createAssignment(classroom.id, teacher.id, { name: "Separate assignment" });
   await assert.rejects(() => enrollGroup(-1, students[0].id, false, { name: "No assignment" }));
-  const groups = [];
+  const groups: { groupId: number }[] = [];
   for (const [i, student] of students.entries()) {
     groups.push(await enrollGroup(assignment.id, student.id, false, { name: `Group ${i + 1}`, description: "Synthetic answer" }));
   }
   const separate = await enrollGroup(otherAssignment.id, students[0].id, false, { name: "Group 1" });
   await assert.rejects(() => enrollGroup(assignment.id, students[0].id, false, { groupId: separate.groupId }));
   await assert.rejects(() => enrollGroup(assignment.id, students[0].id, false, { name: "Group 1" }));
+  // A student stays in one group: no switching and no extra groups.
+  await assert.rejects(() => enrollGroup(assignment.id, students[0].id, false, { groupId: groups[1].groupId }));
+  await assert.rejects(() => enrollGroup(assignment.id, students[0].id, false, { name: "Second group" }));
   assert.equal((await listAssignmentGroups(assignment.id, students[0].id)).groups.length, 3);
+  const teacherView = await listAssignmentGroups(assignment.id, teacher.id, true);
+  assert.deepEqual(teacherView.groups.map((group) => group.members.length), [1, 1, 1]);
   phase = "publication concurrency and self-vote exclusion";
   const publishRuns = await Promise.allSettled([publishAssignment(assignment.id), publishAssignment(assignment.id)]);
   assert.equal(publishRuns.filter((run) => run.status === "fulfilled" && run.value.published).length, 1);

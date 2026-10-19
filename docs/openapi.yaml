@@ -514,6 +514,15 @@ paths:
                         name: { type: string }
                         description: { type: [string, 'null'] }
                         artifactUrl: { type: [string, 'null'], format: uri }
+                        memberCount: { type: integer, minimum: 0 }
+                        members:
+                          type: array
+                          description: Who joined the group; filled for instructors only, empty for students.
+                          items:
+                            type: object
+                            properties:
+                              id: { type: integer }
+                              name: { type: string }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { description: Assignment not found or not a member. }
     post:

@@ -23,7 +23,7 @@ async function access(context: Context) {
 async function getGroups(_request: Request, context: Context) {
   const result = await access(context);
   if (result.response) return result.response;
-  return Response.json(await listAssignmentGroups(result.assignment.id, result.user.id));
+  return Response.json(await listAssignmentGroups(result.assignment.id, result.user.id, result.role === "INSTRUCTOR"));
 }
 
 async function postGroup(request: Request, context: Context) {
