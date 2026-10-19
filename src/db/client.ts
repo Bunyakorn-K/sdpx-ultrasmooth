@@ -8,8 +8,7 @@ import * as schema from "#/db/schema";
 
 // Falls back to compose.yaml's local dev credentials (same pattern as
 // drizzle.config.ts) instead of throwing at import time — pure modules that
-// happen to import something from this file (e.g. roster-service.ts, whose
-// CSV validation never touches the DB) shouldn't crash in contexts like
+// happen to import something from this file shouldn't crash in contexts like
 // Vitest that don't load .env.
 const connectionString = process.env.DATABASE_URL ?? "postgres://user:pass@localhost:5432/paireval";
 

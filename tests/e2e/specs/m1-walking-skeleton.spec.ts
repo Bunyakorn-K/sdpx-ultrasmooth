@@ -14,7 +14,7 @@ test.describe('M1 walking skeleton', () => {
     test.setTimeout(60_000);
     const suffix = Math.random().toString(36).slice(2, 8);
     const instructorEmail = `instructor-${suffix}@e2e.test`;
-    const studentEmails = Array.from({ length: 6 }, (_, i) => `student${i + 1}-${suffix}@e2e.test`);
+    const studentEmails = Array.from({ length: 3 }, (_, i) => `student${i + 1}-${suffix}@e2e.test`);
 
     // 1. Sign in (dev stub auth)
     await page.goto('/sign-in');
@@ -33,17 +33,13 @@ test.describe('M1 walking skeleton', () => {
     const joinCode = await page.locator('code').first().textContent();
     expect(joinCode).toBeTruthy();
 
-    // 3. Seed student accounts. Under dev auth a brand-new account counts as a
-    // teacher, so students come from the roster boundary before joining by code.
-    const csv = ['email,group_name,display_name', ...studentEmails.map((email, i) => `${email},Roster,Student ${i + 1}`)].join('\n');
-    expect((await page.request.post(`/api/classrooms/${classroomId}/roster/import`, {
-      multipart: { file: { name: 'roster.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) } },
-    })).ok()).toBeTruthy();
-
-    // 4. The join code leads a student to this assignment
-    await page.request.post('/api/auth/dev-sign-in', { data: { email: studentEmails[0] } });
-    const joined = await (await page.request.post('/api/classrooms/join', { data: { code: joinCode } })).json();
-    expect(String(joined.assignmentId)).toBe(assignmentId);
+    // 3-4. Students join by code. Under dev auth a brand-new account counts
+    // as a teacher, so `role: 'student'` seeds them as students first.
+    for (const email of studentEmails) {
+      await page.request.post('/api/auth/dev-sign-in', { data: { email, role: 'student' } });
+      const joined = await (await page.request.post('/api/classrooms/join', { data: { code: joinCode } })).json();
+      expect(String(joined.assignmentId)).toBe(assignmentId);
+    }
     await page.request.post('/api/auth/dev-sign-in', { data: { email: instructorEmail } });
     await page.goto(`/classrooms/${classroomId}/assignments/${assignmentId}`);
 
@@ -53,7 +49,7 @@ test.describe('M1 walking skeleton', () => {
     await expect(page.getByText('How clear was the work?')).toBeVisible({ timeout: 15_000 });
 
     // 6. Three students form groups for this assignment
-    for (const [i, email] of studentEmails.slice(0, 3).entries()) {
+    for (const [i, email] of studentEmails.entries()) {
       await page.request.post('/api/auth/dev-sign-in', { data: { email } });
       expect((await page.request.post(`/api/assignments/${assignmentId}/groups`, { data: { name: `Team ${i + 1}` } })).status()).toBe(201);
     }

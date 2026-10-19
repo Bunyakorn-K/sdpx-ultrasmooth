@@ -12,9 +12,14 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Product Overview
 
-PairEval is a university student-evaluation system based on pairwise comparison. A reviewer sees two submissions side by side, selects the stronger one, and the system turns repeated comparisons into a more consistent ranking.
+PairEval is a university peer-evaluation system where student groups score each other's work on a 5-point scale.
 
-The repository contains a landing page, classroom/assignment workflows, PostgreSQL persistence, pairing/scoring, and teacher/student authorization. Neon managed Better Auth is integrated in code; provisioning and real signup verification remain pending authenticated setup. Keep local fixture verification separate from managed-service and production evidence.
+- Teacher: creates an assignment directly (there is no classroom step) and shares its join code, sets a deadline, manages groups, writes 1-5 voting questions, and presses Start voting. After voting the teacher sees each group's average score.
+- Student: joins an assignment by code, creates or joins one group, and once voting is open scores every other group 1-5 on each question.
+
+Each assignment owns a hidden classroom whose slug is the join code, so membership and role checks reuse `classroom_member`. Questions are stored in the `criterion` table and scores in the `rating` table. The old pairwise `pair_assignment` and `comparison` tables are kept only for historical data; no code reads them.
+
+The repository contains a landing page, the assignment, group, question, rating and results workflows, PostgreSQL persistence, and teacher/student authorization. Neon managed Better Auth is integrated in code; provisioning and real signup verification remain pending authenticated setup. Keep local fixture verification separate from managed-service and production evidence.
 
 ## Sources of Truth
 
@@ -31,13 +36,14 @@ Surface contradictions instead of silently choosing an interpretation. Keep curr
 
 - Runtime: Next.js 16.4.2 and React 19.2.4 (Next.js updated for security fixes).
 - Language: TypeScript 5 in strict, no-emit mode.
-- Router: App Router for product routes; legacy Pages Router under `src/pages`, including the landing page.
+- Router: App Router for every product route; the legacy Pages Router under `src/pages` holds only the landing page plus `_app` and `_document`.
 - Styling: Tailwind CSS 4 through `src/styles/globals.css`.
 - Tooling: Bun is the package manager; `bun.lock` is the canonical lockfile.
 - Configuration: React Compiler and React Strict Mode are enabled.
 - Imports: `#/*` maps to `src/*`.
 - Available scripts: `dev`, `build`, `start`, `test`, and `test:e2e`.
 - `bun run test` runs Vitest unit tests; `bun run test:e2e` runs Playwright browser smoke tests.
+- Local dev auth: `/api/auth/dev-sign-in` signs in by email. Because a new account with no memberships counts as a teacher, e2e tests pass `role: "student"` to seed extra students that then join assignments by code.
 
 ## Target Architecture
 

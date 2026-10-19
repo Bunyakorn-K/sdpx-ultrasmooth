@@ -9,9 +9,6 @@ test("local test accounts keep teacher and student permissions across repeated s
   await teacherButton.click();
   await expect(page).toHaveURL(/\/classrooms$/);
   expect((await (await api.get("/api/account")).json()).user.role).toBe("teacher");
-  const teacherClasses = await (await api.get("/api/classrooms")).json();
-  const classroom = teacherClasses.classrooms.find((entry: { slug: string }) => entry.slug === "paireval-dev");
-  expect(classroom.role).toBe("INSTRUCTOR");
   await api.post("/api/auth/sign-out");
   await page.goto("/sign-in");
   const studentButton = page.getByRole("button", { name: "Use Student", exact: true });
@@ -19,10 +16,10 @@ test("local test accounts keep teacher and student permissions across repeated s
   await studentButton.click();
   await expect(page).toHaveURL(/\/classrooms$/);
   expect((await (await api.get("/api/account")).json()).user.role).toBe("student");
-  expect((await api.post("/api/classrooms", { data: { name: "Forbidden" } })).status()).toBe(403);
-  const studentClasses = await (await api.get("/api/classrooms")).json();
-  expect(studentClasses.classrooms).toContainEqual(expect.objectContaining({ id: classroom.id, role: "STUDENT" }));
+  expect((await api.post("/api/assignments", { data: { name: "Forbidden" } })).status()).toBe(403);
   expect((await api.post("/api/auth/dev-sign-in", { data: { demoRole: "teacher" } })).status()).toBe(200);
-  const repeated = await (await api.get("/api/classrooms")).json();
-  expect(repeated.classrooms.filter((entry: { id: number }) => entry.id === classroom.id)).toHaveLength(1);
+  expect((await (await api.get("/api/account")).json()).user.role).toBe("teacher");
+  const email = `seeded-${crypto.randomUUID()}@example.com`;
+  expect((await api.post("/api/auth/dev-sign-in", { data: { email, role: "student" } })).status()).toBe(200);
+  expect((await (await api.get("/api/account")).json()).user.role).toBe("student");
 });
