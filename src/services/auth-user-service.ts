@@ -6,6 +6,11 @@ import { normalizeEmail } from "#/lib/auth";
 export async function resolveAuthUser(identity: {
   id: string; email: string; name: string; emailVerified: boolean;
 }) {
+  // This runs on every authenticated request. A linked identity is the common
+  // case and needs one read; the writes below are only for first sign-in.
+  const [linked] = await db.select().from(users).where(eq(users.authSubject, identity.id));
+  if (linked) return linked;
+
   const emailNormalized = normalizeEmail(identity.email);
   await db.insert(users).values({ authSubject: identity.id, emailNormalized,
     emailRaw: identity.email, displayName: identity.name, status: "ACTIVE" })

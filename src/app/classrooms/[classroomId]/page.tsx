@@ -22,11 +22,12 @@ export default async function ClassroomPage({
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
 
-  const role = await getClassroomRole(classroomId, user.id);
-  if (!role) notFound();
-
-  const [classroom] = await db.select().from(classrooms).where(eq(classrooms.id, classroomId));
-  if (!classroom) notFound();
+  // Independent reads run together; nothing renders until the role check passes.
+  const [role, [classroom]] = await Promise.all([
+    getClassroomRole(classroomId, user.id),
+    db.select().from(classrooms).where(eq(classrooms.id, classroomId)),
+  ]);
+  if (!role || !classroom) notFound();
 
   return (
     <PageShell>
