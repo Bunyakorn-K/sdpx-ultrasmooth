@@ -10,13 +10,16 @@ export interface GroupInput {
 
 export interface EvaluatorInput {
   userId: number;
-  groupId: number;
+  /** null for a classroom student who has not joined any group. */
+  groupId: number | null;
 }
 
 export interface FeasibilityInput {
   groups: GroupInput[];
   targetCoverage: number;
   maxWorkload: number;
+  /** Students outside every group; they may evaluate any pair. */
+  ungroupedEvaluators?: number;
 }
 
 export interface FeasibilityResult {
@@ -46,27 +49,25 @@ function combinations<T>(items: T[]): [T, T][] {
 export function computeFeasibility(input: FeasibilityInput): FeasibilityResult {
   const { groups, targetCoverage, maxWorkload } = input;
   const n = groups.length;
-  const studentCount = groups.reduce((sum, g) => sum + g.size, 0);
+  const groupedCount = groups.reduce((sum, g) => sum + g.size, 0);
+  const studentCount = groupedCount + (input.ungroupedEvaluators ?? 0);
   const totalPairs = (n * (n - 1)) / 2;
+  const infeasible = (message: string): FeasibilityResult => ({
+    feasible: false, totalPairs, coverageUsed: 0, workloadPerEvaluator: 0, reduced: false, message,
+  });
 
-  if (n < 2 || studentCount === 0) {
-    return {
-      feasible: false,
-      totalPairs,
-      coverageUsed: 0,
-      workloadPerEvaluator: 0,
-      reduced: false,
-      message: "ต้องมีอย่างน้อย 2 กลุ่มจึงจะสร้าง group evaluation ได้",
-    };
-  }
+  if (n < 2) return infeasible("ต้องมีอย่างน้อย 2 กลุ่มจึงจะสร้าง group evaluation ได้");
+  if (studentCount === 0) return infeasible("ยังไม่มีนักศึกษาในห้องที่จะเป็นผู้ประเมิน");
 
+  // A grouped evaluator can never see the n-1 pairs containing their own group.
+  const maxPairsPerEvaluator = groupedCount > 0 ? totalPairs - (n - 1) : totalPairs;
   const groupPairSizes = combinations(groups).map(([a, b]) => a.size + b.size);
   const minEligibleForPair = Math.min(...groupPairSizes.map((size) => studentCount - size));
 
   for (let r = targetCoverage; r >= 1; r--) {
     const slotsNeeded = totalPairs * r;
     const k = Math.ceil(slotsNeeded / studentCount);
-    const c1 = k <= totalPairs - (n - 1);
+    const c1 = k <= maxPairsPerEvaluator;
     const c2 = k <= maxWorkload;
     const c3 = r <= minEligibleForPair;
 
@@ -87,14 +88,14 @@ export function computeFeasibility(input: FeasibilityInput): FeasibilityResult {
     }
   }
 
-  return {
-    feasible: false,
-    totalPairs,
-    coverageUsed: 0,
-    workloadPerEvaluator: 0,
-    reduced: false,
-    message: "ไม่สามารถหา coverage ที่เป็นไปได้แม้จะลดลงเหลือ 1 ครั้งต่อคู่ — ตรวจสอบขนาดกลุ่มและ workload สูงสุด",
-  };
+  // Say which constraint blocks even r = 1 so the instructor knows what to change.
+  const minK = Math.ceil(totalPairs / studentCount);
+  const reason = minEligibleForPair < 1
+    ? "มีคู่กลุ่มที่ไม่มีนักศึกษานอกสองกลุ่มนั้นเหลือให้ประเมิน — เพิ่มกลุ่มหรือนักศึกษาที่ไม่ได้อยู่ในกลุ่มเหล่านั้น"
+    : minK > maxPairsPerEvaluator
+      ? `มีกลุ่มน้อยเกินไป: นักศึกษาในกลุ่มประเมินได้แค่ ${maxPairsPerEvaluator} คู่ แต่ต้องการ ${minK} คู่ต่อคน — เพิ่มจำนวนกลุ่ม`
+      : `workload สูงสุด (${maxWorkload}) ต่ำกว่า ${minK} คู่ต่อคนที่ต้องใช้ — เพิ่ม workload สูงสุด`;
+  return infeasible(`ไม่สามารถหา coverage ที่เป็นไปได้แม้จะลดลงเหลือ 1 ครั้งต่อคู่ — ${reason}`);
 }
 
 export interface GeneratedPair {
@@ -143,6 +144,11 @@ class MaxFlowGraph {
   /** Flow actually carried on the edge added by the nth call to addEdge. */
   flowOnEdge(edgeCallIndex: number): number {
     return this.edgeCap[edgeCallIndex * 2 + 1];
+  }
+
+  /** Adds capacity to the edge added by the nth call to addEdge, keeping its current flow. */
+  raiseCapacity(edgeCallIndex: number, delta: number): void {
+    this.edgeCap[edgeCallIndex * 2] += delta;
   }
 
   run(source: number, sink: number): number {
@@ -205,6 +211,7 @@ export function generateGroupPairs(input: GeneratePairsInput): GeneratePairsResu
     groups: input.groups,
     targetCoverage: input.targetCoverage,
     maxWorkload: input.maxWorkload,
+    ungroupedEvaluators: input.evaluators.filter((evaluator) => evaluator.groupId === null).length,
   });
 
   if (!feasibility.feasible) {
@@ -221,15 +228,16 @@ export function generateGroupPairs(input: GeneratePairsInput): GeneratePairsResu
 
   // Total demand doesn't always divide evenly across evaluators, and
   // `workload` (the ceil'd planning number reported to the instructor) can
-  // overshoot it. Splitting the exact total demand into a base/base+1
-  // per-evaluator quota guarantees INV-4's ≤1 spread by construction.
+  // overshoot it. Every evaluator first gets the base quota; the remainder is
+  // then handed out by a second flow phase, so the flow itself picks which
+  // evaluators take base+1. Fixing those evaluators up front can strand a
+  // pair whose only eligible evaluators all landed on the base quota.
+  // Augmenting paths never reduce source→evaluator flow, so INV-4's ≤1
+  // spread holds whenever phase one saturates every base quota.
   const totalDemand = allPairs.length * coverage;
   const evaluatorCount = shuffledEvaluators.length;
-  const baseQuota = Math.floor(totalDemand / evaluatorCount);
-  const quotaRemainder = totalDemand % evaluatorCount;
-  const quotaByIndex = shuffledEvaluators.map((_, index) =>
-    Math.min(workload, index < quotaRemainder ? baseQuota + 1 : baseQuota),
-  );
+  const baseQuota = Math.min(workload, Math.floor(totalDemand / evaluatorCount));
+  const extraQuota = Math.min(workload, baseQuota + 1) - baseQuota;
 
   const SOURCE = 0;
   const evaluatorNode = (i: number) => 1 + i;
@@ -237,7 +245,7 @@ export function generateGroupPairs(input: GeneratePairsInput): GeneratePairsResu
   const SINK = 1 + evaluatorCount + allPairs.length;
 
   const graph = new MaxFlowGraph(SINK + 1);
-  shuffledEvaluators.forEach((_, i) => graph.addEdge(SOURCE, evaluatorNode(i), quotaByIndex[i]));
+  shuffledEvaluators.forEach((_, i) => graph.addEdge(SOURCE, evaluatorNode(i), baseQuota));
   allPairs.forEach((_, i) => graph.addEdge(pairNode(i), SINK, coverage));
 
   // evaluator→pair edges are added last and in a fixed (i, j) order, so
@@ -253,7 +261,19 @@ export function generateGroupPairs(input: GeneratePairsInput): GeneratePairsResu
     });
   });
 
-  graph.run(SOURCE, SINK);
+  let flow = graph.run(SOURCE, SINK);
+  if (flow < totalDemand && extraQuota > 0) {
+    // Source→evaluator edges are the first addEdge calls, so call index i is evaluator i.
+    shuffledEvaluators.forEach((_, i) => graph.raiseCapacity(i, extraQuota));
+    flow += graph.run(SOURCE, SINK);
+  }
+  // Never publish a partial allocation if the checks above were optimistic.
+  if (flow < totalDemand) {
+    return {
+      feasibility: { ...feasibility, feasible: false, message: "ไม่สามารถจัดคู่ให้ครบตาม coverage ได้ — ลองเพิ่มกลุ่มหรือ workload สูงสุด" },
+      pairs: [],
+    };
+  }
 
   const generated: GeneratedPair[] = [];
   shuffledEvaluators.forEach((evaluator, i) => {
