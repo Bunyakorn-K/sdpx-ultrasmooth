@@ -21,7 +21,6 @@
 
 ## Harness Inventory
 
-- **Fixtures:** src/lib/test-data.ts in-memory test data store พร้อม endpoint /api/test/seed และ /api/test/cleanup
 - **Boundary Mocks:** 
 ext/head, 
 ext/font/google, animejs

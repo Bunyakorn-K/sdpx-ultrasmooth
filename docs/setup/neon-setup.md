@@ -66,7 +66,7 @@ dots and plus tags because university mailboxes may distinguish them.
 
 The explicit `ENABLE_DEV_AUTH=1` escape hatch exists only for isolated historical
 regression tests. It preserves the old test convention that any fixture identity
-can create a classroom; it does not test managed teacher assignment. Production
+can create an assignment; it does not test managed teacher assignment. Production
 ignores the flag. Never enable it on a shared deployment or real student database.
 
 ## References

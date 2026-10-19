@@ -5,23 +5,6 @@ import { assignments, classroomMembers, classrooms, criteria, groupEntities } fr
 import { uniqueSlug } from "#/lib/slug";
 import { votingReadiness } from "#/services/voting-readiness";
 
-export async function createAssignment(
-  classroomId: number,
-  userId: number,
-  input: { name: string; groupMaxScore?: number; deadlineUtc?: string | null },
-) {
-  // Teachers add their own voting questions before starting the vote.
-  const [assignment] = await db.insert(assignments).values({
-    classroomId,
-    name: input.name,
-    slug: uniqueSlug(input.name),
-    groupMaxScore: String(input.groupMaxScore ?? 100),
-    deadlineUtc: input.deadlineUtc ? new Date(input.deadlineUtc) : null,
-    createdBy: userId,
-  }).returning();
-  return assignment;
-}
-
 /**
  * Teachers create assignments directly. Each one gets its own hidden
  * classroom, whose slug is the join code, so membership and permission checks
@@ -53,10 +36,6 @@ export async function listMyAssignments(userId: number) {
     .innerJoin(assignments, eq(assignments.classroomId, classroomMembers.classroomId))
     .where(eq(classroomMembers.userId, userId))
     .orderBy(asc(assignments.createdAt));
-}
-
-export async function listAssignments(classroomId: number) {
-  return db.select().from(assignments).where(eq(assignments.classroomId, classroomId));
 }
 
 export async function getAssignment(assignmentId: number) {

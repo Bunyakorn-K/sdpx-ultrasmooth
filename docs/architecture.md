@@ -36,7 +36,7 @@ ratings. The old pairwise `pair_assignment` and `comparison` tables are kept
 only for historical data. Results require a classroom
 teacher; a student can see their own completion counts, not scores or others' votes.
 
-The historical classroom-group path is retained only for assignments without
-scoped groups, preserving existing CSV workflows. The in-memory `/api/test/*`
-fixtures are separate from the real disposable Postgres workflow verification.
-They are disabled in production and are not the application's persistence layer.
+Each assignment owns a hidden classroom whose slug is the join code, so
+membership and role checks reuse `classroom_member`. Under local dev auth,
+`/api/auth/dev-sign-in` accepts `role: "student"` to seed extra student accounts
+for browser tests.

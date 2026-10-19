@@ -29,8 +29,8 @@ Open http://localhost:3000. See `.env.example` for variable names and
 [Neon setup](docs/setup/neon-setup.md) for secret-free provisioning and live verification.
 `DATABASE_URL_UNPOOLED` is preferred for migrations. New users are students;
 `TEACHER_AUTH_IDS` controls teacher eligibility on the server. A teacher creates
-and shares a classroom invitation code; students join and choose/create groups
-before voting is published. Existing roster CSV import remains available.
+an assignment and shares its join code; students join, create or join a group,
+and score every other group 1-5 once the teacher starts voting.
 
 `bun dev` enables local fixture sign-in by default and binds to 127.0.0.1.
 At `/sign-in`, choose **Use Teacher** or **Use Student** (no password).
