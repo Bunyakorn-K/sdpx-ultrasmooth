@@ -10,6 +10,16 @@ No local fixture or mocked test counts as proof of managed Auth.
 
 ## Finish provisioning
 
+The HTTPS `/neondb/auth` endpoint belongs in runtime `NEON_AUTH_BASE_URL`.
+It is not a PostgreSQL connection string. `DATABASE_URL` and a random
+`NEON_AUTH_COOKIE_SECRET` of at least 32 characters are still required.
+Keep all credentials in runtime/deployment settings.
+
+CI's `test:workflows` verifies application data and identity linking against
+its disposable PostgreSQL service, without contacting managed Auth. Run that
+step with `ALLOW_TEST_DATABASE=1` and `ENABLE_DEV_AUTH=0`; only browser fixture
+tests use `ENABLE_DEV_AUTH=1`. Live managed signup remains a separate check.
+
 1. A human runs `neon login` and selects the organization/project. Do not paste
    API keys or connection strings into chat. Do not launch unattended login.
 2. Confirm the target project uses AWS without IP Allow or Private Networking.

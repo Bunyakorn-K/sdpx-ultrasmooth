@@ -112,6 +112,8 @@ jobs:
         run: bun run test:workflows
         env:
           ALLOW_TEST_DATABASE: "1"
+          # Exercise managed identity policy, not the browser fixture bypass.
+          ENABLE_DEV_AUTH: "0"
       # --------------------------------
 
       - name: Run E2E Tests
