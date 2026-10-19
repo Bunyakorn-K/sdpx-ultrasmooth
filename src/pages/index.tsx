@@ -1,6 +1,7 @@
 ﻿import Head from "next/head";
 import Link from "next/link";
 import { Button } from "@heroui/react";
+import { useEffect, useState } from "react";
 
 const steps = [
   { number: "01", title: "For teachers", text: "Create an assignment. Give every group a place to share their work.", color: "#dff3e9", ink: "#25785e" },
@@ -28,6 +29,11 @@ function LearningIllustration({ color, index = 0 }: { color: string; index?: num
 }
 
 export default function Home() {
+  // The landing page is static, so ask the session endpoint once it loads.
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => {
+    fetch("/api/account").then((response) => setSignedIn(response.ok)).catch(() => {});
+  }, []);
   return <>
     <Head>
       <title>PairEval — A fresh perspective on student work</title>
@@ -39,10 +45,11 @@ export default function Home() {
       <header className="mx-auto max-w-6xl px-6 pt-8 sm:px-12 sm:pt-12">
         <nav data-testid="nav" aria-label="Main" className="flex items-center justify-between gap-6">
           <a href="#home" className="font-serif text-3xl italic tracking-tight text-[#ee6069]">PairEval.</a>
-          <div className="flex items-center gap-4">
+          {signedIn ? <Link href="/classrooms" className="rounded-md bg-[#3dbb94] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-emerald-700">Your classrooms →</Link>
+            : <div className="flex items-center gap-4">
             <Link href="/sign-up" className="hidden rounded-md bg-[#ef636b] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#dd535c] sm:inline-block">Create account</Link>
             <Link href="/sign-in"><Button variant="ghost" size="sm">Sign in</Button></Link>
-          </div>
+          </div>}
         </nav>
       </header>
       <main id="home" className="mx-auto max-w-6xl px-6 sm:px-12">

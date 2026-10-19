@@ -30,7 +30,7 @@ Open http://localhost:3000. See `.env.example` for variable names and
 `DATABASE_URL_UNPOOLED` is preferred for migrations. New users are students;
 `TEACHER_AUTH_IDS` controls teacher eligibility on the server. A teacher creates
 and shares a classroom invitation code; students join and choose/create groups
-before voting is published. Existing roster CSV import remains available.
+before voting is published. Students join a classroom with its invitation code.
 
 `bun dev` enables local fixture sign-in by default and binds to 127.0.0.1.
 At `/sign-in`, choose **Use Teacher** or **Use Student** (no password).

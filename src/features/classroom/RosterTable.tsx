@@ -78,7 +78,7 @@ export const RosterTable = forwardRef<RosterTableHandle, { classroomId: number }
             {roster !== null && filtered.length === 0 && (
               <tr>
                 <td colSpan={4} className="py-4 text-zinc-500">
-                  No students yet — import a roster CSV above.
+                  No students yet — share the invitation code above so students can join.
                 </td>
               </tr>
             )}

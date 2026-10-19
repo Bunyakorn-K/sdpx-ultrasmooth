@@ -7,7 +7,7 @@ import { classrooms } from "#/db/schema";
 import { getClassroomRole, getCurrentUser } from "#/lib/auth";
 import { listAssignments } from "#/services/assignment-service";
 import { PageShell } from "#/components/PageShell";
-import { ClassroomRosterSection } from "#/features/classroom/ClassroomRosterSection";
+import { RosterTable } from "#/features/classroom/RosterTable";
 import { AssignmentSection } from "#/features/classroom/AssignmentSection";
 import { DeleteClassroomButton } from "#/features/classroom/DeleteClassroomButton";
 
@@ -43,7 +43,7 @@ export default async function ClassroomPage({
       {role === "INSTRUCTOR" ? (
         <>
           <AssignmentSection classroomId={classroomId} />
-          <ClassroomRosterSection classroomId={classroomId} />
+          <RosterTable classroomId={classroomId} />
         </>
       ) : (
         <StudentAssignmentList classroomId={classroomId} />
