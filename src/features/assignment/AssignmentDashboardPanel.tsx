@@ -87,30 +87,43 @@ export function AssignmentDashboardPanel({ assignment: initial }: { assignment: 
       <div className="flex flex-col gap-3 rounded-xl border border-black/10 bg-white p-4 dark:border-white/12 dark:bg-zinc-950">
         <h2 className="text-sm font-semibold">Edit assignment</h2>
         <form onSubmit={handleSave} className="flex flex-col gap-3">
+          <label htmlFor="assignment-name" className="text-sm font-medium">Assignment name</label>
           <input
+            id="assignment-name"
+            aria-describedby="assignment-name-help"
             type="text"
             value={name}
             disabled={!isDraft}
             onChange={(e) => setName(e.target.value)}
             className="rounded-lg border border-black/12 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 disabled:opacity-50 dark:border-white/15 dark:bg-zinc-950"
           />
-          <div className="flex gap-3">
+          <p id="assignment-name-help" className="text-xs leading-5 text-slate-500">The title students see in their classroom and assignment workspace.</p>
+          <div className="flex flex-col gap-3">
+            <label htmlFor="assignment-deadline" className="text-sm font-medium">Voting deadline (local time)</label>
             <input
+              id="assignment-deadline"
+              aria-describedby="assignment-deadline-help"
               type="datetime-local"
               value={deadline}
               disabled={!isDraft}
               onChange={(e) => setDeadline(e.target.value)}
               className="flex-1 rounded-lg border border-black/12 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 disabled:opacity-50 dark:border-white/15 dark:bg-zinc-950"
             />
+            <p id="assignment-deadline-help" className="text-xs leading-5 text-slate-500">Voting and group changes close at this date and time in your local timezone. Leave blank for no deadline.</p>
+            <label htmlFor="assignment-max-score" className="text-sm font-medium">Maximum group score</label>
             <input
+              id="assignment-max-score"
+              aria-describedby="assignment-max-score-help"
               type="number"
               min={0}
               value={groupMaxScore}
               disabled={!isDraft}
               onChange={(e) => setGroupMaxScore(e.target.value)}
-              className="w-28 rounded-lg border border-black/12 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 disabled:opacity-50 dark:border-white/15 dark:bg-zinc-950"
+              className="w-full rounded-lg border border-black/12 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 disabled:opacity-50 dark:border-white/15 dark:bg-zinc-950"
             />
+            <p id="assignment-max-score-help" className="text-xs leading-5 text-slate-500">The maximum points used to scale group voting results, for example 100 points.</p>
           </div>
+          {!isDraft && <p className="text-xs leading-5 text-slate-500">These settings are locked after voting is published.</p>}
           {isDraft && (
             <Button type="submit" size="sm" variant="secondary" isDisabled={savePending}>
               {savePending ? "Saving…" : "Save"}
@@ -121,6 +134,7 @@ export function AssignmentDashboardPanel({ assignment: initial }: { assignment: 
 
       <div className="flex flex-col gap-3 rounded-xl border border-black/10 bg-white p-4 dark:border-white/12 dark:bg-zinc-950">
         <h2 className="text-sm font-semibold">Pair generation engine</h2>
+        {isDraft && <button type="button" onClick={loadFeasibility} className="self-start text-xs text-emerald-800 underline">Refresh group readiness</button>}
         {feasibility ? (
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             <span

@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Home from "../../pages/index";
@@ -44,12 +44,9 @@ describe("homepage", () => {
     expect(navigation.querySelector('a[href="#home"]')?.textContent).toContain(
       "PairEval",
     );
-    expect(
-      navigation.querySelector('a[href="#how-it-works"]')?.textContent,
-    ).toContain("How it works");
-    expect(navigation.querySelector('a[href="#about"]')?.textContent).toContain(
-      "About",
-    );
+    expect(within(navigation).getByRole("link", { name: "Create account" })).toHaveAttribute("href", "/sign-up");
+    expect(within(navigation).getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in");
+    expect(within(navigation).queryByRole("link", { name: /^(Home|How it works|About)$/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sign in" })).toBeTruthy();
   });
 });

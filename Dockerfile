@@ -1,15 +1,20 @@
-# Stage 1: Install dependencies based on lockfile
+﻿# Stage 1: Install dependencies based on lockfile
 FROM node:24-alpine AS deps
 # Install libc6-compat and required system utilities
 RUN apk add --no-cache libc6-compat curl bash
 # Set the container working directory
 WORKDIR /app
 # Install bun globally for fast deterministic lockfile installs
-RUN npm install -g bun@1.2.4
+RUN npm install -g bun@1.3.14
 # Copy dependency manifests first to leverage Docker layer caching
 COPY package.json bun.lock ./
 # Install dependencies using frozen lockfile
 RUN bun install --frozen-lockfile
+
+# Local development runs migrations before starting Next.js.
+FROM deps AS development
+COPY . .
+CMD ["bun", "dev"]
 
 # Stage 2: Build the Next.js application
 FROM node:24-alpine AS build
@@ -25,10 +30,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Set production node environment for compilation
 ENV NODE_ENV=production
 # Install bun for building with next
-RUN npm install -g bun@1.2.4 && bun run build
+RUN npm install -g bun@1.3.14 && bun run build
 
 # Stage 3: Test runner stage for CI and local verification
 FROM node:24-alpine AS test
+RUN npm install -g bun@1.3.14
 # Set working directory for tests
 WORKDIR /app
 # Copy dependencies and application code
@@ -37,9 +43,20 @@ COPY . .
 # Set environment flag for test execution
 ENV NODE_ENV=test
 # Run vitest test suite by default in this stage
-CMD ["npm", "test"]
+CMD ["bun", "run", "test"]
 
 # Stage 4: Minimal production runtime
+FROM mcr.microsoft.com/playwright:v1.62.1-noble AS e2e
+WORKDIR /app
+RUN npm install -g bun@1.3.14 && chown pwuser:pwuser /app
+COPY --chown=pwuser:pwuser package.json bun.lock ./
+USER pwuser
+RUN bun install --frozen-lockfile
+COPY --chown=pwuser:pwuser . .
+ENV NODE_ENV=test
+CMD ["bun", "run", "test:e2e"]
+
+# Production runtime contains the build and runs as a non-root user.
 FROM node:24-alpine AS runtime
 # Set working directory for the application server
 WORKDIR /app

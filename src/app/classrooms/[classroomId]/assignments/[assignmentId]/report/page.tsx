@@ -5,6 +5,7 @@ import { getClassroomRole, getCurrentUser } from "#/lib/auth";
 import { getAssignment } from "#/services/assignment-service";
 import { PageShell } from "#/components/PageShell";
 import { StudentReportPanel } from "#/features/report/StudentReportPanel";
+import { getParticipation } from "#/services/report-service";
 
 export default async function ReportPage({
   params,
@@ -23,6 +24,16 @@ export default async function ReportPage({
 
   const assignment = await getAssignment(assignmentId);
   if (!assignment || assignment.classroomId !== classroomId) notFound();
+
+  if (role === "STUDENT") {
+    const participation = await getParticipation(assignmentId, user.id);
+    return <PageShell maxWidth="max-w-2xl">
+      <h1 className="font-serif text-3xl">Participation</h1>
+      <p>{participation.submitted} / {participation.assigned} comparisons submitted</p>
+      <p className="text-sm text-slate-500">Group score and voting results are visible only to your teacher.</p>
+      <Link href={`/classrooms/${classroomId}`} className="text-emerald-800 underline">Back to classroom</Link>
+    </PageShell>;
+  }
 
   return (
     <PageShell maxWidth="max-w-2xl">

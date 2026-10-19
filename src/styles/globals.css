@@ -1,12 +1,9 @@
 @import "tailwindcss";
 @import "@heroui/styles";
+@import "./product-theme.css";
 
-/* Tailwind v4 no longer wires `dark:` to prefers-color-scheme by default —
-   without this, every `dark:*` utility in the app (including the existing
-   homepage) is silently inert, which is what caused HeroUI's own
-   `text-foreground` (driven by the plain @media block below) to go
-   near-white while page backgrounds stayed light. */
-@custom-variant dark (@media (prefers-color-scheme: dark));
+/* The product uses the same light palette regardless of system preference. */
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --background: #ffffff;
@@ -18,13 +15,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {

@@ -6,10 +6,9 @@ weighting beyond one auto-created criterion, `computed_score`/`score_override`/
 `audit_event`/`notification`/`appeal` tables, individual-side pairing) is an
 additive change for M2/M3, not a redesign.
 
-No Docker on this dev machine, so there's no ephemeral `compose.test.yaml`
-Postgres instance wired up for CI/E2E yet — local dev and the one E2E spec
-(`tests/e2e/specs/m1-walking-skeleton.spec.ts`) both run against a native
-Postgres install with the same credentials `compose.yaml` already documents.
+The schema now also supports assignment-scoped enrollment. Docker is available
+for disposable PostgreSQL verification. Managed identity provisioning remains
+pending Neon authentication; the `neon_auth` schema is managed by Neon separately.
 
 ```mermaid
 erDiagram
@@ -20,12 +19,17 @@ erDiagram
     GROUP_ENTITY ||--o{ CLASSROOM_MEMBER : groups
     ASSIGNMENT ||--o{ CRITERION : defines
     ASSIGNMENT ||--o{ PAIR_ASSIGNMENT : generates
+    ASSIGNMENT ||--o{ GROUP_ENTITY : scopes
+    ASSIGNMENT ||--o{ ASSIGNMENT_GROUP_MEMBER : enrolls
+    GROUP_ENTITY ||--o{ ASSIGNMENT_GROUP_MEMBER : contains
+    USER ||--o{ ASSIGNMENT_GROUP_MEMBER : selects
     CRITERION ||--o{ PAIR_ASSIGNMENT : scopes
     PAIR_ASSIGNMENT ||--o{ COMPARISON : receives
     USER ||--o{ COMPARISON : submits
 
     USER {
         int id PK
+        string auth_subject "unique managed identity, nullable for imported users"
         string email_normalized
         string email_raw
         string display_name
@@ -46,6 +50,7 @@ erDiagram
     GROUP_ENTITY {
         int id PK
         int classroom_id FK
+        int assignment_id FK "nullable for legacy imported groups"
         string name
         string artifact_url "nullable — per-group evaluation link"
         string description "nullable"
@@ -61,6 +66,12 @@ erDiagram
         int max_workload
         bigint pairing_seed
         string status "DRAFT|PUBLISHED"
+    }
+    ASSIGNMENT_GROUP_MEMBER {
+        int id PK
+        int assignment_id FK
+        int group_id FK
+        int user_id FK "unique with assignment_id"
     }
     CRITERION {
         int id PK

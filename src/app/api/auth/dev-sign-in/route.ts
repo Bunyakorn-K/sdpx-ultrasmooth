@@ -5,17 +5,25 @@ import { NextResponse } from "next/server";
 import { apiError } from "#/lib/api-error";
 import { SESSION_COOKIE } from "#/lib/auth";
 import { activateUserOnSignIn } from "#/services/user-service";
+import { devAuthEnabled } from "#/lib/auth-policy";
+import { getDevAccount } from "#/services/dev-account-service";
 
 export async function POST(request: Request) {
+  if (!devAuthEnabled()) return new Response(null, { status: 404 });
   const body = await request.json().catch(() => null);
   const email = typeof body?.email === "string" ? body.email.trim() : "";
   const displayName = typeof body?.displayName === "string" ? body.displayName.trim() || null : null;
 
-  if (!email) {
+  const demoRole = body?.demoRole;
+  if (demoRole !== undefined && demoRole !== "teacher" && demoRole !== "student") {
+    return apiError(400, "INVALID_BODY", "Unknown development account.");
+  }
+  if (!email && !demoRole) {
     return apiError(400, "INVALID_BODY", "email is required.");
   }
 
-  const user = await activateUserOnSignIn(email, displayName);
+  const user = await (demoRole ? getDevAccount(demoRole) : activateUserOnSignIn(email, displayName)).catch(() => null);
+  if (!user) return apiError(503, "DEV_DATABASE_UNAVAILABLE", "Start the development database and run migrations before signing in.");
 
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, String(user.id), {

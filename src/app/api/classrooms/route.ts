@@ -38,6 +38,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
+  if (user.role !== "teacher") return apiError(403, "TEACHER_ONLY", "Only teachers create classrooms.");
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   if (!name) {
     logger.error({
@@ -67,15 +68,15 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ id: classroom.id, name: classroom.name, slug: classroom.slug }, { status: 201 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     // ❌ ยิง Log กรณีพัง (เช่น เกิดปัญหากับ Database)
     logger.error({
       event: "classroom_creation_failed",
       requestId,
-      reason: error.code || "UNKNOWN_ERROR",
+      reason: "DATABASE_ERROR",
       userId: user.id,
       duration_ms: Date.now() - start,
     });
-    throw error;
+    return apiError(500, "CLASSROOM_FAILED", "Could not create the classroom.");
   }
 }

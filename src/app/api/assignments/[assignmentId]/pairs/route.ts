@@ -11,12 +11,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ass
 
   const user = await getCurrentUser();
   if (!user) return unauthorized();
+  if (user.role !== "student") return notFound();
 
   const assignment = await getAssignment(assignmentId);
   if (!assignment) return notFound("Assignment not found.");
 
   const role = await getClassroomRole(assignment.classroomId, user.id);
-  if (!role) return notFound("Assignment not found.");
+  if (role !== "STUDENT" || assignment.status !== "PUBLISHED") return notFound("Assignment not found.");
 
   const pairs = await getEvaluationQueue(assignmentId, user.id);
   return NextResponse.json({ assignmentId, pairs });

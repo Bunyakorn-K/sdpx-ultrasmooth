@@ -17,3 +17,10 @@
 
 ใช้ไปประมาณ 7-8 ครั้ง
 ครั้งหน้าจะลดได้อย่างไร: ทดสอบรันคำสั่งต่างๆ (เช่น npm run db:migrate หรือ npx playwright test) และเช็คเรื่อง lockfile ภายในเครื่อง Local ให้ผ่าน 100% ก่อนค่อยกด Push ขึ้น GitHub
+
+
+## Local change verification — 2026-10-19
+
+Current local verification is recorded in docs/verification-2026-10-19.md. Earlier
+CI/deploy figures above are historical and were not re-measured for this change.
+No push, remote CI run, blocked-merge demonstration, or deployment was performed.

@@ -1,151 +1,80 @@
-import { useEffect, useRef } from "react";
-import Head from "next/head";
+﻿import Head from "next/head";
 import Link from "next/link";
-import { Geist } from "next/font/google";
-import { Button, Card, Chip } from "@heroui/react";
-import { animate, stagger, createScope, type Scope } from "animejs";
+import { Button } from "@heroui/react";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const navItems = [
-  { label: "Home", href: "#home" },
-  { label: "How it works", href: "#how-it-works" },
-  { label: "About", href: "#about" },
+const steps = [
+  { number: "01", title: "For teachers", text: "Create an assignment. Give every group a place to share their work.", color: "#dff3e9", ink: "#25785e" },
+  { number: "02", title: "For students", text: "Find your classroom, choose your group, and add your submission.", color: "#def1f8", ink: "#267b92" },
+  { number: "03", title: "A fresh perspective", text: "Compare two other groups side by side. Choose the stronger work.", color: "#fde4e5", ink: "#bc4960" },
+  { number: "04", title: "Thoughtful insights", text: "Results stay with your teacher, helping them make informed assessments.", color: "#fff1cf", ink: "#9a721c" },
 ];
 
+function LearningIllustration({ color, index = 0 }: { color: string; index?: number }) {
+  return <svg viewBox="0 0 260 190" fill="none" aria-hidden="true" className="w-full">
+    <path d="M-12 188C-2 73 94 65 130 87c46-64 130-40 142 101H-12Z" fill={color} />
+    <path d="M84 182c-11-33 6-66 29-70 29-8 53 18 64 70" fill={["#58bb94", "#62bbd4", "#f57e87", "#efbd4c"][index]} stroke="#58334e" strokeWidth="2" />
+    <path d="M117 108V91h21v25c-3 11-16 9-21-8Z" fill="#fff6ef" stroke="#58334e" strokeWidth="2" />
+    <path d="M108 70c0-27 46-30 49-5 3 26-10 42-24 40-15-2-26-18-25-35Z" fill="#fff6ef" stroke="#58334e" strokeWidth="2" />
+    <path d="M107 81c-13-21-4-48 19-45 14-14 41 0 36 18-5 13-20 17-32 10-3 15-12 20-23 17Z" fill="#702749" />
+    <path d="m137 79 6 4-5 3m-6 7c5 3 9 2 12-1" stroke="#702749" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="130" cy="79" r="2" fill="#702749" />
+    <path d="m152 139 29 36m-83-30-9 30" stroke="#58334e" strokeWidth="2" strokeLinecap="round" />
+    <path d="M46 137h78l17 45H63l-17-45Z" fill="white" stroke="#58334e" strokeWidth="2" />
+    <circle cx="92" cy="160" r="6" stroke="#58334e" strokeWidth="1.5" />
+    <path d="M52 183h146" stroke="#58334e" strokeWidth="2" strokeLinecap="round" />
+    <rect x="180" y="51" width="35" height="35" rx="11" fill="white" />
+    <path d="m189 68 6 6 11-12" stroke="#4f9c80" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>;
+}
+
 export default function Home() {
-  const rootRef = useRef<HTMLDivElement>(null);
-  const scopeRef = useRef<Scope | null>(null);
-
-  useEffect(() => {
-    const prefersReduced = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-
-    scopeRef.current = createScope({ root: rootRef }).add(() => {
-      if (prefersReduced) {
-        // Respect reduced-motion by skipping non-essential animation.
-        return;
-      }
-
-      // Staggered entrance for the hero + feature card.
-      animate(".reveal", {
-        opacity: [0, 1],
-        translateY: [24, 0],
-        delay: stagger(90, { start: 120 }),
-        duration: 800,
-        ease: "out(3)",
-      });
-
-      // Gentle continuous float on the placeholder glyph.
-      animate(".float-glyph", {
-        translateY: [-6, 6],
-        duration: 2600,
-        ease: "inOut(2)",
-        loop: true,
-        alternate: true,
-      });
-    });
-
-    return () => scopeRef.current?.revert();
-  }, []);
-
-  return (
-    <>
-      <Head>
-        <title>PairEval — Pairwise Student Evaluation</title>
-        <meta
-          name="description"
-          content="PairEval is a university evaluation system based on pairwise comparison."
-        />
-      </Head>
-
-      <div
-        ref={rootRef}
-        className={`${geistSans.className} flex min-h-screen flex-col bg-zinc-50 font-sans text-zinc-900 dark:bg-black dark:text-zinc-100`}
-      >
-        {/* Navigation bar */}
-        <header className="sticky top-0 z-10 border-b border-black/8 bg-zinc-50/80 backdrop-blur dark:border-white/12 dark:bg-black/80">
-          <nav className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
-            <a href="#home" className="flex items-center gap-2 font-semibold tracking-tight">
-              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-600 text-sm font-bold text-white">
-                P
-              </span>
-              PairEval
-            </a>
-
-            <ul className="hidden items-center gap-8 text-sm text-zinc-600 dark:text-zinc-400 sm:flex">
-              {navItems.map((item) => (
-                <li key={item.href}>
-                  <a
-                    href={item.href}
-                    className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-100"
-                  >
-                    {item.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-
-            <Link href="/login"><Button variant="primary" size="sm">Sign in</Button></Link>
-          </nav>
-        </header>
-
-        {/* Main content */}
-        <main id="home" className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6">
-          {/* Hero */}
-          <section className="flex flex-col items-center gap-5 pt-24 pb-16 text-center">
-            <Chip className="reveal" variant="soft" size="sm">
-              University Evaluation System
-            </Chip>
-            <h1 className="reveal max-w-2xl text-4xl font-semibold leading-tight tracking-tight text-yellow-700 dark:text-yellow-400 sm:text-5xl">
-              Fairer student evaluation through pairwise comparison
-            </h1>
-            <p className="reveal max-w-xl text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-              PairEval turns simple “which is better?” comparisons into reliable,
-              consistent rankings — making assessment faster and more objective.
-            </p>
-            <div className="reveal mt-2 flex flex-col gap-3 sm:flex-row">
-              <a
-                href="#how-it-works"
-                className="rounded-full border border-black/12 px-4 py-2 text-sm font-medium transition-colors hover:bg-zinc-100 dark:border-white/15 dark:hover:bg-zinc-900"
-              >
-                See how it works
-              </a>
-            </div>
-          </section>
-
-          {/* Main feature placeholder */}
-          <Card
-            id="how-it-works"
-            className="reveal mb-24 border border-dashed border-black/12 bg-white dark:border-white/15 dark:bg-zinc-950"
-          >
-            <Card.Header className="items-center text-center">
-              <div className="float-glyph mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-2xl text-zinc-400 dark:bg-zinc-900">
-                ⧉
-              </div>
-              <Card.Title>Pairwise comparison workspace</Card.Title>
-              <Card.Description className="max-w-md">
-                The main feature will live here. Reviewers will be shown two
-                submissions side by side and choose the stronger one.
-              </Card.Description>
-            </Card.Header>
-            <Card.Content className="flex justify-center pb-8">
-              <Link href="/login"><Button variant="primary">Start M1 Demo</Button></Link>
-            </Card.Content>
-          </Card>
-        </main>
-
-        {/* Footer */}
-        <footer id="about" className="border-t border-black/8 dark:border-white/12">
-          <div className="mx-auto w-full max-w-5xl px-6 py-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
-            © {new Date().getFullYear()} PairEval — Pairwise student evaluation.
+  return <>
+    <Head>
+      <title>PairEval — A fresh perspective on student work</title>
+      <meta name="description" content="Create assignments, work in groups, and make thoughtful pairwise comparisons with PairEval." />
+    </Head>
+    <div className="relative isolate min-h-screen overflow-hidden bg-white font-sans text-[#2d3c43]">
+      <div aria-hidden="true" className="pointer-events-none absolute -right-64 -top-72 -z-10 h-[780px] w-[680px] rotate-[-25deg] rounded-[160px] bg-[#e8f6fa]" />
+      <div aria-hidden="true" className="pointer-events-none absolute -left-80 top-[620px] -z-10 h-[650px] w-[470px] rotate-[30deg] rounded-[120px] bg-[#fff5db]" />
+      <header className="mx-auto max-w-6xl px-6 pt-8 sm:px-12 sm:pt-12">
+        <nav data-testid="nav" aria-label="Main" className="flex items-center justify-between gap-6">
+          <a href="#home" className="font-serif text-3xl italic tracking-tight text-[#ee6069]">PairEval.</a>
+          <div className="flex items-center gap-4">
+            <Link href="/sign-up" className="hidden rounded-md bg-[#ef636b] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#dd535c] sm:inline-block">Create account</Link>
+            <Link href="/sign-in"><Button variant="ghost" size="sm">Sign in</Button></Link>
           </div>
-        </footer>
-      </div>
-    </>
-  );
+        </nav>
+      </header>
+      <main id="home" className="mx-auto max-w-6xl px-6 sm:px-12">
+        <section className="mx-auto flex max-w-3xl flex-col items-center pb-16 pt-20 text-center sm:pt-24">
+          <p className="mb-5 text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-700">University Evaluation System</p>
+          <h1 className="font-serif text-4xl leading-[1.15] tracking-tight sm:text-6xl">Fairer student evaluation through pairwise comparison</h1>
+          <p className="mt-6 max-w-lg text-sm leading-7 text-slate-500 sm:text-base">Great work deserves a fresh perspective. Bring your class together to share, compare, and learn from each other.</p>
+          <Link data-testid="main-cta" href="/sign-up" className="mt-8 inline-flex items-center gap-5 rounded-md bg-[#3dbb94] px-6 py-3 text-sm font-medium text-white transition hover:bg-emerald-700">Start learning together <span aria-hidden="true">↗</span></Link>
+        </section>
+        <section id="how-it-works" aria-labelledby="journey-title" className="scroll-mt-8 pb-24">
+          <h2 id="journey-title" className="mb-7 text-center text-xs uppercase tracking-[0.2em] text-slate-500">One classroom. Many perspectives.</h2>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {steps.map((step, index) => <article key={step.number} className="group overflow-hidden rounded-sm border border-slate-100 bg-white pt-6 transition duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-100">
+              <div className="px-5"><span className="text-[10px] tracking-widest text-slate-400">{step.number} /</span>
+                <h3 className="mb-4 mt-2 text-sm font-semibold" style={{ color: step.ink }}>{step.title}</h3></div>
+              <LearningIllustration color={step.color} index={index} />
+              <p className="min-h-28 px-5 py-5 text-xs leading-6 text-slate-500">{step.text}</p>
+            </article>)}
+          </div>
+        </section>
+        <section id="about" className="grid items-center gap-12 pb-24 md:grid-cols-2 md:gap-20">
+          <div><p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-700">Made for your classroom</p>
+            <h2 className="font-serif text-4xl leading-tight">Less guesswork.<br />More understanding.</h2>
+            <p className="mt-5 max-w-md text-sm leading-7 text-slate-500">Teachers set the assignment and guide the process. Students choose a group and compare work from other teams. Teachers alone can view the results.</p>
+            <Link href="/sign-up" className="mt-7 inline-flex items-center gap-5 text-sm font-medium text-emerald-700">Find your perspective <span aria-hidden="true">→</span></Link>
+          </div>
+          <div className="mx-auto w-full max-w-sm"><LearningIllustration color="#e0f4eb" /></div>
+        </section>
+      </main>
+      <footer className="mx-auto flex max-w-6xl flex-col justify-between gap-3 border-t border-slate-100 px-6 py-7 text-xs text-slate-400 sm:flex-row sm:px-12">
+        <span className="font-serif text-lg italic text-[#ee6069]">PairEval.</span><p>Thoughtful comparisons. Shared learning.</p><Link href="/sign-in">Your classroom →</Link>
+      </footer>
+    </div>
+  </>;
 }

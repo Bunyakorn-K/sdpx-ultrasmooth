@@ -27,8 +27,10 @@ Date: 21 July 2026
 
 ## Database
 
-- PostgreSQL (via Supabase)
-- Rationale: จัดการง่าย เข้ากันได้ดีกับ Next.js และมีระบบจัดการ Google OAuth ที่สอดคล้องกับ Requirement (FR-AUTH-01) ของ PairEval
+- Lakebase Postgres through Neon, using the existing Drizzle ORM and postgres driver.
+- Owner-requested change on 2026-10-19 supersedes the earlier Supabase-hosting plan.
+- Managed Better Auth via @neondatabase/auth; email/password initially. Service provisioning and live signup proof still require Neon sign-in.
+- Secrets are injected at runtime only. No managed credentials are stored in the repository.
 
 ## Deployment
 

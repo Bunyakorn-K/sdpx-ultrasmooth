@@ -1,12 +1,12 @@
 openapi: 3.1.0
 info:
   title: PairEval HTTP Surface
-  version: 0.4.0
+  version: 0.5.0
   description: |
     API contract for PairEval's M1 walking skeleton: classroom/roster
     management, group-side pairwise evaluation, and scoring. Individual
     (peer-within-group) evaluation, multi-criteria weighting, overrides,
-    audit log, appeals, exports, and notifications are M2/M3 — not in this
+    audit log, appeals, exports, and notifications are M2/M3 â€” not in this
     version of the contract.
   license:
     name: Proprietary
@@ -19,6 +19,25 @@ servers:
 security:
   - SessionCookie: []
 paths:
+  /api/classrooms/{classroomId}:
+    delete:
+      operationId: deleteClassroom
+      summary: Owner deletes a classroom and its assignments, groups, votes, and results
+      description: Requires teacher role and classroom ownership. User accounts remain. Deletion is atomic.
+      parameters:
+        - in: path
+          name: classroomId
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '204':
+          description: Classroom and dependent data deleted.
+        '401':
+          description: Sign-in required.
+        '404':
+          description: Classroom missing or caller is not its owner.
+        '409':
+          description: Deletion could not be completed; no partial deletion is committed.
   /:
     get:
       operationId: getHomepage
@@ -53,8 +72,8 @@ paths:
       summary: "TEMPORARY dev-only stub sign-in (see src/lib/auth.ts)"
       description: |
         Find-or-creates a user by normalized email and sets the session
-        cookie. No password, no Google OAuth — a placeholder until Better
-        Auth is wired up. Not safe for real student data.
+        cookie. No password, no Google OAuth â€” a placeholder until Better
+        Auth is the normal authentication path. Not safe for real student data.
       security: []
       requestBody:
         required: true
@@ -151,7 +170,7 @@ paths:
       summary: Atomic CSV roster import (FR-CLASS-01/02/03)
       description: |
         Columns: email, group_name, student_id (optional), display_name
-        (optional). Any invalid row rejects the whole file — nothing is
+        (optional). Any invalid row rejects the whole file â€” nothing is
         written and every bad row is reported.
       parameters:
         - $ref: '#/components/parameters/ClassroomId'
@@ -171,7 +190,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/RosterImportResult' }
         '400':
-          description: CSV validation failed — nothing was imported.
+          description: CSV validation failed â€” nothing was imported.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
@@ -234,7 +253,7 @@ paths:
           $ref: '#/components/responses/NotFound'
     patch:
       operationId: updateAssignment
-      summary: Edit an assignment (DRAFT only — FR-ASSIGN-03)
+      summary: Edit an assignment (DRAFT only â€” FR-ASSIGN-03)
       parameters:
         - $ref: '#/components/parameters/AssignmentId'
       requestBody:
@@ -260,7 +279,7 @@ paths:
   /api/assignments/{assignmentId}/feasibility:
     get:
       operationId: getFeasibility
-      summary: Pairing feasibility, computed on demand (PRD §8.2)
+      summary: Pairing feasibility, computed on demand (PRD Â§8.2)
       parameters:
         - $ref: '#/components/parameters/AssignmentId'
       responses:
@@ -275,7 +294,7 @@ paths:
   /api/assignments/{assignmentId}/publish:
     post:
       operationId: publishAssignment
-      summary: Generate and persist pairs; DRAFT → PUBLISHED
+      summary: Generate and persist pairs; DRAFT â†’ PUBLISHED
       parameters:
         - $ref: '#/components/parameters/AssignmentId'
       responses:
@@ -289,7 +308,7 @@ paths:
                   feasibility: { $ref: '#/components/schemas/Feasibility' }
                   published: { type: boolean }
         '422':
-          description: Infeasible — no pairs generated.
+          description: Infeasible â€” no pairs generated.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
@@ -316,7 +335,7 @@ paths:
   /api/assignments/{assignmentId}/comparisons:
     put:
       operationId: submitComparison
-      summary: Upsert one comparison (autosave + submit — FR-API-01 idempotent)
+      summary: Upsert one comparison (autosave + submit â€” FR-API-01 idempotent)
       parameters:
         - $ref: '#/components/parameters/AssignmentId'
       requestBody:
@@ -355,7 +374,7 @@ paths:
   /api/assignments/{assignmentId}/my-report:
     get:
       operationId: getMyReport
-      summary: Current student's participation + own group's score
+      summary: Legacy personal report restricted to classroom teachers
       parameters:
         - $ref: '#/components/parameters/AssignmentId'
       responses:
@@ -407,16 +426,139 @@ paths:
           description: Cleared.
         '404':
           description: Disabled in production.
+  /api/account:
+    get:
+      operationId: getAccount
+      summary: Read the current managed identity and server-assigned role (AC-AUTH-01)
+      responses:
+        '200':
+          description: Current account; response is never cached.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      name: { type: [string, 'null'] }
+                      role: { type: string, enum: [teacher, student] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/classrooms/join:
+    post:
+      operationId: joinClassroom
+      summary: Join a classroom using its invitation code (AC-CLASS-01)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, minLength: 1, maxLength: 150 }
+      responses:
+        '201':
+          description: Classroom joined, or membership already exists.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  classroomId: { type: integer }
+        '400': { description: Invalid invitation code. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: Only students may join classrooms. }
+        '404': { description: Classroom not found. }
+  /api/assignments/{assignmentId}/groups:
+    parameters:
+      - $ref: '#/components/parameters/AssignmentId'
+    delete:
+      operationId: deleteAssignmentGroup
+      summary: Classroom teacher deletes a draft assignment group and its answer
+      description: Only before the deadline and publication. Removes assignment enrollments, preserving user accounts and other groups.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [groupId]
+              properties:
+                groupId: { type: integer, minimum: 1 }
+      responses:
+        '204': { description: Group and its enrollments deleted atomically. }
+        '400': { description: Invalid group ID. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Group outside assignment, assignment missing, or caller is not a classroom teacher. }
+        '409': { description: Published, deadline passed, or deletion could not be completed. }
+    get:
+      operationId: listAssignmentGroups
+      summary: List group answers and the caller's selection (AC-GROUP-01)
+      responses:
+        '200':
+          description: Submission details only; no votes or scores are exposed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  myGroupId: { type: [integer, 'null'] }
+                  groups:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        name: { type: string }
+                        description: { type: [string, 'null'] }
+                        artifactUrl: { type: [string, 'null'], format: uri }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Assignment not found or not a member. }
+    post:
+      operationId: enrollAssignmentGroup
+      summary: Create an answer/group or select a group before voting (AC-GROUP-01)
+      description: Teachers create answers without joining; students create and join, or select an existing group in this assignment.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              anyOf:
+                - required: [name]
+                - required: [groupId]
+              properties:
+                groupId: { type: integer, minimum: 1 }
+                name: { type: string, minLength: 1, maxLength: 100 }
+                description: { type: string, maxLength: 4000 }
+                artifactUrl: { type: string, maxLength: 2000, description: Optional HTTPS submission link. }
+      responses:
+        '201':
+          description: Group created or selection updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groupId: { type: integer }
+        '400': { description: Invalid group details or URL. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: Teachers cannot join student groups. }
+        '404': { description: Assignment or selected group not found. }
+        '409': { description: "Voting has started, deadline passed, or name already used." }
+        '500': { description: Group could not be saved; no database details returned. }
 components:
   securitySchemes:
     SessionCookie:
       type: apiKey
       in: cookie
-      name: pe_uid
+      name: __Secure-neon-auth.session_token
       description: |
-        TEMPORARY dev-only session cookie (see src/lib/auth.ts). Placeholder
-        for Better Auth's real session cookie once Google OAuth credentials
-        exist.
+        Managed Better Auth session cookie validated by the Neon SDK.
+        The legacy pe_uid cookie is allowed only in explicitly enabled isolated
+        non-production tests.
   parameters:
     ClassroomId:
       name: classroomId
@@ -441,7 +583,7 @@ components:
           schema: { $ref: '#/components/schemas/ErrorResponse' }
     NotFound:
       description: |
-        Not found — used both for genuinely missing resources and for
+        Not found â€” used both for genuinely missing resources and for
         resources outside the caller's scope (FR-AUTHZ-02: never 403, so a
         caller can't infer that a resource exists elsewhere).
       content:

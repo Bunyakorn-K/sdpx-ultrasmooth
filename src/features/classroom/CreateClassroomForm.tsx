@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
+import { useHydrated } from "#/lib/use-hydrated";
 
 export function CreateClassroomForm() {
+  const ready = useHydrated();
   const router = useRouter();
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +36,7 @@ export function CreateClassroomForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex w-full max-w-sm flex-col gap-4">
+      <fieldset disabled={!ready || pending} className="contents">
       <div className="flex flex-col gap-1.5">
         <label htmlFor="name" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
           Classroom name
@@ -52,6 +55,7 @@ export function CreateClassroomForm() {
       <Button type="submit" variant="primary" isDisabled={pending}>
         {pending ? "Creating…" : "Create classroom"}
       </Button>
+      </fieldset>
     </form>
   );
 }

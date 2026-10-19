@@ -42,3 +42,22 @@ ext/font/google, animejs
 - bun run test:coverage: generated HTML and JSON coverage reports in docs/coverage/.
 - bun run lint: passed type check and Redocly OpenAPI validation.
 - bun run build: Next.js production build succeeded.
+## 2026-10-19 teacher/student integration
+
+- Added account-role, production fixture-disable, managed-session, exact-subject,
+  mailbox normalization, assignment enrollment, URL validation, deadline,
+  self-vote and private-result checks. Managed signup UI tests exercise session
+  readback, sanitized failures and verification-code UI with mocked SDK responses.
+- Real temporary Postgres checks cover assignment isolation, group selection,
+  duplicate names, parallel publication, exclusion of own groups and verified-only
+  identity linking. These are not a real Neon managed Auth proof.
+- Fidelity check: temporarily removed the first self-group exclusion from
+  `canVote`; the voting-rule test failed. Restored the exact source bytes in a
+  `finally` block and reran the full suite green. Test files were not changed.
+- The historical browser flow remains unchanged; a new assignment-group flow
+  asserts result denial for students and rejects another evaluator's vote.
+- Final local suite: 91 unit/UI tests. Full browser suite: 6 cases, repeated three
+  times (18 passes). Production build and OpenAPI validation pass; the latter
+  retains 9 pre-existing response-documentation warnings.
+- Live managed signup/session restoration/email delivery still require an
+  authenticated and configured Neon branch. No mocked result is reported as live.

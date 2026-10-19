@@ -26,7 +26,7 @@ export function ClassroomList() {
   }
 
   if (classrooms.length === 0) {
-    return <p className="text-sm text-zinc-500">No classrooms yet — create one to get started.</p>;
+    return <p className="text-sm text-zinc-500">No classrooms yet. Teachers can create one; students can join with an invitation code.</p>;
   }
 
   return (
@@ -37,7 +37,7 @@ export function ClassroomList() {
             <div className="flex items-center justify-between">
               <span className="font-medium">{classroom.name}</span>
               <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
-                {classroom.role}
+                {classroom.role === "INSTRUCTOR" ? "teacher" : "student"}
               </span>
             </div>
           </Card>
