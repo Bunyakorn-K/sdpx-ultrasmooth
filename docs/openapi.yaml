@@ -396,10 +396,10 @@ paths:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
         '409':
           description: Assignment is not DRAFT.
-  /api/assignments/{assignmentId}/pairs:
+  /api/assignments/{assignmentId}/ratings:
     get:
-      operationId: getMyPairs
-      summary: Current user's evaluation queue for this assignment
+      operationId: getVotingSheet
+      summary: The caller's voting sheet - questions, groups other than their own, and scores given (students, once voting starts)
       parameters:
         - $ref: '#/components/parameters/AssignmentId'
       responses:
@@ -407,44 +407,38 @@ paths:
           description: OK
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  assignmentId: { type: integer }
-                  pairs:
-                    type: array
-                    items: { $ref: '#/components/schemas/EvaluationPair' }
-  /api/assignments/{assignmentId}/comparisons:
+              schema: { $ref: '#/components/schemas/VotingSheet' }
+        '404':
+          $ref: '#/components/responses/NotFound'
     put:
-      operationId: submitComparison
-      summary: Upsert one comparison (autosave + submit â€” FR-API-01 idempotent)
+      operationId: saveRating
+      summary: Upsert one 1-5 score for one group on one question (idempotent)
       parameters:
         - $ref: '#/components/parameters/AssignmentId'
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              required: [pairAssignmentId, choice, status]
-              properties:
-                pairAssignmentId: { type: integer }
-                choice: { type: integer, minimum: 1, maximum: 6 }
-                status: { type: string, enum: [draft, saved, submitted] }
+            schema: { $ref: '#/components/schemas/Rating' }
       responses:
         '200':
           description: Saved.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ComparisonRecord' }
+              schema: { $ref: '#/components/schemas/Rating' }
         '400':
           $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Voting closed, score outside 1-5, or the caller's own group.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
         '404':
-          description: Pair not found, or doesn't belong to this evaluator.
+          $ref: '#/components/responses/NotFound'
   /api/assignments/{assignmentId}/scores:
     get:
       operationId: getScores
-      summary: All groups' quality index and band-mapped score (instructor only)
+      summary: Average 1-5 score per group and question (instructor only)
       parameters:
         - $ref: '#/components/parameters/AssignmentId'
       responses:
@@ -746,39 +740,48 @@ components:
       properties:
         id: { type: integer }
         text: { type: string }
-    EvaluationPair:
+    Rating:
+      type: object
+      required: [questionId, groupId, score]
+      properties:
+        questionId: { type: integer }
+        groupId: { type: integer }
+        score: { type: integer, minimum: 1, maximum: 5 }
+    VotingSheet:
       type: object
       properties:
-        pairAssignmentId: { type: integer }
-        left: { $ref: '#/components/schemas/EvaluationItem' }
-        right: { $ref: '#/components/schemas/EvaluationItem' }
-        choice: { type: ['integer', 'null'] }
-        status: { type: ['string', 'null'], enum: [draft, saved, submitted, null] }
-        savedAt: { type: ['string', 'null'], format: date-time }
-    EvaluationItem:
-      type: object
-      properties:
-        id: { type: integer }
-        name: { type: string }
-        artifactUrl: { type: ['string', 'null'] }
-        description: { type: ['string', 'null'] }
-    ComparisonRecord:
-      type: object
-      properties:
-        id: { type: integer }
-        pairAssignmentId: { type: integer }
-        choice: { type: integer }
-        status: { type: string, enum: [draft, saved, submitted] }
+        myGroupId: { type: ['integer', 'null'] }
+        questions:
+          type: array
+          items: { $ref: '#/components/schemas/Question' }
+        groups:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              name: { type: string }
+              description: { type: ['string', 'null'] }
+              artifactUrl: { type: ['string', 'null'] }
+        ratings:
+          type: array
+          items: { $ref: '#/components/schemas/Rating' }
     GroupScoreRow:
       type: object
       properties:
         groupId: { type: integer }
         groupName: { type: string }
-        qualityIndex: { type: number }
-        comparisonCount: { type: integer }
-        scoreRatio: { type: number }
-        weightedScore: { type: number }
-        lowConfidence: { type: boolean, description: "FR-SCORE-05: below min_comparisons" }
+        questions:
+          type: array
+          items:
+            type: object
+            properties:
+              questionId: { type: integer }
+              average: { type: ['number', 'null'] }
+              count: { type: integer }
+        average: { type: ['number', 'null'], description: Mean of all scores the group received }
+        raterCount: { type: integer }
+        weightedScore: { type: number, description: average / 5 x maxScore }
     GroupScoresResult:
       type: object
       properties:
@@ -786,20 +789,14 @@ components:
           type: array
           items: { $ref: '#/components/schemas/GroupScoreRow' }
         maxScore: { type: number }
-        floorPct: { type: number }
-        ceilingPct: { type: number }
-        criterionName: { type: string }
+        questions:
+          type: array
+          items: { $ref: '#/components/schemas/Question' }
     StudentReport:
       type: object
       properties:
-        groupScore:
-          oneOf:
-            - { $ref: '#/components/schemas/GroupScoreRow' }
-            - type: 'null'
-        maxScore: { type: number }
-        criterionName: { type: string }
         participation:
           type: object
           properties:
-            assigned: { type: integer }
+            assigned: { type: integer, description: questions x groups other than the caller's }
             submitted: { type: integer }

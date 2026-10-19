@@ -47,6 +47,7 @@ test("teacher deletes draft groups with confirmation; enrollment, scope, and pub
     survivingGroupId = (await response.json()).groupId;
   }
   await signIn("teacher");
+  expect((await api.post(`/api/assignments/${assignment.id}/questions`, { data: { text: "Overall quality" } })).status()).toBe(201);
   expect((await api.post(`/api/assignments/${assignment.id}/publish`)).ok()).toBeTruthy();
   expect((await api.delete(endpoint, { data: { groupId: survivingGroupId } })).status()).toBe(409);
   await page.reload();

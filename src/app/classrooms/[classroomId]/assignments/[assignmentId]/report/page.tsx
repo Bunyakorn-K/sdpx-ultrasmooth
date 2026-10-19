@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { getClassroomRole, getCurrentUser } from "#/lib/auth";
 import { getAssignment } from "#/services/assignment-service";
 import { PageShell } from "#/components/PageShell";
-import { StudentReportPanel } from "#/features/report/StudentReportPanel";
+import { InstructorScoresTable } from "#/features/report/InstructorScoresTable";
 import { getParticipation } from "#/services/report-service";
 
 export default async function ReportPage({
@@ -29,7 +29,7 @@ export default async function ReportPage({
     const participation = await getParticipation(assignmentId, user.id);
     return <PageShell maxWidth="max-w-2xl">
       <h1 className="font-serif text-3xl">Participation</h1>
-      <p>{participation.submitted} / {participation.assigned} comparisons submitted</p>
+      <p>{participation.submitted} / {participation.assigned} scores given</p>
       <p className="text-sm text-slate-500">Group score and voting results are visible only to your teacher.</p>
       <Link href={`/classrooms/${classroomId}`} className="text-emerald-800 underline">Back to classroom</Link>
     </PageShell>;
@@ -47,7 +47,7 @@ export default async function ReportPage({
         <h1 className="text-xl font-semibold">PairEval: {assignment.name} — สรุปคะแนน</h1>
       </div>
 
-      <StudentReportPanel assignmentId={assignmentId} />
+      <InstructorScoresTable assignmentId={assignmentId} published={assignment.status === "PUBLISHED"} />
     </PageShell>
   );
 }

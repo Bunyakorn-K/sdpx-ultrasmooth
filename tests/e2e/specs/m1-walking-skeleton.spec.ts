@@ -10,7 +10,7 @@ import { expect, test } from '@playwright/test';
 // persistent WebSocket open, so 'networkidle' never actually fires and just
 // hangs until its own timeout.
 test.describe('M1 walking skeleton', () => {
-  test('login → classroom → CSV import → assignment → publish → evaluate → see score', async ({ page }) => {
+  test('login → classroom → CSV import → assignment → questions → groups → start voting → rate → see results', async ({ page }) => {
     test.setTimeout(60_000);
     const suffix = Math.random().toString(36).slice(2, 8);
     const instructorEmail = `instructor-${suffix}@e2e.test`;
@@ -54,23 +54,34 @@ test.describe('M1 walking skeleton', () => {
     await expect(page).toHaveURL(/\/assignments\/\d+$/, { timeout: 15_000 });
     const assignmentId = page.url().match(/assignments\/(\d+)/)?.[1];
 
-    // 5. Publish — feasibility must show FEASIBLE before the button works
-    await expect(page.getByText('FEASIBLE')).toBeVisible({ timeout: 15_000 });
-    await page.getByRole('button', { name: 'Publish & generate pairs' }).click();
-    await expect(page.getByText('Published — pairs have been generated.')).toBeVisible({ timeout: 15_000 });
+    // 5. Add a 5-point question
+    await page.getByPlaceholder('e.g. How clear was the presentation?').fill('How clear was the work?');
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(page.getByText('How clear was the work?')).toBeVisible({ timeout: 15_000 });
 
-    // 6. Evaluate as one student (switch identity via the same cookie jar)
+    // 6. Three students form groups for this assignment
+    for (const [i, email] of studentEmails.slice(0, 3).entries()) {
+      await page.request.post('/api/auth/dev-sign-in', { data: { email } });
+      expect((await page.request.post(`/api/assignments/${assignmentId}/groups`, { data: { name: `Team ${i + 1}` } })).status()).toBe(201);
+    }
+
+    // 7. Start voting
+    await page.request.post('/api/auth/dev-sign-in', { data: { email: instructorEmail } });
+    await page.reload();
+    await expect(page.getByText('READY', { exact: true })).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('button', { name: 'Start voting' }).click();
+    await expect(page.getByText('Voting is open.')).toBeVisible({ timeout: 15_000 });
+
+    // 8. Vote as one student: two other groups, one question each
     await page.request.post('/api/auth/dev-sign-in', { data: { email: studentEmails[0] } });
     await page.goto(`/classrooms/${classroomId}/assignments/${assignmentId}/evaluate`);
-    await page.waitForLoadState('load');
-    await expect(page.getByRole('radiogroup')).toBeVisible({ timeout: 15_000 });
-    await page.getByRole('radio', { name: 'ขวาดีกว่า', exact: true }).click();
-    await page.getByRole('button', { name: 'Submit & Next Pair' }).click();
-    await expect(page.getByText('1 / 1')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('0 / 2 scored')).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('button', { name: '4 of 5' }).first().click();
+    await expect(page.getByText('1 / 2 scored')).toBeVisible({ timeout: 15_000 });
 
-    // 7. See score
-    await page.goto(`/classrooms/${classroomId}/assignments/${assignmentId}/report`);
-    await expect(page.getByText('Participation')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/Group score/)).toBeVisible({ timeout: 15_000 });
+    // 9. Teacher sees the average
+    await page.request.post('/api/auth/dev-sign-in', { data: { email: instructorEmail } });
+    await page.goto(`/classrooms/${classroomId}/assignments/${assignmentId}`);
+    await expect(page.getByRole('cell', { name: '4.00' }).first()).toBeVisible({ timeout: 15_000 });
   });
 });

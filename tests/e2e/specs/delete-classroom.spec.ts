@@ -26,11 +26,12 @@ test("only the owner can confirm deletion of a classroom and its voting data", a
   const control = await (await api.post("/api/classrooms", { data: { name: "Keep this classroom" } })).json();
   expect((await api.delete(`/api/classrooms/${classroom.id}`)).status()).toBe(404);
   await signIn("owner");
+  const question = await (await api.post(`/api/assignments/${assignment.id}/questions`, { data: { text: "Overall quality" } })).json();
   expect((await api.post(`/api/assignments/${assignment.id}/publish`)).ok()).toBeTruthy();
   await signIn("student-0");
-  const { pairs } = await (await api.get(`/api/assignments/${assignment.id}/pairs`)).json();
-  expect((await api.put(`/api/assignments/${assignment.id}/comparisons`, {
-    data: { pairAssignmentId: pairs[0].pairAssignmentId, choice: 6, status: "submitted" },
+  const sheet = await (await api.get(`/api/assignments/${assignment.id}/ratings`)).json();
+  expect((await api.put(`/api/assignments/${assignment.id}/ratings`, {
+    data: { questionId: question.id, groupId: sheet.groups[0].id, score: 4 },
   })).status()).toBe(200);
   await signIn("owner");
   await page.goto(`/classrooms/${classroom.id}`);
