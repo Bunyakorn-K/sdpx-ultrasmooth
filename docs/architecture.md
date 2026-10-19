@@ -1,9 +1,8 @@
 ﻿# Architecture
 
-Product routes and HTTP boundaries live in `src/app/`. Legacy Pages Router
-entry points keep their URLs, while the four local-storage demo screens live
-in `src/features/demo/`. The demos are not the persisted classroom workflow;
-real teacher/student work starts at `/classrooms`.
+Product routes and HTTP boundaries live in `src/app/`. The legacy Pages
+Router serves only the landing and login pages; real teacher/student work
+starts at `/classrooms`.
 
 ```mermaid
 flowchart LR
@@ -31,9 +30,10 @@ explicit isolated fixture mode is enabled, and always ignored in production.
 
 Groups and answers are assignment-scoped. One user may select one group per
 assignment. Enrollment and publication lock the same assignment row, preventing
-late group changes and duplicate publication. The existing max-flow engine
-allocates comparisons without either compared group's members. Submitted votes
-feed the existing quality-index/scoring services. Results require a classroom
+late group changes and duplicate publication. Students score every
+group except their own on a 1-5 scale per question; results average those
+ratings. The old pairwise `pair_assignment` and `comparison` tables are kept
+only for historical data. Results require a classroom
 teacher; a student can see their own completion counts, not scores or others' votes.
 
 The historical classroom-group path is retained only for assignments without

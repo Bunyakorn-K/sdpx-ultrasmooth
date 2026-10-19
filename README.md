@@ -55,9 +55,7 @@ is not a managed Auth test or a safe shared deployment configuration.
 - `docs/`: [documentation index](docs/README.md), setup, product, quality, and workshop evidence.
 - `coverage/`, `playwright-report/`, `test-results/`: generated local/CI reports, ignored by Git.
 
-The demo URLs `/classroom/new`, `/assignments/new`, `/evaluate`, and `/scores`
-remain available for historical tests. Real classroom workflows start at
-`/classrooms`; demo local-storage data is separate from PostgreSQL records.
+Real classroom workflows start at `/classrooms`.
 
 ## Verification commands
 
