@@ -1,5 +1,26 @@
 # Refactoring and security review — 2026-10-19
 
+## Repository organization
+
+- Generated coverage and Playwright reports are removed from tracked source;
+  coverage now writes to `/coverage/`, and CI uploads that same directory.
+- Setup, quality, workshop, performance, and product supporting documents have
+  dedicated folders and an index at `docs/README.md`. Core contracts stay at
+  `docs/architecture.md`, `docs/erd.md`, and `docs/openapi.yaml`.
+- Four local-storage demo implementations live in `src/features/demo/`.
+  Their Pages Router files re-export them, preserving URL and test imports.
+- Unused Next.js template SVGs are removed. Product assets remain unchanged.
+- The real product stays in App Router with its existing domain services;
+  this refactor does not change database schema or Auth behavior.
+
+Verification preserved all existing tests: 91 unit tests and 27 browser cases
+(9 workflows repeated three times) pass. The four moved demo implementations
+match their original content, and the documentation's local Markdown links
+resolve. Coverage reports are generated successfully in the new location.
+Repeated browser runs exposed an existing Strict Mode loading race in voting:
+obsolete comparison requests are now cancelled so they cannot reset a choice.
+The OpenAPI delete-group descriptions also require quoted YAML flow values.
+
 | Priority | Location | Finding | Action |
 | --- | --- | --- | --- |
 | High | `src/lib/auth.ts`, legacy sign-in route | Unsigned user-ID cookie accepted as identity | Managed SDK session; fixture cookie only under explicit non-production opt-in |

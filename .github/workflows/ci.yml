@@ -62,7 +62,7 @@ jobs:
         if: always()
         with:
           name: coverage-${{ github.sha }}
-          path: docs/coverage/
+          path: coverage/
 
   e2e-tests:
     needs: lint-and-unit-test

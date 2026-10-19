@@ -39,7 +39,7 @@ ext/font/google, animejs
 ## Verification Results
 
 - bun run test: 11 tests passed across 4 test files (duration ~2.4s, well below the 10s budget).
-- bun run test:coverage: generated HTML and JSON coverage reports in docs/coverage/.
+- bun run test:coverage: generated HTML and JSON coverage reports in coverage/ (previously docs/coverage/).
 - bun run lint: passed type check and Redocly OpenAPI validation.
 - bun run build: Next.js production build succeeded.
 ## 2026-10-19 teacher/student integration

@@ -1,4 +1,4 @@
-﻿# PairEval
+# PairEval
 
 PairEval supports two roles, **teacher** and **student**, for assignment-based
 group work and pairwise voting. Teachers create classrooms and assignments,
@@ -26,7 +26,7 @@ bun dev
 ```
 
 Open http://localhost:3000. See `.env.example` for variable names and
-[Neon setup](docs/neon-setup.md) for secret-free provisioning and live verification.
+[Neon setup](docs/setup/neon-setup.md) for secret-free provisioning and live verification.
 `DATABASE_URL_UNPOOLED` is preferred for migrations. New users are students;
 `TEACHER_AUTH_IDS` controls teacher eligibility on the server. A teacher creates
 and shares a classroom invitation code; students join and choose/create groups
@@ -45,7 +45,21 @@ non-production `ENABLE_DEV_AUTH=1` fixture mode is only for disposable
 local regression databases; it preserves historical demo identity behavior and
 is not a managed Auth test or a safe shared deployment configuration.
 
-## Verification
+## Project map
+
+- `src/app/`: authenticated product routes and HTTP boundaries.
+- `src/features/`: feature UI; `demo/` contains the original local-storage demos.
+- `src/pages/`: landing page, legacy URL entry points, and Pages Router setup.
+- `src/services/`, `src/repositories/`, `src/db/`: domain logic and persistence.
+- `tests/`: unit and browser regression suites.
+- `docs/`: [documentation index](docs/README.md), setup, product, quality, and workshop evidence.
+- `coverage/`, `playwright-report/`, `test-results/`: generated local/CI reports, ignored by Git.
+
+The demo URLs `/classroom/new`, `/assignments/new`, `/evaluate`, and `/scores`
+remain available for historical tests. Real classroom workflows start at
+`/classrooms`; demo local-storage data is separate from PostgreSQL records.
+
+## Verification commands
 
 ```bash
 bun run test
@@ -61,7 +75,7 @@ bun run test:auth:live
 
 Historical browser tests require explicit fixture auth against a disposable
 Postgres database. Managed signup/session proof is a separate live check and
-must not be inferred from those tests. See [WS evidence](docs/ws-01-08-status.md)
+must not be inferred from those tests. See [WS evidence](docs/workshops/ws-01-08-status.md)
 and [story drafts](docs/backlog.md) for scope and remaining external evidence.
 
 ## Docker

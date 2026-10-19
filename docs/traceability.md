@@ -10,7 +10,7 @@ Source: [Bunyakorn-K/sdpx-ultrasmooth#7](https://github.com/Bunyakorn-K/sdpx-ult
 | --- | --- | --- |
 | Visitor entering the URL sees the homepage | `src/pages/index.tsx` renders the PairEval landing page at `/` | `tests/e2e/specs/smoke.spec.ts` opens `/` and asserts the visible hero heading and product label |
 | Homepage communicates PairEval purpose | Hero heading and `University Evaluation System` label are rendered | `src/features/home/index.test.tsx` |
-| Homepage provides basic navigation | `#home`, `#how-it-works`, and `#about` links plus `Sign in` entry point exist | `src/features/home/index.test.tsx` |
+| Homepage provides basic navigation | PairEval brand, Create account, and Sign in entry points; unused section links are removed | `src/features/home/index.test.tsx`, `tests/e2e/specs/smoke.spec.ts` |
 
 ## Definition of Done mapping
 
@@ -24,5 +24,5 @@ Source: [Bunyakorn-K/sdpx-ultrasmooth#7](https://github.com/Bunyakorn-K/sdpx-ult
 ## Teacher/student scope (2026-10-19)
 
 The current 11 story drafts and AC-to-code/test mapping are in "docs/backlog.md".
-They have not been published as new GitHub Issues. See "docs/ws-01-08-status.md"
+They have not been published as new GitHub Issues. See "docs/workshops/ws-01-08-status.md"
 for course-artifact and external-verification gaps.

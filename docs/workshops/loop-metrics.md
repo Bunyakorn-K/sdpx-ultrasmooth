@@ -21,6 +21,6 @@
 
 ## Local change verification — 2026-10-19
 
-Current local verification is recorded in docs/verification-2026-10-19.md. Earlier
+Current local verification is recorded in docs/quality/verification-2026-10-19.md. Earlier
 CI/deploy figures above are historical and were not re-measured for this change.
 No push, remote CI run, blocked-merge demonstration, or deployment was performed.
