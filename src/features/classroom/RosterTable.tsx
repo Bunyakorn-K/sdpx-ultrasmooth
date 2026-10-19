@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useImperativeHandle, forwardRef } from "react";
+import { useEffect, useState } from "react";
 
 interface RosterRow {
   userId: number;
@@ -10,29 +10,16 @@ interface RosterRow {
   lastLoginAt: string | null;
 }
 
-export interface RosterTableHandle {
-  refresh: () => void;
-}
-
-export const RosterTable = forwardRef<RosterTableHandle, { classroomId: number }>(function RosterTable(
-  { classroomId },
-  ref,
-) {
+export function RosterTable({ classroomId }: { classroomId: number }) {
   const [roster, setRoster] = useState<RosterRow[] | null>(null);
   const [search, setSearch] = useState("");
 
-  const load = useCallback(() => {
+  useEffect(() => {
     fetch(`/api/classrooms/${classroomId}/roster`)
       .then((res) => (res.ok ? res.json() : Promise.reject(res)))
       .then((body) => setRoster(body.roster))
       .catch(() => setRoster([]));
   }, [classroomId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  useImperativeHandle(ref, () => ({ refresh: load }), [load]);
 
   const filtered = (roster ?? []).filter((row) => {
     const needle = search.trim().toLowerCase();
@@ -103,4 +90,4 @@ export const RosterTable = forwardRef<RosterTableHandle, { classroomId: number }
       </div>
     </div>
   );
-});
+}

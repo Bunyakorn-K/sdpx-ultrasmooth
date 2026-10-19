@@ -21,7 +21,7 @@ export function PageShell({
       <header className="border-b border-emerald-900/10 bg-white/80">
         <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-6 sm:px-12" aria-label="Workspace">
           <Link href="/classrooms" className="font-serif text-3xl italic tracking-tight text-[#ee6069]">PairEval.</Link>
-          <div className="flex items-center gap-6 text-sm text-emerald-800"><Link href="/classrooms" className="hover:underline">Classrooms</Link><SignOutButton /></div>
+          <div className="flex items-center gap-6 text-sm text-emerald-800"><Link href="/classrooms" className="hover:underline">Assignments</Link><SignOutButton /></div>
         </nav>
       </header>
       <main className={`workspace-content mx-auto flex w-full flex-1 ${maxWidth} flex-col gap-7 px-6 py-10 sm:py-14 ${center ? "justify-center" : ""}`}>{children}</main>

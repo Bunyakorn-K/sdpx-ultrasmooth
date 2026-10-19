@@ -4,34 +4,24 @@ test("AC-GROUP-01 / AC-VOTE-01 / AC-RESULT-01: assignment groups, voting, and pr
   test.setTimeout(60_000);
   const suffix = crypto.randomUUID();
   const api = page.request;
-  const signIn = async (name: string) => {
-    const response = await api.post("/api/auth/dev-sign-in", { data: { email: `${name}-${suffix}@example.com` } });
+  const signIn = async (name: string, role?: "student") => {
+    const response = await api.post("/api/auth/dev-sign-in", { data: { email: `${name}-${suffix}@example.com`, role } });
     expect(response.status()).toBe(200);
   };
   await signIn("teacher");
-  const classResponse = await api.post("/api/classrooms", { data: { name: "Assignment group test" } });
-  expect(classResponse.status()).toBe(201);
-  const classroom = await classResponse.json();
-  const create = await api.post(`/api/classrooms/${classroom.id}/assignments`, { data: { name: "Group submissions" } });
+  const create = await api.post("/api/assignments", { data: { name: "Group submissions" } });
   expect(create.status()).toBe(201);
   const assignment = await create.json();
 
-  // Seed membership using the existing teacher-owned roster boundary.
-  const csv = ["email,group_name", ...Array.from({ length: 6 }, (_, i) =>
-    `student-${i}-${suffix}@example.com,Imported ${Math.floor(i / 2) + 1}`)].join("\n");
-  const imported = await api.post(`/api/classrooms/${classroom.id}/roster/import`, {
-    multipart: { file: { name: "roster.csv", mimeType: "text/csv", buffer: Buffer.from(csv) } },
-  });
-  expect(imported.ok()).toBeTruthy();
-
   for (let i = 0; i < 3; i++) {
-    await signIn(`student-${i}`);
+    await signIn(`student-${i}`, "student");
+    expect((await api.post("/api/classrooms/join", { data: { code: assignment.joinCode } })).status()).toBe(201);
     const group = await api.post(`/api/assignments/${assignment.id}/groups`, {
       data: { name: `Assignment group ${i}`, description: "Our synthetic group answer" },
     });
     expect(group.status()).toBe(201);
   }
-  await page.goto(`/classrooms/${classroom.id}/assignments/${assignment.id}/groups`);
+  await page.goto(`/classrooms/${assignment.classroomId}/assignments/${assignment.id}/groups`);
   await expect(page.getByRole("heading", { name: "Choose your group" })).toBeVisible();
   await expect(page.getByText("Your group", { exact: true })).toBeVisible();
   expect((await api.get(`/api/assignments/${assignment.id}/scores`)).status()).toBe(404);

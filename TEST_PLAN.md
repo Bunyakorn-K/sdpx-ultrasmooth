@@ -21,9 +21,6 @@
 
 ## Harness Inventory
 
-- **Fake Repository:** 	ests/fakes/fake-comparison-repo.ts (FakeComparisonRepository implements ComparisonRepository) จำลอง database layer ใน RAM
-- **Factories:** 	ests/factories.ts (makeComparison, makeUser, makeAssignment) สำหรับสร้างข้อมูล fixture ที่ปรับ override ได้
-- **Fixtures:** src/lib/test-data.ts in-memory test data store พร้อม endpoint /api/test/seed และ /api/test/cleanup
 - **Boundary Mocks:** 
 ext/head, 
 ext/font/google, animejs

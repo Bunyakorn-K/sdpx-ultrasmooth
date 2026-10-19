@@ -37,12 +37,15 @@ export default async function AssignmentDashboardPage({
     <PageShell>
       <div className="rounded-xl border border-black/10 bg-white px-4 py-3 dark:border-white/12 dark:bg-zinc-950">
         <Link
-          href={`/classrooms/${classroomId}`}
+          href="/classrooms"
           className="text-xs text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400"
         >
-          ← {classroom.name}
+          ← Assignments
         </Link>
         <h1 className="text-xl font-semibold">{assignment.name}</h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Join code for students: <code className="rounded bg-emerald-50 px-2 py-1 text-emerald-900">{classroom.slug}</code>
+        </p>
       </div>
 
       <AssignmentDashboardPanel
