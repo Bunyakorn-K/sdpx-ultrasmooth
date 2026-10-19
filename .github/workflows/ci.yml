@@ -44,8 +44,7 @@ jobs:
       - name: Production build
         run: bun run build
 
-      # à¸­à¸¢à¹ˆà¸²à¸¥à¸·à¸¡à¹à¸à¹‰à¸„à¸³à¸ªà¸±à¹ˆà¸‡ test à¹ƒà¸™ package.json à¸«à¸£à¸·à¸­à¸£à¸±à¸™à¸”à¹‰à¸§à¸¢à¸„à¸³à¸ªà¸±à¹ˆà¸‡à¸—à¸µà¹ˆà¸ªà¸£à¹‰à¸²à¸‡ JUnit XML
-      # à¹€à¸Šà¹ˆà¸™ npm test -- --coverage --reporter=junit --outputFile=test-results/unit.xml
+      # Emit JUnit XML for the test summary alongside coverage reports.
       - name: Unit Tests with Coverage
         run: bun run test -- --coverage --reporter=junit --outputFile=test-results/unit.xml
 
@@ -106,7 +105,7 @@ jobs:
 
       - run: npx playwright install --with-deps chromium
 
-      # --- à¹€à¸žà¸´à¹ˆà¸¡ 2 à¸‚à¸±à¹‰à¸™à¸•à¸­à¸™à¸™à¸µà¹‰à¹€à¸‚à¹‰à¸²à¹„à¸›à¸„à¸£à¸±à¸š ---
+      # Apply migrations before exercising persisted workflows.
       - name: Run Database Migrations
         run: bun run db:migrate
       - name: Verify real database workflows
