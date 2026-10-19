@@ -15,7 +15,7 @@ export default async function GroupsPage({ params }: { params: Promise<{ classro
   if (!role) notFound();
   const open = assignment.status === "DRAFT" && (!assignment.deadlineUtc || assignment.deadlineUtc > new Date());
   return <PageShell>
-    <Link href={`/classrooms/${classroomId}`} className="text-sm text-emerald-800">← Back to classroom</Link>
+    <Link href="/classrooms" className="text-sm text-emerald-800">← Assignments</Link>
     <h1 className="font-serif text-3xl">{assignment.name}</h1>
     <AssignmentGroups assignmentId={assignment.id} teacher={role === "INSTRUCTOR"} open={open} />
     {assignment.status === "PUBLISHED" && role === "STUDENT" && <Link href={`/classrooms/${classroomId}/assignments/${assignmentId}/evaluate`} className="text-emerald-800 underline">Start voting →</Link>}

@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { eq } from "drizzle-orm";
 import { db } from "../src/db/client";
 import { assignments, classroomMembers, classrooms, users } from "../src/db/schema";
-import { createAssignment, startVoting } from "../src/services/assignment-service";
+import { startVoting } from "../src/services/assignment-service";
+import { uniqueSlug } from "../src/lib/slug";
 import { addQuestion } from "../src/services/question-service";
 import { enrollGroup, listAssignmentGroups } from "../src/services/group-service";
 import { resolveAuthUser } from "../src/services/auth-user-service";
@@ -25,9 +26,12 @@ async function verify() {
     { classroomId: classroom.id, userId: teacher.id, role: "INSTRUCTOR" as const },
     ...students.map((student) => ({ classroomId: classroom.id, userId: student.id, role: "STUDENT" as const })),
   ]);
-  const assignment = await createAssignment(classroom.id, teacher.id, { name: "Vote on group work" });
+  // Two assignments in one classroom check that groups stay assignment-scoped.
+  const createAssignment = async (name: string) => (await db.insert(assignments)
+    .values({ classroomId: classroom.id, name, slug: uniqueSlug(name), createdBy: teacher.id }).returning())[0];
+  const assignment = await createAssignment("Vote on group work");
   phase = "assignment enrollment and isolation";
-  const otherAssignment = await createAssignment(classroom.id, teacher.id, { name: "Separate assignment" });
+  const otherAssignment = await createAssignment("Separate assignment");
   await assert.rejects(() => enrollGroup(-1, students[0].id, false, { name: "No assignment" }));
   const groups: { groupId: number }[] = [];
   for (const [i, student] of students.entries()) {

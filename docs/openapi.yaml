@@ -4,7 +4,7 @@ info:
   version: 0.5.0
   description: |
     API contract for PairEval's M1 walking skeleton: classroom/roster
-    management, group-side pairwise evaluation, and scoring. Individual
+    management, 5-point group rating, and results. Individual
     (peer-within-group) evaluation, multi-criteria weighting, overrides,
     audit log, appeals, exports, and notifications are M2/M3 â€” not in this
     version of the contract.
@@ -19,25 +19,6 @@ servers:
 security:
   - SessionCookie: []
 paths:
-  /api/classrooms/{classroomId}:
-    delete:
-      operationId: deleteClassroom
-      summary: Owner deletes a classroom and its assignments, groups, votes, and results
-      description: Requires teacher role and classroom ownership. User accounts remain. Deletion is atomic.
-      parameters:
-        - in: path
-          name: classroomId
-          required: true
-          schema: { type: integer, minimum: 1 }
-      responses:
-        '204':
-          description: Classroom and dependent data deleted.
-        '401':
-          description: Sign-in required.
-        '404':
-          description: Classroom missing or caller is not its owner.
-        '409':
-          description: Deletion could not be completed; no partial deletion is committed.
   /:
     get:
       operationId: getHomepage
@@ -85,6 +66,10 @@ paths:
               properties:
                 email: { type: string, format: email }
                 displayName: { type: string }
+                role:
+                  type: string
+                  enum: [student]
+                  description: Enrolls a new email account as a student so it can join assignments by code.
       responses:
         '200':
           description: Signed in; session cookie set.
@@ -104,45 +89,6 @@ paths:
       responses:
         '200':
           description: Signed out.
-  /api/classrooms:
-    get:
-      operationId: listClassrooms
-      summary: Classrooms the current user belongs to
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  classrooms:
-                    type: array
-                    items: { $ref: '#/components/schemas/ClassroomSummary' }
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-    post:
-      operationId: createClassroom
-      summary: Create a classroom (caller becomes INSTRUCTOR)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [name]
-              properties:
-                name: { type: string }
-      responses:
-        '201':
-          description: Created.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ClassroomSummary' }
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
   /api/classrooms/{classroomId}/roster:
     get:
       operationId: getRoster
@@ -164,79 +110,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-  /api/classrooms/{classroomId}/roster/import:
-    post:
-      operationId: importRoster
-      summary: Atomic CSV roster import (FR-CLASS-01/02/03)
-      description: |
-        Columns: email, group_name, student_id (optional), display_name
-        (optional). Any invalid row rejects the whole file â€” nothing is
-        written and every bad row is reported.
-      parameters:
-        - $ref: '#/components/parameters/ClassroomId'
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [file]
-              properties:
-                file: { type: string, format: binary }
-      responses:
-        '201':
-          description: Imported.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/RosterImportResult' }
-        '400':
-          description: CSV validation failed â€” nothing was imported.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /api/classrooms/{classroomId}/assignments:
-    get:
-      operationId: listAssignments
-      summary: Assignments in a classroom
-      parameters:
-        - $ref: '#/components/parameters/ClassroomId'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  assignments:
-                    type: array
-                    items: { $ref: '#/components/schemas/Assignment' }
-    post:
-      operationId: createAssignment
-      summary: Create an assignment (DRAFT, one auto-created criterion)
-      parameters:
-        - $ref: '#/components/parameters/ClassroomId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [name]
-              properties:
-                name: { type: string }
-                groupMaxScore: { type: number }
-                deadlineUtc: { type: ['string', 'null'], format: date-time }
-      responses:
-        '201':
-          description: Created.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Assignment' }
   /api/assignments/{assignmentId}:
     get:
       operationId: getAssignment
@@ -396,10 +269,10 @@ paths:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
         '409':
           description: Assignment is not DRAFT.
-  /api/assignments/{assignmentId}/pairs:
+  /api/assignments/{assignmentId}/ratings:
     get:
-      operationId: getMyPairs
-      summary: Current user's evaluation queue for this assignment
+      operationId: getVotingSheet
+      summary: The caller's voting sheet - questions, groups other than their own, and scores given (students, once voting starts)
       parameters:
         - $ref: '#/components/parameters/AssignmentId'
       responses:
@@ -407,44 +280,38 @@ paths:
           description: OK
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  assignmentId: { type: integer }
-                  pairs:
-                    type: array
-                    items: { $ref: '#/components/schemas/EvaluationPair' }
-  /api/assignments/{assignmentId}/comparisons:
+              schema: { $ref: '#/components/schemas/VotingSheet' }
+        '404':
+          $ref: '#/components/responses/NotFound'
     put:
-      operationId: submitComparison
-      summary: Upsert one comparison (autosave + submit â€” FR-API-01 idempotent)
+      operationId: saveRating
+      summary: Upsert one 1-5 score for one group on one question (idempotent)
       parameters:
         - $ref: '#/components/parameters/AssignmentId'
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              required: [pairAssignmentId, choice, status]
-              properties:
-                pairAssignmentId: { type: integer }
-                choice: { type: integer, minimum: 1, maximum: 6 }
-                status: { type: string, enum: [draft, saved, submitted] }
+            schema: { $ref: '#/components/schemas/Rating' }
       responses:
         '200':
           description: Saved.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ComparisonRecord' }
+              schema: { $ref: '#/components/schemas/Rating' }
         '400':
           $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Voting closed, score outside 1-5, or the caller's own group.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
         '404':
-          description: Pair not found, or doesn't belong to this evaluator.
+          $ref: '#/components/responses/NotFound'
   /api/assignments/{assignmentId}/scores:
     get:
       operationId: getScores
-      summary: All groups' quality index and band-mapped score (instructor only)
+      summary: Average 1-5 score per group and question (instructor only)
       parameters:
         - $ref: '#/components/parameters/AssignmentId'
       responses:
@@ -465,49 +332,6 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/StudentReport' }
-  /api/test/seed:
-    post:
-      operationId: seedTestData
-      summary: Replace the in-memory test data set (non-production only)
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              oneOf:
-                - type: array
-                  items: { $ref: '#/components/schemas/SeedRecord' }
-                - type: object
-                  required: [records]
-                  properties:
-                    records:
-                      type: array
-                      items: { $ref: '#/components/schemas/SeedRecord' }
-      responses:
-        '200':
-          description: Seed applied.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  count: { type: integer }
-                  items:
-                    type: array
-                    items: { $ref: '#/components/schemas/SeedRecord' }
-        '404':
-          description: Disabled in production.
-  /api/test/cleanup:
-    post:
-      operationId: cleanupTestData
-      summary: Clear the in-memory test data store (non-production only)
-      security: []
-      responses:
-        '200':
-          description: Cleared.
-        '404':
-          description: Disabled in production.
   /api/account:
     get:
       operationId: getAccount
@@ -527,10 +351,53 @@ paths:
                       name: { type: [string, 'null'] }
                       role: { type: string, enum: [teacher, student] }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/assignments:
+    get:
+      operationId: listMyAssignments
+      summary: Assignments the caller can open; joinCode only for the teacher
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assignments:
+                    type: array
+                    items: { $ref: '#/components/schemas/AssignmentSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      operationId: createStandaloneAssignment
+      summary: Create an assignment with its own join code (teachers only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 1, maxLength: 200 }
+                deadlineUtc: { type: ['string', 'null'], format: date-time }
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/Assignment' }
+                  - type: object
+                    properties:
+                      joinCode: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { description: Only teachers create assignments. }
   /api/classrooms/join:
     post:
       operationId: joinClassroom
-      summary: Join a classroom using its invitation code (AC-CLASS-01)
+      summary: Join an assignment with its join code (the code of its hidden classroom)
       requestBody:
         required: true
         content:
@@ -549,6 +416,7 @@ paths:
                 type: object
                 properties:
                   classroomId: { type: integer }
+                  assignmentId: { type: ['integer', 'null'], description: The assignment to open next }
         '400': { description: Invalid invitation code. }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { description: Only students may join classrooms. }
@@ -692,17 +560,6 @@ components:
             code: { type: string, example: INVALID_BODY }
             message: { type: string }
             details: {}
-    SeedRecord:
-      type: object
-      description: Arbitrary JSON record; the system adds a sequential string id.
-      additionalProperties: true
-    ClassroomSummary:
-      type: object
-      properties:
-        id: { type: integer }
-        name: { type: string }
-        slug: { type: string }
-        role: { type: string, enum: [INSTRUCTOR, STUDENT] }
     RosterRow:
       type: object
       properties:
@@ -711,20 +568,6 @@ components:
         email: { type: string }
         status: { type: string, enum: [PENDING, ACTIVE] }
         lastLoginAt: { type: ['string', 'null'], format: date-time }
-    RosterImportResult:
-      type: object
-      properties:
-        importedCount: { type: integer }
-        groups:
-          type: array
-          items: { type: string }
-        errors:
-          type: array
-          items:
-            type: object
-            properties:
-              row: { type: integer }
-              message: { type: string }
     Assignment:
       type: object
       properties:
@@ -734,6 +577,16 @@ components:
         status: { type: string, enum: [DRAFT, PUBLISHED] }
         groupMaxScore: { type: string }
         deadlineUtc: { type: ['string', 'null'], format: date-time }
+    AssignmentSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        status: { type: string, enum: [DRAFT, PUBLISHED] }
+        deadlineUtc: { type: ['string', 'null'], format: date-time }
+        classroomId: { type: integer }
+        role: { type: string, enum: [INSTRUCTOR, STUDENT] }
+        joinCode: { type: string, description: Present only for the teacher }
     VotingReadiness:
       type: object
       properties:
@@ -746,39 +599,48 @@ components:
       properties:
         id: { type: integer }
         text: { type: string }
-    EvaluationPair:
+    Rating:
+      type: object
+      required: [questionId, groupId, score]
+      properties:
+        questionId: { type: integer }
+        groupId: { type: integer }
+        score: { type: integer, minimum: 1, maximum: 5 }
+    VotingSheet:
       type: object
       properties:
-        pairAssignmentId: { type: integer }
-        left: { $ref: '#/components/schemas/EvaluationItem' }
-        right: { $ref: '#/components/schemas/EvaluationItem' }
-        choice: { type: ['integer', 'null'] }
-        status: { type: ['string', 'null'], enum: [draft, saved, submitted, null] }
-        savedAt: { type: ['string', 'null'], format: date-time }
-    EvaluationItem:
-      type: object
-      properties:
-        id: { type: integer }
-        name: { type: string }
-        artifactUrl: { type: ['string', 'null'] }
-        description: { type: ['string', 'null'] }
-    ComparisonRecord:
-      type: object
-      properties:
-        id: { type: integer }
-        pairAssignmentId: { type: integer }
-        choice: { type: integer }
-        status: { type: string, enum: [draft, saved, submitted] }
+        myGroupId: { type: ['integer', 'null'] }
+        questions:
+          type: array
+          items: { $ref: '#/components/schemas/Question' }
+        groups:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              name: { type: string }
+              description: { type: ['string', 'null'] }
+              artifactUrl: { type: ['string', 'null'] }
+        ratings:
+          type: array
+          items: { $ref: '#/components/schemas/Rating' }
     GroupScoreRow:
       type: object
       properties:
         groupId: { type: integer }
         groupName: { type: string }
-        qualityIndex: { type: number }
-        comparisonCount: { type: integer }
-        scoreRatio: { type: number }
-        weightedScore: { type: number }
-        lowConfidence: { type: boolean, description: "FR-SCORE-05: below min_comparisons" }
+        questions:
+          type: array
+          items:
+            type: object
+            properties:
+              questionId: { type: integer }
+              average: { type: ['number', 'null'] }
+              count: { type: integer }
+        average: { type: ['number', 'null'], description: Mean of all scores the group received }
+        raterCount: { type: integer }
+        weightedScore: { type: number, description: average / 5 x maxScore }
     GroupScoresResult:
       type: object
       properties:
@@ -786,20 +648,14 @@ components:
           type: array
           items: { $ref: '#/components/schemas/GroupScoreRow' }
         maxScore: { type: number }
-        floorPct: { type: number }
-        ceilingPct: { type: number }
-        criterionName: { type: string }
+        questions:
+          type: array
+          items: { $ref: '#/components/schemas/Question' }
     StudentReport:
       type: object
       properties:
-        groupScore:
-          oneOf:
-            - { $ref: '#/components/schemas/GroupScoreRow' }
-            - type: 'null'
-        maxScore: { type: number }
-        criterionName: { type: string }
         participation:
           type: object
           properties:
-            assigned: { type: integer }
+            assigned: { type: integer, description: questions x groups other than the caller's }
             submitted: { type: integer }
