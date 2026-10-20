@@ -1,0 +1,7 @@
+{
+  "date": "2026-10-20T04:00:19.887Z",
+  "target": "local Docker runtime on port 3200 (not staging)",
+  "profile": "30s ramp to 5 / 60s at up to 10 / 30s ramp down",
+  "exitCode": 0,
+  "durationSeconds": 122.1
+}

@@ -1,0 +1,9 @@
+{
+  "date": "2026-10-20T16:23:48.272Z",
+  "rule": "duplicate vote is rejected",
+  "mutationExitCode": 1,
+  "failingTestDetected": true,
+  "sourceRestored": true,
+  "existingTestsUnchanged": true,
+  "intentionalFailureExitCode": 1
+}

@@ -1,15 +1,23 @@
-import "#/styles/globals.css";
 import type { Metadata } from "next";
+import "./globals.css";
+import { WorkspaceProvider } from "@/features/workspace/context/workspace-provider";
 
 export const metadata: Metadata = {
-  title: "PairEval",
-  description: "PairEval is a university evaluation system based on pairwise comparison.",
+  title: "Pairwise (Peerly) — ทุกความคิดเห็น สร้างการเรียนรู้ที่ดีกว่า",
+  description:
+    "พื้นที่ประเมินผลงานระหว่างกลุ่มสำหรับครูและนักเรียน สร้าง assignment รวมทีม โหวต 5 ระดับ และสรุปผลในที่เดียว",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en">
-      <body className="paireval-theme antialiased">{children}</body>
+    <html lang="th" data-scroll-behavior="smooth">
+      <body>
+        <WorkspaceProvider>{children}</WorkspaceProvider>
+      </body>
     </html>
   );
 }

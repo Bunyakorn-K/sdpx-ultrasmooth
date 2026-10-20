@@ -1,42 +1,45 @@
-﻿# Architecture
+# Peerly Architecture
 
-Product routes and HTTP boundaries live in `src/app/`. The legacy Pages
-Router serves only the landing and login pages; real teacher/student work
-starts at `/classrooms`.
+## App Router and feature boundaries
+
+Next.js route files stay in `app/`: `page.tsx`, `layout.tsx` and `api/**/route.ts`. They import feature screens or HTTP handlers; feature directories do not replace Next.js routing conventions.
+
+| Route file | Feature implementation |
+| --- | --- |
+| `app/page.tsx` | `features/landing/screens/landing-screen.tsx` |
+| `app/login/page.tsx`, `app/register/page.tsx` | `features/auth/screens/auth-screen.tsx` |
+| `app/(workspace)/layout.tsx` | `features/workspace/screens/workspace-layout.tsx` |
+| `app/(workspace)/assignments/page.tsx` | `features/assignments/screens/assignment-list-screen.tsx` |
+| `app/(workspace)/assignments/[id]/page.tsx` | `features/assignments/screens/assignment-detail-screen.tsx` |
+| `app/(workspace)/assignments/[id]/groups/[groupId]/page.tsx` | `features/assignments/screens/group-votes-screen.tsx` (assignment owner only) |
+| `app/(workspace)/results/page.tsx` | `features/assignments/screens/assignment-list-screen.tsx` (results view) |
+| `app/api/**/route.ts` | Feature `server/http-handlers.ts` modules |
+
+The `(workspace)` route group shares a layout without adding a URL segment. Components, hooks, domain rules, services and repository interfaces are organized inside the owning feature. Reusable infrastructure lives in `shared/`.
 
 ```mermaid
 flowchart LR
-    B[Teacher / Student Browser] -->|HTTPS| WEB[Next.js Pages landing + App product routes]
-    B -->|Same-origin SDK requests| AUTHAPI[Auth Route Handler]
-    AUTHAPI -->|Managed Better Auth| NEON[Neon Auth]
-    WEB -->|Verified session + direct service call| DOMAIN[Assignment / Group / Voting services]
-    WEB -->|Interactive fetch| API[App Route Handlers]
-    API -->|Session and classroom role checks| DOMAIN
-    DOMAIN -->|Drizzle ORM| PG[(Lakebase Postgres)]
-    NEON -->|Managed identity and sessions| NAS[(neon_auth schema)]
+    B[Teacher / Student Browser] -->|HTTPS / MUI views| FE[Next.js App Router]
+    FE -->|JSON + HttpOnly cookie| API[Route Handlers]
+    API -->|validate session| AUTH[AuthService / SessionService]
+    AUTH -->|parameterized SQL| DB[(Neon PostgreSQL)]
+    API -->|commands + current user| SVC[AssignmentService]
+    SVC -->|business invariants| DOMAIN[Assignment Policy / Scoring]
+    SVC -->|AssignmentRepository interface| REPO[PostgreSQL Repository]
+    REPO -->|Neon HTTP in production| DB
+    REPO -->|TCP in Docker / CI| LOCAL[(PostgreSQL 17 Test DB)]
+    API -->|safe fields + correlation ID| LOG[Structured JSON Logs]
+    FE -->|xlsx in browser| EXCEL[ExcelJS import / export]
 ```
 
-Managed Auth is integrated but not yet proven against a provisioned branch.
-The CLI is installed; linking/enabling Auth requires the owner's Neon sign-in.
-The public application schema is controlled by Drizzle migrations; Neon manages
-its own auth schema. Services call the database directly, with no internal HTTP
-calls from Server Components.
+HTTP adapters own request validation, origin protection, response codes and log context. Services depend on repository interfaces, not Next.js. Domain code owns eligibility, score ranges, deadline, duplicate/self vote and state transitions. UI checks improve usability but do not grant permission.
 
-Teacher eligibility comes from exact managed subjects in `TEACHER_AUTH_IDS`.
-Classroom membership (`INSTRUCTOR`/`STUDENT`) scopes teacher/student access to
-resources. A new signup cannot choose teacher. Only a verified email identity can
-claim an imported roster account. Unsigned legacy cookies are ignored unless the
-explicit isolated fixture mode is enabled, and always ignored in production.
+Each assignment is a JSONB aggregate with a version column. Atomic `UPDATE ... WHERE version = expected` prevents lost updates. On conflict, the service reloads and reapplies all rules. This is a concrete scaling trade-off; see ADR-002.
 
-Groups and answers are assignment-scoped. One user may select one group per
-assignment. Enrollment and publication lock the same assignment row, preventing
-late group changes and duplicate publication. Students score every
-group except their own on a 1-5 scale per question; results average those
-ratings. The old pairwise `pair_assignment` and `comparison` tables are kept
-only for historical data. Results require a classroom
-teacher; a student can see their own completion counts, not scores or others' votes.
+Authentication uses a cookie session, not a bearer token: the lab's bearer example is adapted to this same-origin application. The actual OpenAPI security scheme matches the implementation. Public production contract excludes test seed/cleanup.
 
-Each assignment owns a hidden classroom whose slug is the join code, so
-membership and role checks reuse `classroom_member`. Under local dev auth,
-`/api/auth/dev-sign-in` accepts `role: "student"` to seed extra student accounts
-for browser tests.
+Excel import/export executes in the browser and uses question/read-assignment API contracts. No invented upload/export endpoint is required.
+
+## Evaluation targets
+
+`Assignment.evaluationMode` selects `group` (default for legacy records) or `individual`. A ballot always identifies its voter through the authenticated session. It stores exactly one target, `groupId` or `studentId`, together with one 1–5 integer per question. Individual targets must belong to another group in the same assignment. Shared domain helpers select eligible targets and ballots for voting, results, teacher drilldown and Excel export; repository version checks revalidate duplicate submissions on retry. The existing JSONB aggregate stores the additional fields without a relational schema migration.

@@ -1,60 +1,62 @@
-# Test Plan: PairEval Test Suite
+# Peerly Test Plan
 
-## Functions ที่ต้อง Test (WS-03 Business Rules)
+Source rules: `memory-bank/units/*/unit-brief.md`; stories/AC: `docs/backlog.md`.
 
-### 1. ScoringService.calculateScore(qualityIndex, floor, ceiling)
-- q = 0.0 → score = floor (e.g. 60.0)
-- q = 1.0 → score = ceiling (e.g. 100.0)
-- 0.0 < q < 1.0 → score = floor + q * (ceiling - floor)
-- floor >= ceiling หรืออยู่นอกช่วง [0, 100] → InvalidScoreBoundsError
-- qualityIndex < 0.0 หรือ > 1.0 → InvalidQualityIndexError
+## Business Rules and Harness
 
-### 2. ScoringService.calculateScoresForAssignment(assignmentId, studentIds, floor, ceiling)
-- คำนวณอัตราการชนะ (Quality Index) จากประวัติผลการเปรียบเทียบคู่ใน FakeComparisonRepository
-- แปลง Quality Index เป็นคะแนนจริงตามเกณฑ์ band mapping
+| Rule / Function | Unit/characterization evidence | E2E evidence |
+| --- | --- | --- |
+| Create teacher-only work; future deadline; generated code | `tests/unit/assignment-service.test.ts` | API create + browser Excel/create |
+| Join draft work idempotently, deny closed/expired | domain and assignment service tests | PostgreSQL join API |
+| One group per student; teacher creates empty group | model + assignment unit tests | group/create/join browser/API |
+| Owner-only start/stop/questions | model + assignment unit tests | owner denial + start/stop API |
+| Start needs questions/two populated groups | model + assignment unit tests | browser insufficient-group case |
+| Integer scores 1–5, all questions, no self/late/closed votes | model tests | real API invalid/self/closed votes |
+| Once per student/other group, including concurrency | model + service tests | two simultaneous real requests → 201/409 |
+| Safe role-specific visibility / unauthorized detail | services + assignment tests | outsider 403 and other-ballot hiding |
+| Password hash not returned, correct/incorrect credentials | auth service tests | register/login/logout and browser form |
+| Shared persistent login-attempt limit | API boundary | real database rate-limit E2E |
+| Malformed JSON/body limits, origin, IDs, private errors | `tests/unit/http-security.test.ts` | protected request paths |
+| Production test endpoint denial and isolated-test guard | `tests/unit/test-environment.test.ts` | seed/cleanup without token returns 404 |
+| Excel valid column/header parsing and invalid/oversized input | `tests/unit/excel-import.test.ts` | import preview and explicit save |
+| Excel output worksheet names, answer counts, average | existing scoring tests | downloaded workbook cell checks |
 
-### 3. Homepage Observable Rules
-- Visitors identify PairEval as a university evaluation system
-- Hero communicates pairwise comparison
-- Primary navigation exposes Home, How it works, About anchors
-- Visible Sign in entry point exists without claiming authentication
+## Reusable Test Support
 
-## Harness Inventory
+- `tests/factories.ts`: typed User and Assignment factories + populated voting fixture.
+- `tests/fakes/fake-assignment-repository.ts`: implements the production `AssignmentRepository` interface, including version checks.
+- Existing `tests/model.test.mjs` and `tests/services.test.mjs` remain as behavior characterization tests.
+- `tests/e2e/pages/`: readonly locators and domain-named methods; assertions remain in specs.
+- `tests/e2e/fixtures/`: automatic seed/cleanup using unique users/run IDs; teardown runs on failure.
+- `tests/e2e/seed/`: generated test identities/passwords in memory and relative future dates; no hardcoded expiry date.
 
-- **Boundary Mocks:** 
-ext/head, 
-ext/font/google, animejs
+## Fidelity Check (WS03)
 
-## Fidelity Check (WS-03)
+`npm run test:fidelity` temporarily disables only the duplicate-vote rule, runs its existing test and restores the exact source. Machine evidence: `docs/evidence/fidelity.json`.
 
-| ลบกฎ (Mutation) | Test ที่แดง | ผลการทดสอบ |
-|---|---|---|
-| ลบเงื่อนไข if (floor >= ceiling) throw new InvalidScoreBoundsError(); | ScoringService - Business Rules > throws InvalidScoreBoundsError when floor >= ceiling | ✅ Harness ปกป้องกฎนี้ (Red เมื่อลบกฎ) |
-| ลบการคำนวณ score = floor + qualityIndex * (ceiling - floor) | ScoringService - Business Rules > maps Quality Index (q = 0.0) exactly to configured score floor | ✅ Harness ปกป้องกฎนี้ (Red เมื่อลบกฎ) |
-| ลบ heading Fairer student evaluation through pairwise comparison | homepage > shows PairEval homepage students | ✅ Harness ปกป้องกฎนี้ |
+- Removed rule: duplicate-vote rejection.
+- Existing test that became red: `duplicate vote is rejected`.
+- Mutation exit code: 1.
+- Source restored byte-for-byte; existing characterization test SHA-256 hashes unchanged.
+- An independently generated intentional failing test also exited with code 1.
+- Container-specific exit-code evidence is recorded separately in `docs/lab-status.md`.
 
-## Verification Results
+## Coverage
 
-- bun run test: 11 tests passed across 4 test files (duration ~2.4s, well below the 10s budget).
-- bun run test:coverage: generated HTML and JSON coverage reports in coverage/ (previously docs/coverage/).
-- bun run lint: passed type check and Redocly OpenAPI validation.
-- bun run build: Next.js production build succeeded.
-## 2026-10-19 teacher/student integration
+`npm run test:coverage` generates HTML, LCOV, JSON summary and JUnit XML. The gate covers domain policies, assignment/auth business services and password hashing: lines ≥80%, functions ≥80%, branches ≥65%.
 
-- Added account-role, production fixture-disable, managed-session, exact-subject,
-  mailbox normalization, assignment enrollment, URL validation, deadline,
-  self-vote and private-result checks. Managed signup UI tests exercise session
-  readback, sanitized failures and verification-code UI with mocked SDK responses.
-- Real temporary Postgres checks cover assignment isolation, group selection,
-  duplicate names, parallel publication, exclusion of own groups and verified-only
-  identity linking. These are not a real Neon managed Auth proof.
-- Fidelity check: temporarily removed the first self-group exclusion from
-  `canVote`; the voting-rule test failed. Restored the exact source bytes in a
-  `finally` block and reran the full suite green. Test files were not changed.
-- The historical browser flow remains unchanged; a new assignment-group flow
-  asserts result denial for students and rejects another evaluator's vote.
-- Final local suite: 91 unit/UI tests. Full browser suite: 6 cases, repeated three
-  times (18 passes). Production build and OpenAPI validation pass; the latter
-  retains 9 pre-existing response-documentation warnings.
-- Live managed signup/session restoration/email delivery still require an
-  authenticated and configured Neon branch. No mocked result is reported as live.
+The scope deliberately excludes UI, Next.js cookie plumbing, test-data infrastructure and database adapters; browser/database tests cover those integrations. Do not describe this as whole-application coverage. The measured report is copied to `docs/coverage/`; current numbers and timings are in `docs/loop-metrics.md`.
+
+## Execution
+
+- Unit suite must finish under 10 seconds; observed local/container runs are recorded in evidence.
+- `npm run test:e2e` starts an isolated server/build directory unless `BASE_URL` is supplied.
+- Real database scenarios require `E2E_DATABASE_ENABLED=1`, `DATABASE_DRIVER=postgres` and a disposable `*_test` database.
+- `npm run test:e2e:repeat` executes each case three times; retries do not replace repeatability checks.
+- Production test endpoints must remain 404 even if test flags are accidentally set.
+
+## Remaining External Verification
+
+- Staging Neon transport/performance and remote CI run.
+- Real team code review and branch-protection proof.
+- GitHub issue IDs/URLs remain local US references until a repository is selected.

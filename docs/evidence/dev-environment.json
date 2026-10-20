@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-20T04:11:02.616Z",
+  "project": "isolated peerly-lab-dev",
+  "port": 3301,
+  "defaultPortLeftUntouched": 3000,
+  "samples": [
+    {
+      "phase": "first startup with existing base/dependency cache",
+      "seconds": 16.8,
+      "httpStatus": 200
+    },
+    {
+      "phase": "restart after compose down",
+      "seconds": 9.4,
+      "httpStatus": 200
+    }
+  ]
+}

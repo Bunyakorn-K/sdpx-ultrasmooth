@@ -1,0 +1,114 @@
+{
+  "date": "2026-10-20",
+  "source": "actual local production-container request and business-event logs",
+  "recordsExamined": 986,
+  "sensitiveFieldViolations": 0,
+  "allHaveRequestId": true,
+  "allHaveDuration": true,
+  "samples": [
+    {
+      "level": 30,
+      "time": 1792469383252,
+      "event": "assignment_created",
+      "requestId": "56c2d9bc-f68b-4cf1-95e5-39cab6116f3b",
+      "userId": "2ed828b6-dddf-4ac9-9ba9-49dad38bfb06",
+      "resourceId": "a8aee5ce-da92-49d8-8dd4-4ebe12fa279a",
+      "duration_ms": 4.56
+    },
+    {
+      "level": 30,
+      "time": 1792469383253,
+      "event": "http_request",
+      "requestId": "56c2d9bc-f68b-4cf1-95e5-39cab6116f3b",
+      "method": "POST",
+      "path": "/api/assignments",
+      "statusCode": 201,
+      "userId": "2ed828b6-dddf-4ac9-9ba9-49dad38bfb06",
+      "duration_ms": 5.02
+    },
+    {
+      "level": 30,
+      "time": 1792469383370,
+      "event": "http_request",
+      "requestId": "9ea7b913-817e-4f6a-8102-dd5104441b9b",
+      "method": "GET",
+      "path": "/api/assignments/:id",
+      "statusCode": 200,
+      "userId": "2ed828b6-dddf-4ac9-9ba9-49dad38bfb06",
+      "duration_ms": 2.14
+    },
+    {
+      "level": 30,
+      "time": 1792469383452,
+      "event": "http_request",
+      "requestId": "bab7aff1-01df-414e-9b6c-c951e6f7ca2d",
+      "method": "GET",
+      "path": "/api/assignments",
+      "statusCode": 200,
+      "userId": "2ed828b6-dddf-4ac9-9ba9-49dad38bfb06",
+      "duration_ms": 3.45
+    },
+    {
+      "level": 30,
+      "time": 1792469383786,
+      "event": "assignment_created",
+      "requestId": "a84114ea-6603-4fcb-b33b-013c4b9f69cd",
+      "userId": "2ed828b6-dddf-4ac9-9ba9-49dad38bfb06",
+      "resourceId": "430a5ea2-aecb-48d4-ac23-5eef9cbcda44",
+      "duration_ms": 3.2
+    },
+    {
+      "level": 30,
+      "time": 1792469383786,
+      "event": "http_request",
+      "requestId": "a84114ea-6603-4fcb-b33b-013c4b9f69cd",
+      "method": "POST",
+      "path": "/api/assignments",
+      "statusCode": 201,
+      "userId": "2ed828b6-dddf-4ac9-9ba9-49dad38bfb06",
+      "duration_ms": 3.59
+    },
+    {
+      "level": 30,
+      "time": 1792469383934,
+      "event": "http_request",
+      "requestId": "b89be2d4-84f1-4344-968d-fa856f584138",
+      "method": "GET",
+      "path": "/api/assignments/:id",
+      "statusCode": 200,
+      "userId": "2ed828b6-dddf-4ac9-9ba9-49dad38bfb06",
+      "duration_ms": 3.35
+    },
+    {
+      "level": 30,
+      "time": 1792469384383,
+      "event": "assignment_created",
+      "requestId": "6ed1bfc2-c735-469a-a35b-e8d6d4af65d3",
+      "userId": "2ed828b6-dddf-4ac9-9ba9-49dad38bfb06",
+      "resourceId": "055c96d3-80c1-4f6c-b2a2-f8a161fa683d",
+      "duration_ms": 2.96
+    },
+    {
+      "level": 30,
+      "time": 1792469384383,
+      "event": "http_request",
+      "requestId": "6ed1bfc2-c735-469a-a35b-e8d6d4af65d3",
+      "method": "POST",
+      "path": "/api/assignments",
+      "statusCode": 201,
+      "userId": "2ed828b6-dddf-4ac9-9ba9-49dad38bfb06",
+      "duration_ms": 3.25
+    },
+    {
+      "level": 30,
+      "time": 1792469384468,
+      "event": "http_request",
+      "requestId": "d0e1b362-3540-4663-9118-3341f0ae38a8",
+      "method": "GET",
+      "path": "/api/assignments/:id",
+      "statusCode": 200,
+      "userId": "2ed828b6-dddf-4ac9-9ba9-49dad38bfb06",
+      "duration_ms": 5.91
+    }
+  ]
+}

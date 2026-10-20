@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-20T04:17:39.514437+00:00",
+  "environment": "host browser with disposable PostgreSQL 17",
+  "repetitions": 3,
+  "scenarios": 9,
+  "id": "",
+  "name": "",
+  "tests": "27",
+  "failures": "0",
+  "skipped": "0",
+  "errors": "0",
+  "time": "36.892099"
+}

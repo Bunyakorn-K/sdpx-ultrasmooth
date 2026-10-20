@@ -1,0 +1,13 @@
+title = "Peerly secret scanning"
+[extend]
+useDefault = true
+[[allowlists]]
+description = "Generated dependencies, build output and disposable browser traces"
+paths = [
+  '''(^|/)node_modules/''',
+  '''(^|/)\.next[^/]*/''',
+  '''(^|/)coverage/''',
+  '''(^|/)test-results/''',
+  '''(^|/)playwright-report/''',
+  '''(^|/)tests/artifacts/'''
+]

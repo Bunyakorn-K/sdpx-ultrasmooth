@@ -1,87 +1,62 @@
-﻿# Stage 1: Install dependencies based on lockfile
-FROM node:24-alpine AS deps
-# Install libc6-compat and required system utilities
-RUN apk add --no-cache libc6-compat curl bash
-# Set the container working directory
+# Use the same pinned Node major and Debian base in every application stage.
+FROM node:24-bookworm-slim AS deps
+# Keep the checkout at a predictable path.
 WORKDIR /app
-# Install bun globally for fast deterministic lockfile installs
-RUN npm install -g bun@1.3.14
-# Copy dependency manifests first to leverage Docker layer caching
-COPY package.json bun.lock ./
-# Install dependencies using frozen lockfile
-RUN bun install --frozen-lockfile
+# Cache installation until a dependency manifest changes.
+COPY package.json package-lock.json ./
+# Install exactly the versions recorded in the lockfile.
+RUN npm ci
 
-# Local development runs migrations before starting Next.js.
-FROM deps AS development
+# Build the application with the full toolchain.
+FROM deps AS build
+# Copy source after dependencies to preserve the dependency layer cache.
 COPY . .
-CMD ["bun", "dev"]
-
-# Stage 2: Build the Next.js application
-FROM node:24-alpine AS build
-RUN apk add --no-cache libc6-compat
-# Set working directory for build process
-WORKDIR /app
-# Copy installed dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-# Copy full application source files
-COPY . .
-# Disable Next.js telemetry collection during build
+# Avoid telemetry and identify the production build.
 ENV NEXT_TELEMETRY_DISABLED=1
-# Set production node environment for compilation
-ENV NODE_ENV=production
-# Install bun for building with next
-RUN npm install -g bun@1.3.14 && bun run build
+# Build without requiring a database connection during prerendering.
+RUN npm run build
 
-# Stage 3: Test runner stage for CI and local verification
-FROM node:24-alpine AS test
-RUN npm install -g bun@1.3.14
-# Set working directory for tests
-WORKDIR /app
-# Copy dependencies and application code
-COPY --from=deps /app/node_modules ./node_modules
+# Supply a repeatable unit and browser test image.
+FROM deps AS test
+# Install the Chromium version matched to the locked Playwright package.
+RUN npx playwright install --with-deps chromium
+# Include application code and the test harness.
 COPY . .
-# Set environment flag for test execution
-ENV NODE_ENV=test
-# Run vitest test suite by default in this stage
-CMD ["bun", "run", "test"]
+# Disable telemetry in automated tests.
+# Chromium needs a UTF-8 locale to preserve Thai download filenames.
+ENV NEXT_TELEMETRY_DISABLED=1 LANG=C.UTF-8 LC_ALL=C.UTF-8
+# Make unit testing the default container command.
+CMD ["npm", "test"]
 
-# Stage 4: Minimal production runtime
-FROM mcr.microsoft.com/playwright:v1.62.1-noble AS e2e
+# Produce a dependency tree containing no development tools.
+FROM node:24-bookworm-slim AS production-deps
+# Install production dependencies in an isolated directory.
 WORKDIR /app
-RUN npm install -g bun@1.3.14 && chown pwuser:pwuser /app
-COPY --chown=pwuser:pwuser package.json bun.lock ./
-USER pwuser
-RUN bun install --frozen-lockfile
-COPY --chown=pwuser:pwuser . .
-ENV NODE_ENV=test
-CMD ["bun", "run", "test:e2e"]
+# Keep the production dependency layer cacheable.
+COPY package.json package-lock.json ./
+# Exclude lint, coverage and browser test tooling from production.
+RUN npm ci --omit=dev && npm cache clean --force
 
-# Production runtime contains the build and runs as a non-root user.
-FROM node:24-alpine AS runtime
-# Set working directory for the application server
+# Run only the compiled application and production dependencies.
+FROM node:24-bookworm-slim AS runtime
+# Use the same absolute working directory as the build.
 WORKDIR /app
-# Set environment to production
-ENV NODE_ENV=production
-# Disable telemetry in production runtime
-ENV NEXT_TELEMETRY_DISABLED=1
-# Install curl to support health check polling
-RUN apk add --no-cache curl
-# Create dedicated non-root group and user
-RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
-# Copy public static files
-COPY --from=build /app/public ./public
-# Copy compiled Next.js build artifacts with non-root ownership
-COPY --from=build --chown=nextjs:nodejs /app/.next ./.next
-# Copy node_modules with non-root ownership
-COPY --from=build --chown=nextjs:nodejs /app/node_modules ./node_modules
-# Copy package manifest
-COPY --from=build --chown=nextjs:nodejs /app/package.json ./package.json
-# Switch from root to non-root user
-USER nextjs
-# Inform Docker that the container listens on port 3000
+# Configure the compiled application for production.
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000 LANG=C.UTF-8 LC_ALL=C.UTF-8
+# Copy only production dependencies.
+COPY --from=production-deps --chown=node:node /app/node_modules ./node_modules
+# Retain package scripts and version metadata.
+COPY --from=build --chown=node:node /app/package.json ./package.json
+# Include only compiled Next.js output.
+COPY --from=build --chown=node:node /app/.next ./.next
+# Include public assets and the Next.js runtime configuration.
+COPY --from=build --chown=node:node /app/public ./public
+COPY --from=build --chown=node:node /app/next.config.ts ./next.config.ts
+# Drop root privileges before handling requests.
+USER node
+# Document the application port; Compose publishes it explicitly.
 EXPOSE 3000
-# Configure periodic health check probing /api/health
-HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:3000/api/health || exit 1
-# Launch production server via next start
-CMD ["node_modules/.bin/next", "start"]
+# Check HTTP readiness instead of merely checking process existence.
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+# Bind to all container interfaces while keeping the runtime non-root.
+CMD ["npm", "run", "start", "--", "--hostname", "0.0.0.0"]

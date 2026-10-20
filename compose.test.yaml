@@ -1,40 +1,53 @@
-﻿services:
+services:
   test-db:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: testdb
-      POSTGRES_USER: testuser
-      POSTGRES_PASSWORD: testpass
+      POSTGRES_DB: peerly_test
+      POSTGRES_USER: peerly_test
+      POSTGRES_PASSWORD: disposable-test-only
+    ports:
+      - "127.0.0.1:55432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U testuser -d testdb"]
-      interval: 3s
-      retries: 10
+      test: [CMD-SHELL, pg_isready -U peerly_test -d peerly_test]
+      interval: 2s
+      timeout: 5s
+      retries: 20
     tmpfs:
       - /var/lib/postgresql/data
-  
   unit:
+    build:
+      context: .
+      target: deps
+    working_dir: /app
+    volumes:
+      - .:/app:ro
+      - unit_node_modules:/app/node_modules
+      - ./coverage:/app/coverage
+      - ./test-results:/app/test-results
+    command: npm run test:coverage
+    environment:
+      NODE_ENV: test
+      LOG_LEVEL: silent
+    depends_on:
+      test-db:
+        condition: service_healthy
+  e2e:
     build:
       context: .
       target: test
     environment:
-      DATABASE_URL: postgres://testuser:testpass@test-db:5432/testdb
-      NODE_ENV: test
+      DATABASE_URL: postgresql://peerly_test:disposable-test-only@test-db:5432/peerly_test
+      DATABASE_DRIVER: postgres
+      E2E_DATABASE_ENABLED: "1"
+      LOG_LEVEL: warn
+      CI: "1"
+    command: sh -c 'npm run db:init && npm run test:e2e'
+    volumes:
+      - ./playwright-report:/app/playwright-report
+      - ./test-results:/app/test-results
     depends_on:
       test-db:
         condition: service_healthy
-    command: bun run test
-
-  e2e:
-    build:
-      context: .
-      target: e2e
-    environment:
-      DATABASE_URL: postgres://testuser:testpass@test-db:5432/testdb
-      BASE_URL: http://localhost:3000
-      ENABLE_DEV_AUTH: '1'
-      NODE_ENV: test
-    depends_on:
-      test-db:
-        condition: service_healthy
-    command: sh -c "bun run db:migrate && bun run test:e2e"
-    profiles: ["e2e"]
+    profiles: [e2e]
+volumes:
+  unit_node_modules:
