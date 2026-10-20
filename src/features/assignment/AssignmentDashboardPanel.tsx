@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
 
+import { useHydrated } from "#/lib/use-hydrated";
+import { votingState } from "#/services/voting-rules";
+
 import { AssignmentQuestions } from "./AssignmentQuestions";
 
 interface AssignmentData {
@@ -23,6 +26,8 @@ interface Readiness {
 
 export function AssignmentDashboardPanel({ assignment: initial }: { assignment: AssignmentData }) {
   const router = useRouter();
+  // The closing time is shown in the viewer's timezone, which the server does not know.
+  const hydrated = useHydrated();
   const [assignment, setAssignment] = useState(initial);
   const [readiness, setReadiness] = useState<Readiness | null>(null);
   const [publishing, setPublishing] = useState(false);
@@ -86,7 +91,24 @@ export function AssignmentDashboardPanel({ assignment: initial }: { assignment: 
     router.refresh();
   }
 
+  async function handleEndVoting() {
+    if (!window.confirm("End voting now? Students can no longer add or change scores.")) return;
+    setPublishing(true);
+    setPublishError(null);
+    const response = await fetch(`/api/assignments/${assignment.id}/close`, { method: "POST" });
+    setPublishing(false);
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      setPublishError(body?.error?.message ?? "Could not end voting.");
+      return;
+    }
+    setAssignment((prev) => ({ ...prev, deadlineUtc: new Date().toISOString() }));
+    router.refresh();
+  }
+
   const isDraft = assignment.status === "DRAFT";
+  const state = votingState({ status: assignment.status,
+    deadlineUtc: assignment.deadlineUtc ? new Date(assignment.deadlineUtc) : null });
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
@@ -168,8 +190,17 @@ export function AssignmentDashboardPanel({ assignment: initial }: { assignment: 
           >
             {publishing ? "Starting…" : "Start voting"}
           </Button>
+        ) : state === "OPEN" ? (
+          <>
+            <p className="text-sm text-zinc-500">Voting is open.</p>
+            <Button size="sm" variant="secondary" isDisabled={publishing} onPress={handleEndVoting}>
+              {publishing ? "Ending…" : "End voting"}
+            </Button>
+          </>
         ) : (
-          <p className="text-sm text-zinc-500">Voting is open.</p>
+          <p className="text-sm text-zinc-500">
+            Voting closed{hydrated && assignment.deadlineUtc ? ` on ${new Date(assignment.deadlineUtc).toLocaleString()}` : ""}. The results below are final.
+          </p>
         )}
       </div>
     </div>
