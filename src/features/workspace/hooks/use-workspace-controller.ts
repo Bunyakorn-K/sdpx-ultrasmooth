@@ -99,11 +99,6 @@ export function useWorkspaceController() {
   ) {
     setError("");
     setModalContext(context || null);
-    if (nextModal === "login" || nextModal === "register") {
-      setModal(null);
-      router.push(`/${nextModal}`);
-      return;
-    }
     setModal(nextModal);
   }
   function enterDemo(role: "teacher" | "student") {
