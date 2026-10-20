@@ -151,6 +151,36 @@ export function AssignmentEditorDialog({
             slotProps={{ inputLabel: { shrink: true } }}
           />
 
+          <TextField
+            name="questions"
+            label="คำถาม (1 บรรทัดต่อ 1 คำถาม)"
+            multiline
+            minRows={3}
+            value={questionText}
+            onChange={(e) => onQuestionsChange(e.target.value)}
+          />
+          <div className="import-row">
+            <Button
+              component="label"
+              disabled={busy}
+              startIcon={<FileUploadOutlined />}
+              color="secondary"
+              variant="outlined"
+            >
+              นำเข้า Excel
+              <input
+                type="file"
+                hidden
+                accept=".xlsx"
+                onChange={(e) => {
+                  void onImport(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+            </Button>
+            <span>อ่านคำถามจากคอลัมน์แรก · สูงสุด 100 ข้อ</span>
+          </div>
+
           <Accordion
             variant="outlined"
             sx={{ borderRadius: "8px !important", overflow: "hidden" }}

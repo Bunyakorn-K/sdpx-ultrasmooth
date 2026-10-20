@@ -82,7 +82,7 @@ export function AuthScreen({
               configured={workspace.configured}
               error={displayError}
               onSubmit={workspace.submit}
-              onSwitch={workspace.openModal}
+              onSwitch={(target) => router.push(`/${target}`)}
               onDemo={() => workspace.enterDemo("teacher")}
             />
           </section>

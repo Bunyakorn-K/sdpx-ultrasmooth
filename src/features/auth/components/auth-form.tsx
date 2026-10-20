@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import {
   Alert,
   Button,
@@ -166,16 +167,19 @@ export function AuthForm({
           )}
         </Button>
         <Button
+          component={Link}
+          role="button"
+          href={registering ? "/login" : "/register"}
           fullWidth
           color="inherit"
           disabled={busy}
-          onClick={() => onSwitch(registering ? "login" : "register")}
+          onClick={() => onSwitch?.(registering ? "login" : "register")}
         >
           {registering
             ? "มีบัญชีแล้ว? เข้าสู่ระบบ"
             : "ยังไม่มีบัญชี? สมัครสมาชิก"}
         </Button>
-        <Button fullWidth color="secondary" disabled={busy} onClick={onDemo}>
+        <Button fullWidth type="button" color="secondary" disabled={busy} onClick={onDemo}>
           ทดลองใช้งานโดยไม่สมัครสมาชิก →
         </Button>
       </div>

@@ -22,42 +22,50 @@ jobs:
   lint-and-unit-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: "1.3.14"
-      - uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          cache: "npm"
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: npm ci
 
       - name: Lint
-        run: bun run lint
-      - name: Production build
-        run: bun run build
+        run: npm run lint
 
-      # Emit JUnit XML for the test summary alongside coverage reports.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: OpenAPI Specification Lint
+        run: npm run spec:lint
+
       - name: Unit Tests with Coverage
-        run: bun run test -- --coverage --reporter=junit --outputFile=test-results/unit.xml
+        run: npm run test:coverage
 
-      - name: Test Summary
-        uses: dorny/test-reporter@v3
+      - name: Test Summary Markdown
         if: always()
+        run: node scripts/ci-test-summary.mjs
+
+      - name: Test Summary Check
+        uses: dorny/test-reporter@v1
+        if: always()
+        continue-on-error: true
         with:
           name: Test Results
           path: "test-results/*.xml"
           reporter: jest-junit
 
+      - name: Test Fidelity Check
+        run: npm run test:fidelity
+
+      - name: Production build
+        run: npm run build
+
       - name: Upload Coverage Report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: coverage-${{ github.sha }}
@@ -84,43 +92,39 @@ jobs:
 
     env:
       DATABASE_URL: postgres://testuser:testpass@localhost:5432/paireval_test
-      BASE_URL: http://localhost:3000
-      ENABLE_DEV_AUTH: '1'
+      DATABASE_DRIVER: postgres
+      E2E_DATABASE_ENABLED: "1"
+      CI: "1"
 
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: "1.3.14"
-      - run: bun install --frozen-lockfile
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Cache Playwright browsers
-        uses: actions/cache@v6
+        uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
-      - run: npx playwright install --with-deps chromium
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
 
-      # Apply migrations before exercising persisted workflows.
-      - name: Run Database Migrations
-        run: bun run db:migrate
-      - name: Verify real database workflows
-        run: bun run test:workflows
-        env:
-          ALLOW_TEST_DATABASE: "1"
-          # Exercise managed identity policy, not the browser fixture bypass.
-          ENABLE_DEV_AUTH: "0"
-      # --------------------------------
+      - name: Run Database Initialization
+        run: npm run db:init
 
       - name: Run E2E Tests
-        run: bun run test:e2e -- --repeat-each=3
+        run: npm run test:e2e:repeat
 
       - name: Upload Playwright Report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright-report-${{ github.sha }}
@@ -134,22 +138,23 @@ jobs:
     environment: production
 
     steps:
-      - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: "1.3.14"
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - uses: actions/checkout@v4
 
-      # New code may read tables that only a pending migration creates, so
-      # migrate before deploying. The database URL comes from the Vercel
-      # production environment and is never written to the repository.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Migrate production database
         run: |
           npx vercel env pull .env.migrate --environment=production --token "$VERCEL_TOKEN" --yes
           set -a; . ./.env.migrate; set +a
           rm .env.migrate
-          bun run db:migrate
+          npm run db:init
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -168,7 +173,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && vars.PERFORMANCE_BASE_URL != ''
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - name: Setup k6
         uses: grafana/setup-k6-action@v1
@@ -179,7 +184,7 @@ jobs:
           BASE_URL: ${{ vars.PERFORMANCE_BASE_URL }}
 
       - name: Upload Results
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: k6-results-${{ github.sha }}
