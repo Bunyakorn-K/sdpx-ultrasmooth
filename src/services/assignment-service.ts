@@ -1,4 +1,4 @@
-import { and, asc, count, eq } from "drizzle-orm";
+import { and, asc, count, eq, gt, isNull, or } from "drizzle-orm";
 
 import { db, type DbClient } from "#/db/client";
 import { assignments, classroomMembers, classrooms, criteria, groupEntities } from "#/db/schema";
@@ -105,4 +105,17 @@ export async function startVoting(assignmentId: number) {
       .where(and(eq(assignments.id, assignmentId), eq(assignments.status, "DRAFT")));
     return { readiness, started: true };
   });
+}
+
+/**
+ * Ends voting now by moving the deadline to the current time. Returns false
+ * when voting is not open (not started yet, or already closed).
+ */
+export async function endVoting(assignmentId: number) {
+  const now = new Date();
+  const closed = await db.update(assignments).set({ deadlineUtc: now })
+    .where(and(eq(assignments.id, assignmentId), eq(assignments.status, "PUBLISHED"),
+      or(isNull(assignments.deadlineUtc), gt(assignments.deadlineUtc, now))))
+    .returning({ id: assignments.id });
+  return closed.length > 0;
 }

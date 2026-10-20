@@ -48,4 +48,15 @@ test("AC-GROUP-01 / AC-VOTE-01 / AC-RESULT-01: assignment groups, voting, and pr
   expect((await rate(sheet.myGroupId, 5)).status()).toBe(403);
   expect((await rate(target, 6)).status()).toBe(403);
   expect((await api.post(`/api/assignments/${assignment.id}/groups`, { data: { name: "Late group" } })).status()).toBe(409);
+  expect((await api.post(`/api/assignments/${assignment.id}/close`)).status()).toBe(404);
+
+  // Ending voting keeps the scores already given and rejects new ones.
+  await signIn("teacher");
+  expect((await api.post(`/api/assignments/${assignment.id}/close`)).status()).toBe(204);
+  expect((await api.post(`/api/assignments/${assignment.id}/close`)).status()).toBe(409);
+  await page.goto(`/classrooms/${assignment.classroomId}/assignments/${assignment.id}`);
+  await expect(page.getByText(/Voting closed/)).toBeVisible();
+  await expect(page.getByText("Voting progress")).toBeVisible();
+  await signIn("student-0");
+  expect((await rate(target, 3)).status()).toBe(403);
 });

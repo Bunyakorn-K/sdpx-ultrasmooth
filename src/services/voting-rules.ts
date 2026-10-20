@@ -12,3 +12,14 @@ export function canRate(input: {
     && input.ownGroupId !== input.targetGroupId
     && Number.isInteger(input.score) && input.score >= 1 && input.score <= 5;
 }
+
+export type VotingState = "SETUP" | "OPEN" | "CLOSED";
+
+/**
+ * Voting closes when the deadline passes. "End voting" moves the deadline to
+ * now, so one rule covers both and no extra status is stored.
+ */
+export function votingState(input: { status: string; deadlineUtc: Date | null }, now = new Date()): VotingState {
+  if (input.status !== "PUBLISHED") return "SETUP";
+  return input.deadlineUtc && input.deadlineUtc <= now ? "CLOSED" : "OPEN";
+}

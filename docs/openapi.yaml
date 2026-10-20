@@ -269,6 +269,27 @@ paths:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
         '409':
           description: Assignment is not DRAFT.
+  /api/assignments/{assignmentId}/close:
+    post:
+      operationId: endVoting
+      summary: End voting now (teacher only)
+      description: |
+        Moves the voting deadline to the current time. Scores already given are
+        kept; students can no longer add or change scores.
+      parameters:
+        - $ref: '#/components/parameters/AssignmentId'
+      responses:
+        '204':
+          description: Voting ended.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Voting is not open (not started yet, or already closed).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
   /api/assignments/{assignmentId}/ratings:
     get:
       operationId: getVotingSheet

@@ -1,7 +1,7 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, count, eq } from "drizzle-orm";
 
 import { db } from "#/db/client";
-import { assignments, criteria, groupEntities, ratings } from "#/db/schema";
+import { assignmentGroupMembers, assignments, classroomMembers, criteria, groupEntities, ratings, users } from "#/db/schema";
 import { getVotingSheet } from "#/services/rating-service";
 
 export interface QuestionAverage {
@@ -82,3 +82,48 @@ export async function getStudentReport(assignmentId: number, userId: number) {
   return { participation: await getParticipation(assignmentId, userId) };
 }
 
+export interface StudentProgress {
+  userId: number;
+  name: string;
+  given: number;
+  /** Questions x every group except the student's own. */
+  expected: number;
+}
+
+/** Pure: how far each student is through their voting sheet, unfinished students first. */
+export function summarizeProgress(
+  students: { userId: number; name: string }[],
+  ownGroupByUser: Map<number, number>,
+  groupCount: number,
+  questionCount: number,
+  givenByUser: Map<number, number>,
+): StudentProgress[] {
+  return students
+    .map((student) => ({
+      ...student,
+      given: givenByUser.get(student.userId) ?? 0,
+      expected: questionCount * (groupCount - (ownGroupByUser.has(student.userId) ? 1 : 0)),
+    }))
+    .sort((a, b) => Number(a.given >= a.expected) - Number(b.given >= b.expected) || a.name.localeCompare(b.name));
+}
+
+export async function getVotingProgress(assignmentId: number, classroomId: number) {
+  const [students, members, [questions], [groups], given] = await Promise.all([
+    db.select({ userId: users.id, displayName: users.displayName, email: users.emailRaw })
+      .from(classroomMembers).innerJoin(users, eq(users.id, classroomMembers.userId))
+      .where(and(eq(classroomMembers.classroomId, classroomId), eq(classroomMembers.role, "STUDENT"))),
+    db.select({ userId: assignmentGroupMembers.userId, groupId: assignmentGroupMembers.groupId })
+      .from(assignmentGroupMembers).where(eq(assignmentGroupMembers.assignmentId, assignmentId)),
+    db.select({ value: count() }).from(criteria).where(eq(criteria.assignmentId, assignmentId)),
+    db.select({ value: count() }).from(groupEntities).where(eq(groupEntities.assignmentId, assignmentId)),
+    db.select({ userId: ratings.evaluatorUserId, value: count() }).from(ratings)
+      .where(eq(ratings.assignmentId, assignmentId)).groupBy(ratings.evaluatorUserId),
+  ]);
+  return summarizeProgress(
+    students.map((student) => ({ userId: student.userId, name: student.displayName ?? student.email })),
+    new Map(members.map((member) => [member.userId, member.groupId])),
+    groups.value,
+    questions.value,
+    new Map(given.map((row) => [row.userId, row.value])),
+  );
+}
