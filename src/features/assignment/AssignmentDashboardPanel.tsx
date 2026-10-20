@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
 
+import { AssignmentQuestions } from "./AssignmentQuestions";
+
 interface AssignmentData {
   id: number;
   name: string;
@@ -12,19 +14,17 @@ interface AssignmentData {
   deadlineUtc: string | null;
 }
 
-interface Feasibility {
-  feasible: boolean;
-  totalPairs: number;
-  coverageUsed: number;
-  workloadPerEvaluator: number;
-  reduced: boolean;
+interface Readiness {
+  ready: boolean;
+  questionCount: number;
+  groupCount: number;
   message: string;
 }
 
 export function AssignmentDashboardPanel({ assignment: initial }: { assignment: AssignmentData }) {
   const router = useRouter();
   const [assignment, setAssignment] = useState(initial);
-  const [feasibility, setFeasibility] = useState<Feasibility | null>(null);
+  const [readiness, setReadiness] = useState<Readiness | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
 
@@ -33,18 +33,18 @@ export function AssignmentDashboardPanel({ assignment: initial }: { assignment: 
   const [deadline, setDeadline] = useState(initial.deadlineUtc ? initial.deadlineUtc.slice(0, 16) : "");
   const [savePending, setSavePending] = useState(false);
 
-  function loadFeasibility() {
-    fetch(`/api/assignments/${assignment.id}/feasibility`)
+  function loadReadiness() {
+    fetch(`/api/assignments/${assignment.id}/readiness`)
       .then((res) => (res.ok ? res.json() : Promise.reject(res)))
-      .then((body) => setFeasibility(body.feasibility))
-      .catch(() => setFeasibility(null));
+      .then((body) => setReadiness(body.readiness))
+      .catch(() => setReadiness(null));
   }
 
-  useEffect(loadFeasibility, [assignment.id]);
-  // Group joins change feasibility, so keep it current while the teacher waits to publish.
+  useEffect(loadReadiness, [assignment.id]);
+  // Group joins change readiness, so keep it current while the teacher waits to start voting.
   useEffect(() => {
     if (assignment.status !== "DRAFT") return;
-    const timer = window.setInterval(() => { if (document.visibilityState === "visible") loadFeasibility(); }, 10_000);
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible") loadReadiness(); }, 10_000);
     return () => window.clearInterval(timer);
   }, [assignment.id, assignment.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -64,7 +64,7 @@ export function AssignmentDashboardPanel({ assignment: initial }: { assignment: 
     if (response.ok) {
       const updated = await response.json();
       setAssignment(updated);
-      loadFeasibility();
+      loadReadiness();
     }
   }
 
@@ -76,12 +76,12 @@ export function AssignmentDashboardPanel({ assignment: initial }: { assignment: 
     setPublishing(false);
 
     if (!response.ok) {
-      setPublishError(body?.error?.message ?? "Publish failed.");
-      setFeasibility(body?.error?.details ?? feasibility);
+      setPublishError(body?.error?.message ?? "Could not start voting.");
+      setReadiness(body?.error?.details ?? readiness);
       return;
     }
 
-    setFeasibility(body.feasibility);
+    setReadiness(body.readiness);
     setAssignment((prev) => ({ ...prev, status: "PUBLISHED" }));
     router.refresh();
   }
@@ -129,7 +129,7 @@ export function AssignmentDashboardPanel({ assignment: initial }: { assignment: 
             />
             <p id="assignment-max-score-help" className="text-xs leading-5 text-slate-500">The maximum points used to scale group voting results, for example 100 points.</p>
           </div>
-          {!isDraft && <p className="text-xs leading-5 text-slate-500">These settings are locked after voting is published.</p>}
+          {!isDraft && <p className="text-xs leading-5 text-slate-500">These settings are locked once voting starts.</p>}
           {isDraft && (
             <Button type="submit" size="sm" variant="secondary" isDisabled={savePending}>
               {savePending ? "Saving…" : "Save"}
@@ -139,20 +139,21 @@ export function AssignmentDashboardPanel({ assignment: initial }: { assignment: 
       </div>
 
       <div className="flex flex-col gap-3 rounded-xl border border-black/10 bg-white p-4 dark:border-white/12 dark:bg-zinc-950">
-        <h2 className="text-sm font-semibold">Pair generation engine</h2>
-        {isDraft && <button type="button" onClick={loadFeasibility} className="self-start text-xs text-emerald-800 underline">Refresh group readiness</button>}
-        {feasibility ? (
+        <h2 className="text-sm font-semibold">Voting</h2>
+        <AssignmentQuestions assignmentId={assignment.id} editable={isDraft} onChange={loadReadiness} />
+        {isDraft && <button type="button" onClick={loadReadiness} className="self-start text-xs text-emerald-800 underline">Refresh readiness</button>}
+        {readiness ? (
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             <span
               className={`mr-2 rounded-full px-2 py-0.5 text-xs font-medium ${
-                feasibility.feasible
+                readiness.ready
                   ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
                   : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
               }`}
             >
-              {feasibility.feasible ? "FEASIBLE" : "INFEASIBLE"}
+              {readiness.ready ? "READY" : "NOT READY"}
             </span>
-            {feasibility.message}
+            {readiness.message}
           </p>
         ) : (
           <p className="text-sm text-zinc-500">Calculating…</p>
@@ -162,13 +163,13 @@ export function AssignmentDashboardPanel({ assignment: initial }: { assignment: 
           <Button
             size="sm"
             variant="primary"
-            isDisabled={publishing || !feasibility?.feasible}
+            isDisabled={publishing || !readiness?.ready}
             onPress={handlePublish}
           >
-            {publishing ? "Publishing…" : "Publish & generate pairs"}
+            {publishing ? "Starting…" : "Start voting"}
           </Button>
         ) : (
-          <p className="text-sm text-zinc-500">Published — pairs have been generated.</p>
+          <p className="text-sm text-zinc-500">Voting is open.</p>
         )}
       </div>
     </div>

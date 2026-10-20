@@ -1,6 +1,7 @@
 import {
   type AnyPgColumn,
   bigint,
+  check,
   integer,
   numeric,
   pgEnum,
@@ -134,4 +135,18 @@ export const comparisons = pgTable("comparison", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   uniqueIndex("comparison_pair_assignment_idx").on(table.pairAssignmentId),
+]);
+
+// A 1–5 score one student gives one group on one question (criterion).
+export const ratings = pgTable("rating", {
+  id: serial("id").primaryKey(),
+  assignmentId: integer("assignment_id").notNull().references(() => assignments.id),
+  criterionId: integer("criterion_id").notNull().references(() => criteria.id),
+  groupId: integer("group_id").notNull().references(() => groupEntities.id),
+  evaluatorUserId: integer("evaluator_user_id").notNull().references(() => users.id),
+  score: smallint("score").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  unique("rating_unique").on(table.criterionId, table.groupId, table.evaluatorUserId),
+  check("rating_score_range", sql`${table.score} between 1 and 5`),
 ]);

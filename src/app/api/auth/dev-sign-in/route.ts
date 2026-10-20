@@ -6,7 +6,7 @@ import { apiError } from "#/lib/api-error";
 import { SESSION_COOKIE } from "#/lib/auth";
 import { activateUserOnSignIn } from "#/services/user-service";
 import { devAuthEnabled } from "#/lib/auth-policy";
-import { getDevAccount } from "#/services/dev-account-service";
+import { getDevAccount, makeDevStudent } from "#/services/dev-account-service";
 
 export async function POST(request: Request) {
   if (!devAuthEnabled()) return new Response(null, { status: 404 });
@@ -18,11 +18,16 @@ export async function POST(request: Request) {
   if (demoRole !== undefined && demoRole !== "teacher" && demoRole !== "student") {
     return apiError(400, "INVALID_BODY", "Unknown development account.");
   }
+  // `role: "student"` with an email seeds an extra student account.
+  const asStudent = body?.role === "student";
   if (!email && !demoRole) {
     return apiError(400, "INVALID_BODY", "email is required.");
   }
 
-  const user = await (demoRole ? getDevAccount(demoRole) : activateUserOnSignIn(email, displayName)).catch(() => null);
+  const user = await (demoRole ? getDevAccount(demoRole) : activateUserOnSignIn(email, displayName).then(async (account) => {
+    if (asStudent) await makeDevStudent(account.id);
+    return account;
+  })).catch(() => null);
   if (!user) return apiError(503, "DEV_DATABASE_UNAVAILABLE", "Start the development database and run migrations before signing in.");
 
   const cookieStore = await cookies();

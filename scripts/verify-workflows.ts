@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { eq } from "drizzle-orm";
 import { db } from "../src/db/client";
-import { assignmentGroupMembers, classroomMembers, classrooms, pairAssignments, users } from "../src/db/schema";
-import { createAssignment, publishAssignment } from "../src/services/assignment-service";
+import { assignments, classroomMembers, classrooms, users } from "../src/db/schema";
+import { startVoting } from "../src/services/assignment-service";
+import { uniqueSlug } from "../src/lib/slug";
+import { addQuestion } from "../src/services/question-service";
 import { enrollGroup, listAssignmentGroups } from "../src/services/group-service";
 import { resolveAuthUser } from "../src/services/auth-user-service";
 import { getClassroomRole } from "../src/lib/auth";
@@ -24,9 +26,12 @@ async function verify() {
     { classroomId: classroom.id, userId: teacher.id, role: "INSTRUCTOR" as const },
     ...students.map((student) => ({ classroomId: classroom.id, userId: student.id, role: "STUDENT" as const })),
   ]);
-  const assignment = await createAssignment(classroom.id, teacher.id, { name: "Vote on group work" });
+  // Two assignments in one classroom check that groups stay assignment-scoped.
+  const createAssignment = async (name: string) => (await db.insert(assignments)
+    .values({ classroomId: classroom.id, name, slug: uniqueSlug(name), createdBy: teacher.id }).returning())[0];
+  const assignment = await createAssignment("Vote on group work");
   phase = "assignment enrollment and isolation";
-  const otherAssignment = await createAssignment(classroom.id, teacher.id, { name: "Separate assignment" });
+  const otherAssignment = await createAssignment("Separate assignment");
   await assert.rejects(() => enrollGroup(-1, students[0].id, false, { name: "No assignment" }));
   const groups: { groupId: number }[] = [];
   for (const [i, student] of students.entries()) {
@@ -41,18 +46,16 @@ async function verify() {
   assert.equal((await listAssignmentGroups(assignment.id, students[0].id)).groups.length, 3);
   const teacherView = await listAssignmentGroups(assignment.id, teacher.id, true);
   assert.deepEqual(teacherView.groups.map((group) => group.members.length), [1, 1, 1]);
-  phase = "publication concurrency and self-vote exclusion";
-  const publishRuns = await Promise.allSettled([publishAssignment(assignment.id), publishAssignment(assignment.id)]);
-  assert.equal(publishRuns.filter((run) => run.status === "fulfilled" && run.value.published).length, 1);
-  assert.equal(publishRuns.filter((run) => run.status === "rejected").length, 1);
+  phase = "voting start readiness and concurrency";
+  assert.equal((await startVoting(assignment.id)).started, false, "voting needs a question");
+  await addQuestion(assignment.id, { text: "How clear was the work?" });
+  const startRuns = await Promise.allSettled([startVoting(assignment.id), startVoting(assignment.id)]);
+  assert.equal(startRuns.filter((run) => run.status === "fulfilled" && run.value.started).length, 1);
+  assert.equal(startRuns.filter((run) => run.status === "rejected").length, 1);
+  const [started] = await db.select().from(assignments).where(eq(assignments.id, assignment.id));
+  assert.equal(started.status, "PUBLISHED");
   await assert.rejects(() => enrollGroup(assignment.id, students[0].id, false, { name: "Too late" }));
-  const pairs = await db.select().from(pairAssignments).where(eq(pairAssignments.assignmentId, assignment.id));
-  assert.ok(pairs.length > 0);
-  const members = await db.select().from(assignmentGroupMembers).where(eq(assignmentGroupMembers.assignmentId, assignment.id));
-  for (const pair of pairs) {
-    const ownGroup = members.find((member) => member.userId === pair.evaluatorUserId)?.groupId;
-    assert.ok(ownGroup && ownGroup !== pair.itemAId && ownGroup !== pair.itemBId);
-  }
+  await assert.rejects(() => addQuestion(assignment.id, { text: "Too late" }));
   phase = "verified identity linking";
   const identity = { id: `subject-${suffix}`, email: teacher.emailRaw, name: "Synthetic user", emailVerified: false };
   assert.equal(await resolveAuthUser(identity), null, "unverified signup cannot claim an imported identity");
@@ -69,7 +72,7 @@ async function verify() {
     if (originalTeachers === undefined) delete process.env.TEACHER_AUTH_IDS;
     else process.env.TEACHER_AUTH_IDS = originalTeachers;
   }
-  console.log("PASS: real Postgres enrollment, assignment isolation, duplicate names, publication concurrency, self-vote exclusion, and identity linking.");
+  console.log("PASS: real Postgres enrollment, assignment isolation, duplicate names, voting start concurrency, and identity linking.");
 }
 
 verify().catch(() => {

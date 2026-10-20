@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { accountRole, devAuthEnabled } from "#/lib/auth-policy";
 import { GroupRuleError, parseGroupInput, requireOpenEnrollment } from "#/services/group-rules";
-import { canVote } from "#/services/voting-rules";
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -38,15 +37,4 @@ describe("assignment enrollment rules", () => {
     { name: "A", description: "a".repeat(4001) }])("rejects invalid group input %#", (input) => {
     expect(() => parseGroupInput(input)).toThrow(GroupRuleError);
   });
-});
-
-describe("voting eligibility", () => {
-  const input = { role: "STUDENT", status: "PUBLISHED", deadlineUtc: null,
-    evaluatorUserId: 5, userId: 5, groupId: 3, itemAId: 1, itemBId: 2 };
-  it("allows an assigned student to compare other groups", () => expect(canVote(input)).toBe(true));
-  it.each([
-    { role: "INSTRUCTOR" }, { role: null }, { status: "DRAFT" },
-    { userId: 6 }, { groupId: null }, { groupId: 1 }, { groupId: 2 },
-    { deadlineUtc: new Date(0) },
-  ])("rejects ineligible votes %#", (patch) => expect(canVote({ ...input, ...patch })).toBe(false));
 });

@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { getClassroomRole, getCurrentUser } from "#/lib/auth";
 import { getAssignment } from "#/services/assignment-service";
 import { PageShell } from "#/components/PageShell";
-import { EvaluationWorkspace } from "#/features/evaluation/EvaluationWorkspace";
+import { RatingWorkspace } from "#/features/rating/RatingWorkspace";
 
 export default async function EvaluatePage({
   params,
@@ -28,12 +28,12 @@ export default async function EvaluatePage({
   return (
     <PageShell maxWidth="max-w-2xl">
       <Link
-        href={`/classrooms/${classroomId}`}
+        href={`/classrooms/${classroomId}/assignments/${assignmentId}/groups`}
         className="text-xs text-zinc-500 hover:text-indigo-600 dark:hover:text-indigo-400"
       >
-        ← Back to classroom
+        ← Back to groups
       </Link>
-      <EvaluationWorkspace assignmentId={assignmentId} />
+      <RatingWorkspace assignmentId={assignmentId} />
     </PageShell>
   );
 }

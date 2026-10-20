@@ -25,3 +25,15 @@ export async function getDevAccount(role: AccountRole) {
     return user;
   });
 }
+
+/**
+ * Dev auth derives the role from memberships, so a brand-new account is a
+ * teacher. Enrolling it as a student in the development classroom lets local
+ * and e2e runs create many students that can then join assignments by code.
+ */
+export async function makeDevStudent(userId: number) {
+  if (!devAuthEnabled()) throw new Error("Development accounts are disabled.");
+  await getDevAccount("student");
+  const [classroom] = await db.select({ id: classrooms.id }).from(classrooms).where(eq(classrooms.slug, "paireval-dev"));
+  await db.insert(classroomMembers).values({ classroomId: classroom.id, userId, role: "STUDENT" }).onConflictDoNothing();
+}
