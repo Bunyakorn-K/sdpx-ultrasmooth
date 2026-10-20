@@ -188,7 +188,11 @@ export function useWorkspaceController() {
           ...fields,
           classroomId,
           deadline: new Date(String(fields.deadline)).toISOString(),
-          questions: DEFAULT_QUESTIONS,
+          questions: parseQuestions(
+            String(fields.questions || questionText || ""),
+          ).length
+            ? parseQuestions(String(fields.questions || questionText))
+            : DEFAULT_QUESTIONS,
         });
         if (classroomId) {
           try {
