@@ -1,0 +1,290 @@
+"use client";
+import { FormDialog } from "@/shared/components/form-dialog";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import FileUploadOutlined from "@mui/icons-material/FileUploadOutlined";
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Alert,
+  Box,
+  Button,
+  Chip,
+  MenuItem,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import type { FormEventHandler } from "react";
+export type EditorMode = "create" | "join" | "group" | "questions";
+type EditorProps = {
+  mode: EditorMode | null;
+  busy: boolean;
+  error: string;
+  demoCode?: string;
+  questionText: string;
+  classrooms?: Array<{ id: string; name: string; slug: string }>;
+  modalContext?: { classroomId?: string; classroomName?: string } | null;
+  onQuestionsChange: (value: string) => void;
+  onImport: (file?: File) => Promise<void>;
+  onClose: () => void;
+  onSubmit: FormEventHandler<HTMLFormElement>;
+};
+const titles: Record<EditorMode, string> = {
+  create: "สร้าง assignment ใหม่",
+  join: "เข้าร่วม assignment",
+  group: "สร้างกลุ่มใหม่",
+  questions: "คำถามสำหรับการประเมิน",
+};
+export function AssignmentEditorDialog({
+  mode,
+  busy,
+  error,
+  demoCode,
+  questionText,
+  classrooms,
+  modalContext,
+  onQuestionsChange,
+  onImport,
+  onClose,
+  onSubmit,
+}: EditorProps) {
+  return (
+    <FormDialog
+      open={!!mode}
+      title={mode ? titles[mode] : ""}
+      busy={busy}
+      onClose={onClose}
+      onSubmit={onSubmit}
+      actions={
+        <>
+          <Button color="inherit" disabled={busy} onClick={onClose}>
+            ยกเลิก
+          </Button>
+          <Button type="submit" variant="contained" disabled={busy}>
+            {busy
+              ? "กำลังบันทึก..."
+              : mode === "create"
+                ? "สร้าง assignment"
+                : mode === "join"
+                  ? "เข้าร่วม"
+                  : "บันทึก"}
+          </Button>
+        </>
+      }
+    >
+      {mode === "create" && (
+        <>
+          {modalContext?.classroomId ? (
+            <>
+              <input
+                type="hidden"
+                name="classroomId"
+                value={modalContext.classroomId}
+              />
+              <Box
+                sx={{
+                  p: 1.5,
+                  bgcolor: "action.hover",
+                  borderRadius: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  ห้องเรียน:
+                </Typography>
+                <Chip
+                  size="small"
+                  color="secondary"
+                  label={modalContext.classroomName || "ห้องเรียนนี้"}
+                  sx={{ fontWeight: 600 }}
+                />
+              </Box>
+            </>
+          ) : classrooms && classrooms.length > 0 ? (
+            <TextField
+              select
+              name="classroomId"
+              label="ห้องเรียน (Classroom)"
+              defaultValue=""
+              helperText="เลือกห้องเรียนที่ต้องการมอบหมายงานนี้ (ไม่บังคับ)"
+            >
+              <MenuItem value="">ไม่ระบุห้องเรียน (ทั่วไป)</MenuItem>
+              {classrooms.map((c) => (
+                <MenuItem key={c.id} value={c.id}>
+                  {c.name} ({c.slug})
+                </MenuItem>
+              ))}
+            </TextField>
+          ) : null}
+          <TextField
+            name="title"
+            label="ชื่อ assignment"
+            required
+            slotProps={{ htmlInput: { maxLength: 200 } }}
+          />
+          <TextField
+            name="subject"
+            label="วิชา / หัวข้อ"
+            required
+            defaultValue={modalContext?.classroomName || ""}
+          />
+          <TextField name="description" label="รายละเอียด" multiline rows={2} />
+          <TextField
+            select
+            name="evaluationMode"
+            label="รูปแบบการประเมิน"
+            defaultValue="group"
+            slotProps={{ inputLabel: { shrink: true } }}
+            helperText="รายคน: นักเรียนแต่ละคนประเมินสมาชิกจากกลุ่มอื่น ไม่ประเมินตัวเองหรือเพื่อนในกลุ่มเดียวกัน"
+          >
+            <MenuItem value="group">ประเมินกลุ่ม</MenuItem>
+            <MenuItem value="individual">ประเมินรายคน</MenuItem>
+          </TextField>
+          <TextField
+            name="deadline"
+            label="วันและเวลาสิ้นสุด"
+            type="datetime-local"
+            required
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
+
+          <Accordion
+            variant="outlined"
+            sx={{ borderRadius: "8px !important", overflow: "hidden" }}
+          >
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                การตั้งค่าคะแนนและการจับคู่ Pairwise ขั้นสูง
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Stack spacing={2}>
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                    gap: 2,
+                  }}
+                >
+                  <TextField
+                    name="groupMaxScore"
+                    label="คะแนนเต็มกลุ่ม"
+                    type="number"
+                    defaultValue={15}
+                    helperText="PRD default: 15 คะแนน"
+                  />
+                  <TextField
+                    name="individualMaxScore"
+                    label="คะแนนเต็มบุคคล"
+                    type="number"
+                    defaultValue={5}
+                    helperText="PRD default: 5 คะแนน"
+                  />
+                  <TextField
+                    name="scoreFloor"
+                    label="Score Floor (F)"
+                    type="number"
+                    slotProps={{ htmlInput: { step: "0.05", min: 0, max: 1 } }}
+                    defaultValue={0.6}
+                    helperText="PRD default: 0.60 (60%)"
+                  />
+                  <TextField
+                    name="scoreCeiling"
+                    label="Score Ceiling (C)"
+                    type="number"
+                    slotProps={{ htmlInput: { step: "0.05", min: 0, max: 1 } }}
+                    defaultValue={1.0}
+                    helperText="PRD default: 1.00 (100%)"
+                  />
+                  <TextField
+                    name="targetCoverage"
+                    label="Target Coverage (R)"
+                    type="number"
+                    defaultValue={5}
+                    helperText="จำนวนคนประเมินต่อคู่ (default: 5)"
+                  />
+                  <TextField
+                    name="completionThreshold"
+                    label="Completion Threshold"
+                    type="number"
+                    slotProps={{ htmlInput: { step: "0.05", min: 0, max: 1 } }}
+                    defaultValue={0.9}
+                    helperText="เกณฑ์มีส่วนร่วมเพื่อได้ M=1.0 (default: 90%)"
+                  />
+                </Box>
+              </Stack>
+            </AccordionDetails>
+          </Accordion>
+        </>
+      )}
+      {mode === "questions" && (
+        <>
+          <TextField
+            label="คำถาม (1 บรรทัดต่อ 1 คำถาม)"
+            multiline
+            minRows={4}
+            value={questionText}
+            onChange={(e) => onQuestionsChange(e.target.value)}
+            required
+          />
+          <div className="import-row">
+            <Button
+              component="label"
+              disabled={busy}
+              startIcon={<FileUploadOutlined />}
+              color="secondary"
+              variant="outlined"
+            >
+              นำเข้า Excel
+              <input
+                type="file"
+                hidden
+                accept=".xlsx"
+                onChange={(e) => {
+                  void onImport(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+            </Button>
+            <span>อ่านคำถามจากคอลัมน์แรก · สูงสุด 100 ข้อ</span>
+          </div>
+          <Alert severity="info" icon={false}>
+            การประเมินแบบ Pairwise ใช้ระบบเปรียบเทียบคู่ 6 ระดับ (Forced Choice — ไม่มีตัวเลือกเท่ากัน) และแก้ไขได้ก่อนเริ่มโหวต
+          </Alert>
+        </>
+      )}
+      {mode === "join" && (
+        <>
+          <p className="form-description">กรอกรหัส 6 หลักที่ได้รับจากคุณครู</p>
+          <TextField
+            name="code"
+            label="รหัสเข้าร่วม"
+            required
+            slotProps={{
+              htmlInput: {
+                pattern: "[0-9]{6}",
+                maxLength: 6,
+                inputMode: "numeric",
+              },
+            }}
+          />
+          {demoCode && (
+            <Alert severity="info">รหัสตัวอย่างที่ยังเปิดรับ: {demoCode}</Alert>
+          )}
+        </>
+      )}
+      {mode === "group" && (
+        <TextField
+          name="name"
+          label="ชื่อกลุ่ม"
+          required
+          slotProps={{ htmlInput: { maxLength: 100 } }}
+        />
+      )}
+      {error && <Alert severity="error">{error}</Alert>}
+    </FormDialog>
+  );
+}

@@ -1,0 +1,212 @@
+{
+  "metrics": {
+    "checks": {
+      "fails": 0,
+      "passes": 672,
+      "value": 1
+    },
+    "http_reqs": {
+      "count": 507,
+      "rate": 4.179967104992351
+    },
+    "assignment_creation_latency": {
+      "min": 2.125298,
+      "med": 8.7434235,
+      "max": 44.897642,
+      "p(90)": 12.680040400000003,
+      "p(95)": 14.838619099999995,
+      "avg": 9.542999982142854,
+      "thresholds": {
+        "p(95)<300": false
+      }
+    },
+    "data_received": {
+      "count": 5348941,
+      "rate": 44099.403208175325
+    },
+    "errors": {
+      "passes": 0,
+      "fails": 504,
+      "thresholds": {
+        "rate<0.05": false
+      },
+      "value": 0
+    },
+    "http_req_duration{name:list}": {
+      "avg": 10.409714535714288,
+      "min": 3.845471,
+      "med": 9.708322500000001,
+      "max": 49.568491,
+      "p(90)": 13.7214309,
+      "p(95)": 14.861801049999999,
+      "thresholds": {
+        "p(95)<300": false
+      }
+    },
+    "http_req_duration{expected_response:true}": {
+      "max": 76.344201,
+      "p(90)": 13.2755588,
+      "p(95)": 14.984829899999998,
+      "avg": 9.713981213017748,
+      "min": 2.125298,
+      "med": 8.940695
+    },
+    "vus_max": {
+      "value": 10,
+      "min": 10,
+      "max": 10
+    },
+    "http_req_sending": {
+      "min": 0.006583,
+      "med": 0.039958,
+      "max": 6.848855,
+      "p(90)": 0.0747422,
+      "p(95)": 0.093042,
+      "avg": 0.06427772978303747
+    },
+    "http_req_waiting": {
+      "avg": 9.36802901775148,
+      "min": 2.078256,
+      "med": 8.552736,
+      "max": 76.272909,
+      "p(90)": 12.8501324,
+      "p(95)": 14.3778504
+    },
+    "iteration_duration": {
+      "avg": 4038.4729573630957,
+      "min": 4018.410063,
+      "med": 4037.47352,
+      "max": 4078.420088,
+      "p(90)": 4047.294301,
+      "p(95)": 4051.9446996
+    },
+    "iterations": {
+      "count": 168,
+      "rate": 1.385077857275572
+    },
+    "http_req_blocked": {
+      "min": 0.001542,
+      "med": 0.011708,
+      "max": 5.008016,
+      "p(90)": 0.0225086,
+      "p(95)": 0.0330294,
+      "avg": 0.05044492110453652
+    },
+    "data_sent": {
+      "count": 130698,
+      "rate": 1077.5411058940638
+    },
+    "http_req_connecting": {
+      "avg": 0.029828331360946748,
+      "min": 0,
+      "med": 0,
+      "max": 3.063551,
+      "p(90)": 0,
+      "p(95)": 0
+    },
+    "vus": {
+      "value": 1,
+      "min": 1,
+      "max": 10
+    },
+    "http_req_failed": {
+      "passes": 0,
+      "fails": 507,
+      "thresholds": {
+        "rate<0.01": false
+      },
+      "value": 0
+    },
+    "group_duration": {
+      "med": 2018.15306,
+      "max": 2070.218455,
+      "p(90)": 2029.3030745,
+      "p(95)": 2032.42585525,
+      "avg": 2019.060455604168,
+      "min": 2004.001244
+    },
+    "http_req_receiving": {
+      "avg": 0.2816744654832348,
+      "min": 0.030209,
+      "med": 0.158042,
+      "max": 11.252702,
+      "p(90)": 0.47199340000000006,
+      "p(95)": 0.6473439999999997
+    },
+    "http_req_duration": {
+      "min": 2.125298,
+      "med": 8.940695,
+      "max": 76.344201,
+      "p(90)": 13.2755588,
+      "p(95)": 14.984829899999998,
+      "avg": 9.713981213017748,
+      "thresholds": {
+        "p(95)<500": false
+      }
+    },
+    "http_req_tls_handshaking": {
+      "avg": 0,
+      "min": 0,
+      "med": 0,
+      "max": 0,
+      "p(90)": 0,
+      "p(95)": 0
+    }
+  },
+  "setup_data": {
+    "assignmentId": "cf200c34-141d-4cc7-ae2b-19303e199c31",
+    "cookie": "a1033cbed0696ffecb32ecd214b17a7f5e1cdb51e85cb1b8ad324ac06c02fd9b"
+  },
+  "root_group": {
+    "checks": {},
+    "name": "",
+    "path": "",
+    "id": "d41d8cd98f00b204e9800998ecf8427e",
+    "groups": {
+      "Browse owned assignments": {
+        "checks": {
+          "list is 200": {
+            "name": "list is 200",
+            "path": "::Browse owned assignments::list is 200",
+            "id": "169a646d4e65893d34c49814976ca627",
+            "passes": 168,
+            "fails": 0
+          },
+          "list has data": {
+            "name": "list has data",
+            "path": "::Browse owned assignments::list has data",
+            "id": "9998e09eee4c052c8d00f929ccea3033",
+            "passes": 168,
+            "fails": 0
+          },
+          "detail is 200": {
+            "path": "::Browse owned assignments::detail is 200",
+            "id": "cce37672aa78d32d1139213ae6244a56",
+            "passes": 168,
+            "fails": 0,
+            "name": "detail is 200"
+          }
+        },
+        "name": "Browse owned assignments",
+        "path": "::Browse owned assignments",
+        "id": "5ebb0fe389eb75839c931097871ada1e",
+        "groups": {}
+      },
+      "Create evaluation work": {
+        "path": "::Create evaluation work",
+        "id": "82cb16ea025740a5501dd51c6e5e2e07",
+        "groups": {},
+        "checks": {
+          "create is 201": {
+            "name": "create is 201",
+            "path": "::Create evaluation work::create is 201",
+            "id": "180abb81230c08f56b7dc212eca32b31",
+            "passes": 168,
+            "fails": 0
+          }
+        },
+        "name": "Create evaluation work"
+      }
+    }
+  }
+}

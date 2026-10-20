@@ -1,0 +1,8 @@
+{
+  "date": "2026-10-20T04:02:02.120Z",
+  "target": "local Docker runtime on port 3200 (not staging)",
+  "profile": "10-second deliberately impossible threshold",
+  "exitCode": 99,
+  "durationSeconds": 14.6,
+  "thresholdFailureDetected": true
+}

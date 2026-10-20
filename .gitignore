@@ -12,9 +12,6 @@
 
 # testing
 /coverage
-/docs/coverage/
-/test-results
-/playwright-report/
 
 # next.js
 /.next/
@@ -32,8 +29,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
 .env*
-!.env.example
 
 # vercel
 .vercel
@@ -41,3 +39,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Public setup template
+!.env.example
+
+# Browser test output
+/test-results/
+/playwright-report/
+/tests/artifacts/
+/deployment-results/
+
+.next-e2e/
+
+# Logs and alternate Next build directories
+*.log
+.next*/

@@ -1,0 +1,55 @@
+
+
+  █ THRESHOLDS 
+
+    assignment_creation_latency
+    ✗ 'p(95)<1' p(95)=9.83ms
+
+    errors
+    ✓ 'rate<0.05' rate=0.00%
+
+    http_req_duration
+    ✗ 'p(95)<1' p(95)=62.44ms
+
+      {name:list}
+      ✓ 'p(95)<300' p(95)=8.09ms
+
+    http_req_failed
+    ✓ 'rate<0.01' rate=0.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 12      0.979497/s
+    checks_succeeded...: 100.00% 12 out of 12
+    checks_failed......: 0.00%   0 out of 12
+
+    ✓ list is 200
+    ✓ list has data
+    ✓ detail is 200
+    ✓ create is 201
+
+    CUSTOM
+    assignment_creation_latency....: avg=7.33ms  min=3.33ms med=8.7ms  max=9.96ms   p(90)=9.71ms  p(95)=9.83ms 
+    errors.........................: 0.00%  0 out of 9
+
+    HTTP
+    http_req_duration..............: avg=17.45ms min=3.33ms med=8.32ms max=113.35ms p(90)=19.98ms p(95)=62.44ms
+      { expected_response:true }...: avg=17.45ms min=3.33ms med=8.32ms max=113.35ms p(90)=19.98ms p(95)=62.44ms
+      { name:list }................: avg=6.01ms  min=3.39ms med=6.36ms max=8.28ms   p(90)=7.89ms  p(95)=8.09ms 
+    http_req_failed................: 0.00%  0 out of 12
+    http_reqs......................: 12     0.979497/s
+
+    EXECUTION
+    iteration_duration.............: avg=4.02s   min=4.01s  med=4.03s  max=4.03s    p(90)=4.03s   p(95)=4.03s  
+    iterations.....................: 3      0.244874/s
+    vus............................: 1      min=1       max=1
+    vus_max........................: 1      min=1       max=1
+
+    NETWORK
+    data_received..................: 9.3 kB 761 B/s
+    data_sent......................: 3.1 kB 251 B/s
+
+
+
+time="2026-10-20T04:02:01Z" level=error msg="thresholds on metrics 'assignment_creation_latency, http_req_duration' have been crossed"

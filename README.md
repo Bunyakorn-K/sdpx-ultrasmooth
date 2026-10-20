@@ -1,97 +1,104 @@
-# PairEval
+# Peerly
 
-PairEval supports two roles, **teacher** and **student**, for assignment-based
-group work and pairwise voting. Teachers create classrooms and assignments,
-students enroll in assignment groups, and only classroom teachers can read results.
-The landing page follows `public/design.jpg` with a light, pastel editorial style.
+ระบบประเมินผลงานระหว่างกลุ่มสำหรับครูและนักเรียน ใช้ Next.js App Router, TypeScript, MUI และ Neon PostgreSQL หน้าแรกอ้างอิง `public/design.jpg` และใช้ธีมเดียวกันทั้งระบบ
 
-## Current implementation
+- ครูสร้าง assignment โดยตรง พร้อมรหัส 6 หลัก, deadline, กลุ่ม และคำถาม
+- นักเรียนเข้าด้วยรหัส สร้าง/เข้าร่วมกลุ่ม แล้วให้คะแนนกลุ่มอื่น 1–5 ทุกคำถาม
+- ป้องกันโหวตตนเอง/ซ้ำ/หลัง deadline และตรวจสิทธิ์ฝั่ง server
+- ครูเริ่ม/หยุดโหวต สรุปผล และนำเข้า/ส่งออก Excel
 
-- Next.js 16.4.2 / React 19.2.4 / strict TypeScript / Tailwind 4.
-- Existing landing and demo routes use Pages Router; product routes use App Router.
-- Drizzle ORM and the existing `postgres` driver own the application schema.
-- Managed Better Auth is integrated through Neon's SDK. Live provisioning and
-  real signup verification still require an authenticated Neon project.
-- `INSTRUCTOR` remains the database spelling of teacher; no admin role exists.
-- TanStack Query, Jotai, and Remeda are future options, not installed features.
+## เริ่มด้วย Docker
 
-## Run locally
-
-```bash
-bun install --frozen-lockfile
-docker compose up -d db
-# Inject environment variables from your secret manager/runtime.
-bun run db:migrate
-bun dev
+```sh
+docker compose up --build
 ```
 
-Open http://localhost:3000. See `.env.example` for variable names and
-[Neon setup](docs/setup/neon-setup.md) for secret-free provisioning and live verification.
-`DATABASE_URL_UNPOOLED` is preferred for migrations. New users are students;
-`TEACHER_AUTH_IDS` controls teacher eligibility on the server. A teacher creates
-an assignment and shares its join code; students join, create or join a group,
-and score every other group 1-5 once the teacher starts voting.
+เปิด http://localhost:3000 PostgreSQL development จะเริ่มและสร้าง schema ให้อัตโนมัติ ถ้ามี server ใช้พอร์ตนี้อยู่แล้ว ให้ใช้ `APP_PORT=3301 docker compose up --build` ค่าบัญชีฐานข้อมูลใน Compose เป็นตัวอย่างสำหรับ local แบบทิ้งได้เท่านั้น
 
-`bun dev` enables local fixture sign-in by default and binds to 127.0.0.1.
-At `/sign-in`, choose **Use Teacher** or **Use Student** (no password).
-This creates `teacher@paireval.test`, `student@paireval.test`, and their shared
-**Development classroom** on first use. Data persists in your local database;
-groups are still created only within an assignment. Start the local database
-above and apply migrations using its connection settings from `.env.example`.
-Set `ENABLE_DEV_AUTH=0` at runtime to use managed Neon Auth instead.
+## เริ่มด้วย Neon
 
-Never save real credentials in project files, logs, screenshots, or Git. The
-non-production `ENABLE_DEV_AUTH=1` fixture mode is only for disposable
-local regression databases; it preserves historical demo identity behavior and
-is not a managed Auth test or a safe shared deployment configuration.
+ใช้ Node.js 24:
 
-## Project map
-
-- `src/app/`: authenticated product routes and HTTP boundaries.
-- `src/features/`: feature UI; `demo/` contains the original local-storage demos.
-- `src/pages/`: landing page, legacy URL entry points, and Pages Router setup.
-- `src/services/`, `src/repositories/`, `src/db/`: domain logic and persistence.
-- `tests/`: unit and browser regression suites.
-- `docs/`: [documentation index](docs/README.md), setup, product, quality, and workshop evidence.
-- `coverage/`, `playwright-report/`, `test-results/`: generated local/CI reports, ignored by Git.
-
-Real classroom workflows start at `/classrooms`.
-
-## Verification commands
-
-```bash
-bun run test
-bun run lint
-bun run build
-bun run test:coverage
-bun run test:e2e
-# Disposable database named paireval_test, with ALLOW_TEST_DATABASE=1:
-bun run test:workflows
-# Real managed Auth, configured app, verification-ready test mailbox if required:
-bun run test:auth:live
+```sh
+npm ci
+cp .env.example .env.local
 ```
 
-Historical browser tests require explicit fixture auth against a disposable
-Postgres database. Managed signup/session proof is a separate live check and
-must not be inferred from those tests. See [WS evidence](docs/workshops/ws-01-08-status.md)
-and [story drafts](docs/backlog.md) for scope and remaining external evidence.
+ใส่ connection string ใน `DATABASE_URL` ภายใน `.env.local` แล้วรัน:
 
-## Docker
+```sh
+npm run db:init
+npm run dev
+```
 
-```bash
-docker compose up
-docker compose -f compose.test.yaml up unit --abort-on-container-exit --exit-code-from unit
-docker compose -f compose.test.yaml --profile e2e up e2e --abort-on-container-exit --exit-code-from e2e
-# Remove only this Compose project's disposable test resources when finished:
+`DATABASE_DRIVER=neon` เป็นค่าเริ่มต้นสำหรับ production ส่วน `postgres` ใช้ TCP กับ Docker/CI โดยตรง `.env.local` ห้าม commit
+
+Login/Register ใช้ scrypt และ session ใน PostgreSQL ผ่าน cookie แบบ HttpOnly/SameSite ยังไม่ได้เชื่อมบริการ Neon Auth โดยตรง
+
+หากยังไม่มีฐานข้อมูล กด **ลองใช้งานตัวอย่าง**: ข้อมูลแยกใน localStorage และตัวตน demo อยู่ใน sessionStorage สลับมุมครู/นักเรียนและ refresh หน้ารายละเอียดได้
+
+## App Router และ Feature Structure
+
+ไฟล์ route พิเศษอยู่ใน `app/` ตาม Next.js โดยเป็นตัวเชื่อมขนาดเล็กไปยัง screens ของแต่ละ feature:
+
+| URL | Framework adapter | Feature |
+| --- | --- | --- |
+| `/` | `app/page.tsx` | landing |
+| `/login` | `app/login/page.tsx` | auth |
+| `/register` | `app/register/page.tsx` | auth |
+| `/assignments` | `app/(workspace)/assignments/page.tsx` | assignments |
+| `/assignments/[id]` | `app/(workspace)/assignments/[id]/page.tsx` | assignments |
+| `/results` | `app/(workspace)/results/page.tsx` | assignments |
+
+`app/api/**/route.ts` เป็น HTTP adapters; business rules อยู่ใน `features/assignments/domain`, service/repository อยู่ใน `server`, UI อยู่ใน `components/screens`, state/integration อยู่ใน `hooks/services` และธีมกลางอยู่ใน `shared/theme` รายละเอียดใน [architecture](docs/architecture.md) และ [ADR](docs/adr/ADR-001-feature-based-architecture.md)
+
+API contract: [docs/openapi.yaml](docs/openapi.yaml) ใช้ cookie authentication และ canonical routes สำหรับ auth/assignment/group/question/voting โดยมี compatibility adapter สำหรับ client เดิม
+
+## กติกาการประเมิน
+
+ก่อนเริ่มโหวต นักเรียนเข้าร่วมงานและเลือกได้หนึ่งกลุ่ม ครูเปิดโหวตได้เมื่อมีคำถามและอย่างน้อยสองกลุ่มที่มีสมาชิก ทุกคนในกลุ่มประเมินกลุ่มอื่นได้ครั้งเดียวต่อกลุ่ม ทุกคำถามต้องเป็นจำนวนเต็ม 1–5 เมื่อถึง deadline server ปฏิเสธคะแนนใหม่ ครูกดหยุดเพื่อปิดงานและเผยแพร่ผล
+
+คะแนนรวมเป็นผลรวมทุกคำตอบ คะแนนเฉลี่ยคือผลรวม ÷ จำนวนคำตอบรายข้อ (เต็ม 5) ส่งคะแนนพร้อมกันจะตรวจ version และตรวจซ้ำจากข้อมูลล่าสุดเพื่อป้องกันคะแนนซ้ำ/ข้อมูลทับกัน หน้าจอดึงสถานะ server ทุก 10 วินาที
+
+## Excel
+
+นำเข้า `.xlsx` ไม่เกิน 5 MB จากแผ่นงานแรก คอลัมน์ A หนึ่งคำถามต่อแถว สูงสุด 100 ข้อ ข้อละ 1,000 ตัวอักษร ข้ามหัวตาราง `คำถาม`/`question`/`questions` ให้อัตโนมัติ ต้องกดบันทึกหลัง preview และแก้ไขได้เฉพาะก่อนโหวต
+
+ส่งออกมีแผ่นงาน **สรุปคะแนน** และ **คำตอบ** รวมจำนวนผู้ประเมิน คะแนนรวม/เฉลี่ย คำตอบรายข้อ และเวลาส่ง
+
+## ตรวจสอบ
+
+```sh
+npm test
+npm run test:coverage
+npm run lint
+npm run typecheck
+npm run spec:lint
+npm run build
+```
+
+Browser E2E:
+
+```sh
+npx playwright install chromium
+npm run test:e2e
+npm run test:e2e:repeat
+```
+
+Playwright เปิด server ที่พอร์ต 3100 และ `.next-e2e` โดยไม่หยุด server เดิม ตั้ง `BASE_URL` เมื่อจะใช้ server ที่รันอยู่แล้ว ถ้าไม่มี test database จะข้ามเฉพาะ database-backed cases; Docker profile ด้านล่างรันกับฐานข้อมูลจริงครบ
+
+```sh
+docker compose -f compose.test.yaml up unit --build --abort-on-container-exit --exit-code-from unit
+docker compose -f compose.test.yaml --profile e2e up e2e --build --abort-on-container-exit --exit-code-from e2e
 docker compose -f compose.test.yaml down -v
 ```
 
-The test database uses tmpfs. Docker dev runs committed migrations before Next.
-Auth environment variables must still be injected for managed sign-in. Docker
-browser tests deliberately enable fixture identity only in their isolated service.
+Test seed/cleanup ต้องมี opt-in, token และฐานข้อมูล `*_test` และถูกปิดใน production เสมอ Production image ใช้ non-root user และ `/api/health` health check
 
-## Deployment
+## เอกสาร Lab
 
-Vercel is the selected host. Recorded production/staging URLs are historical
-metadata, not evidence that this change has been deployed. No commit, push,
-remote configuration change, or deployment is performed by local verification.
+ดู [Feature Compare](docs/labs/feature-compare.md) สำหรับตารางเทียบฟีเจอร์และข้อกำหนด WS01–WS08 กับไฟล์ที่ทำจริง รวมสถานะสิ่งที่ยังขาดและฟีเจอร์ใหม่ที่พักการทดสอบไว้
+
+เริ่มที่ [สถานะ WS01–WS08](docs/lab-status.md) เพื่อดูสิ่งที่ทำ/ตรวจแล้วและสิ่งที่รอ GitHub/staging จริง ต่อด้วย [TEST_PLAN](TEST_PLAN.md), [backlog](docs/backlog.md), [setup](docs/setup-steps.md), [security](docs/security-pre-check.md), [performance](docs/performance-report.md) และ [GitHub setup](docs/github-setup.md)
+
+ผลทดสอบในเครื่องไม่ได้หมายความว่า remote CI, branch protection, team review หรือ deployment ผ่านแล้ว หลักฐานและข้อจำกัดบันทึกตามจริงในเอกสารสถานะ

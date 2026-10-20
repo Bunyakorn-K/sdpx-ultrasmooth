@@ -1,40 +1,126 @@
-# Teacher/student backlog
+# Product Backlog & Acceptance Criteria — PairEval
 
-These are repository story drafts, not newly created GitHub Issues. There is no
-admin role. Database `INSTRUCTOR` is the existing storage name for teacher.
+**Document ID:** BACKLOG-PAIREVAL  
+**Authoritative Reference:** [PRD-PAIREVAL v2.0](file:///Users/whyzotee/Desktop/pair-eval/docs/labs/pairwise_evaluation_prd.md)  
+**Status:** In Progress / Feature Alignment
 
-| Story / AC | User story | Acceptance criteria | Implementation / evidence |
-| --- | --- | --- | --- |
-| HOME-01 | As a visitor, I want a clear landing page so I can understand PairEval. | Given `/`, show purpose, teacher/student journey, sign-in and registration; fit mobile without horizontal overflow. | `src/pages/index.tsx`; homepage unit/smoke tests; desktop/mobile visual review |
-| AUTH-01 | As a student, I want to register with email/password so I can join my class. | Successful managed signup creates an identity; session readback matches it; the account is student. Errors and pending state are visible. | `ManagedAuthForm`; live managed check pending credentials |
-| AUTH-02 | As a user, I want to sign in/out so my work stays protected. | Valid session survives reload; sign-out denies protected API access; legacy cookies alone confer no managed identity. | `auth-session.test.ts`; `verify-managed-auth.ts` (live run pending) |
-| ROLE-01 | As an institution, I want teacher access controlled on the server. | Registration cannot choose teacher; only an exact server-authorized subject can create a classroom. | `auth-policy.ts`; access-rule tests |
-| CLASS-01 | As a student, I want to join my teacher's classroom. | A valid invitation code joins as student; an invalid code returns 404; repeats do not create duplicate memberships. | `/api/classrooms/join` |
-| ASSIGN-01 | As a teacher, I want to create an assignment so students can contribute. | Only a classroom teacher may create/edit/publish; one criterion is created; other classrooms are inaccessible. | Assignment routes and dashboard; historical walking-skeleton E2E |
-| GROUP-01 | As a student, I want to create/select my group for an assignment. | An existing draft assignment is required; group selection is assignment-scoped; one selection per student; duplicate names conflict. | Group service; real Postgres verification; `assignment-groups.spec.ts` |
-| ANSWER-01 | As a teacher, I want to add group answers for comparison. | A teacher can add a named answer, description and optional HTTPS link without joining a student group. | `AssignmentGroups`; group rules/service |
-| PUBLISH-01 | As a teacher, I want to start voting when groups are ready. | Feasibility must pass; pairs are allocated atomically; simultaneous publishes cannot duplicate pairs; enrollment then closes. | Assignment transaction; real Postgres concurrency verification |
-| VOTE-01 | As a student, I want to compare other groups fairly. | Only my assigned pairs may be saved/submitted; neither side is my group; deadlines are enforced; saved answers restore. | Voting rules; real Postgres and group workflow E2E |
-| RESULT-01 | As a teacher, I want private voting results. | Only teachers in that classroom receive score results. Students and outsiders receive 404 from result APIs. Students may see only their own completion counts. | `results-access.test.ts`; group workflow E2E |
+> **Note on Scope Alignment:**  
+> The previous 1–5 integer rubric, 6-digit code without classroom, and inter-group peer ratings were from deprecated workshop outlines.  
+> Following the product owner's directive, all requirements are verified and strictly aligned with `pairwise_evaluation_prd.md`.
 
-## Decisions and edge cases
+---
 
-- Accepted: exact managed subject mapping, verified-only roster linking, no
-  self-votes, cross-assignment group rejection, deadline lock, concurrent publish
-  protection, and sanitized failure responses.
-- Rejected: public teacher self-selection and student-visible score/rank results;
-  both conflict with the requested access model.
-- Deferred: multi-criteria grading, LMS integrations, group invitations/approval,
-  post-publication group edits, and Google OAuth configuration. Email/password
-  managed Auth is the requested initial flow.
-- Pairwise voting excludes both compared groups' members. At least three populated
-  groups are normally needed; the existing feasibility engine reports insufficient
-  coverage rather than inventing voters or allowing self-votes.
+## Definition of Done (applies to every requirement)
 
-## Definition of done
+- [ ] Implementation completed and strictly compliant with PRD-PAIREVAL v2.0
+- [ ] Unit & domain property-based tests passing
+- [ ] Accessible UI with ARIA standards and keyboard navigability
+- [ ] OpenAPI contract, typecheck, lint, and build passing without errors
+- [ ] Verification evidence recorded in `docs/lab-status.md`
 
-Relevant unit and browser tests pass; changed routes are exercised in development;
-production build and OpenAPI validation pass; migrations and documentation match.
-Managed Auth additionally requires real provisioned-branch verification. Human
-review, remote CI evidence, staging deployment, and production release remain
-separate completion requirements and must not be fabricated.
+---
+
+## 1. Authentication & Authorization (FR-AUTH & FR-AUTHZ)
+
+### FR-AUTH-03: Email Normalization & Matching
+- **AC1:** Normalizes emails to lowercase, strips dots for gmail domains, and removes `+tag` suffixes.
+- **Verify:** `tests/unit/roster-parser.test.ts` (PASSED).
+
+### FR-AUTHZ-01 / FR-AUTHZ-02: Server-side Authorization & Scope
+- **AC1:** Every API mutation checks authentication and role on server.
+- **AC2:** Cross-classroom or unauthorized resource accesses return 404 (not 403 to prevent resource probing).
+- **Verify:** `tests/unit/http-security.test.ts` (PASSED).
+
+---
+
+## 2. Classroom & Roster Management (FR-CLASS)
+
+### FR-CLASS-01 / FR-CLASS-02 / FR-CLASS-03: CSV Import & Atomic Validation
+- **AC1:** Instructor imports roster CSV: `email`, `group_name`, `student_id` (optional), `display_name` (optional).
+- **AC2:** Atomic validation: Any invalid row rejects the entire file and reports the exact row number.
+- **AC3:** Detects duplicate emails, invalid email formats, empty group names, and warns if group size < 2.
+- **Verify:** `tests/unit/roster-parser.test.ts` (PASSED).
+
+---
+
+## 3. Assignment Lifecycle & Criteria (FR-ASSIGN)
+
+### FR-ASSIGN-01 / FR-ASSIGN-02: Assignment & Weighted Criteria
+- **AC1:** Assignment defines group and individual deadlines, `group_max_score`, `individual_max_score`, `score_floor` (default 0.60), `score_ceiling` (default 1.00), and `instructor_weight` (default 1.0).
+- **AC2:** Criteria for each side (GROUP / INDIVIDUAL) must sum to 100% (±0.01) before publishing.
+- **Verify:** `features/pairwise/domain/scoring-engine.ts`, `features/assignments/components/criteria-panel.tsx`.
+
+---
+
+## 4. Pairing Engine & Feasibility (FR-PAIR)
+
+### FR-PAIR-01 / FR-PAIR-04 / FR-PAIR-05: Feasibility Solver
+- **AC1:** Solves maximum achievable coverage $R$ and workload $k$ under invariants:
+  - Constraint 1: $k \le P - (N - 1)$
+  - Constraint 2: $k \le k_{\text{max}}$ (default 8)
+  - Constraint 3: $R \le \min(S - |a| - |b|)$
+- **AC2:** If target coverage is infeasible, automatically downsizes to max feasible $R$ and explains mathematical reason.
+- **Verify:** `tests/unit/pairing-engine.test.ts` (§8.2 Feasibility Examples 1 & 2) (PASSED).
+
+### FR-PAIR-02 / FR-PAIR-03 / FR-PAIR-06..09: Pairing Generation & Invariants
+- **AC1 (FR-PAIR-02):** Group eval: evaluator never receives a pair containing their own group.
+- **AC2 (FR-PAIR-03):** Individual eval: evaluator evaluates pairs of teammates within their own group (excluding themselves).
+- **AC3 (FR-PAIR-06):** Balanced coverage: difference in coverage between any two pairs $\le 1$.
+- **AC4 (FR-PAIR-08):** Random left/right swap display (`display_left_item_id`) stored deterministically per seed.
+- **AC5 (FR-PAIR-12 / FR-PAIR-13):** Individual evaluation boundaries: $m \le 2$ disabled; $m = 3$ flagged `LOW_CONFIDENCE`; $m \ge 4$ complete enumeration $C(m-1, 2)$ pairs per evaluator.
+- **Verify:** `tests/unit/pairing-engine.test.ts` (Property-Based Test INV-1 to INV-5) (PASSED).
+
+---
+
+## 5. Evaluation UI & 6-Point Forced Choice (FR-EVAL)
+
+### FR-EVAL-03 / D1: 6-Point Forced Choice Comparison
+- **AC1:** Eliminates neutral/middle options to avoid central tendency bias:
+  - 1: ซ้ายดีกว่ามาก (1.0 vs 0.0)
+  - 2: ซ้ายดีกว่า (0.8 vs 0.2)
+  - 3: ซ้ายดีกว่าเล็กน้อย (0.6 vs 0.4)
+  - 4: ขวาดีกว่าเล็กน้อย (0.4 vs 0.6)
+  - 5: ขวาดีกว่า (0.2 vs 0.8)
+  - 6: ขวาดีกว่ามาก (0.0 vs 1.0)
+- **AC2:** Each radio choice has full accessible label and name.
+- **Verify:** `features/pairwise/components/pairwise-card.tsx`, `features/pairwise/components/pairwise-dialog.tsx`.
+
+---
+
+## 6. Scoring Engine (FR-SCORE)
+
+### FR-SCORE-01 / FR-SCORE-02 / FR-SCORE-03: Quality Index & Band Mapping
+- **AC1:** Quality Index $q(i, c) = \frac{\sum w_e s_{i,e}}{\sum w_e} \in [0, 1]$.
+- **AC2:** Instructor weight $w_e$ is treated as a float in the weighted mean (D6).
+- **AC3:** Band Mapping: $\text{score\_ratio}(i, c) = \text{floor} + (\text{ceiling} - \text{floor}) \times q(i, c)$.
+- **Verify:** `tests/unit/scoring-engine.test.ts` (Golden Test matching PRD §9.5 worked example) (PASSED).
+
+### FR-SCORE-04 / FR-SCORE-11: Participation Multiplier Separated from Work Quality
+- **AC1:** $M = \min(1.0, p / \text{completion\_threshold})$ where threshold default is 0.90.
+- **AC2:** A member's non-participation reduces only their personal multiplier $M$, never the group's component score.
+- **Verify:** `tests/unit/scoring-engine.test.ts` (PASSED).
+
+---
+
+## 7. Integrity & Quality Signals (QS / FR-QS)
+
+### QS-01..05: Quality Signals Detection
+- **AC1 (QS-01):** Flags items with comparisons $< 3$ as `Low coverage` / `LOW_CONFIDENCE`.
+- **AC2 (QS-02):** Flags evaluators with $> 80\%$ straight-lining.
+- **AC3 (QS-03):** Flags evaluators with $> 80\%$ position bias.
+- **AC4 (QS-04):** Flags intransitive cycles ($A \succ B \succ C \succ A$) $> 20\%$ of testable triples.
+- **AC5 (QS-05):** Flags speed runs with average task time $< 3000\text{ ms}$.
+- **Verify:** `tests/unit/quality-signals.test.ts` (PASSED).
+
+---
+
+## 8. Export Service (FR-EXPORT)
+
+### FR-EXPORT-01 / FR-EXPORT-02 / FR-EXPORT-05 / FR-EXPORT-06: 4-Sheet XLSX Export
+- **AC1:** Workbook contains exactly 4 worksheets:
+  1. `Group Summary`
+  2. `Individual Summary`
+  3. `Pair Coverage`
+  4. `Metadata` (formula version, configuration, export timestamp)
+- **AC2:** Filename matches `{classroom_slug}_{assignment_slug}_{report}_{YYYYMMDD-HHmm}.xlsx`.
+- **Verify:** `tests/unit/export-service.test.ts` (PASSED).

@@ -1,682 +1,981 @@
 openapi: 3.1.0
 info:
-  title: PairEval HTTP Surface
-  version: 0.5.0
-  description: |
-    API contract for PairEval's M1 walking skeleton: classroom/roster
-    management, 5-point group rating, and results. Individual
-    (peer-within-group) evaluation, multi-criteria weighting, overrides,
-    audit log, appeals, exports, and notifications are M2/M3 â€” not in this
-    version of the contract.
+  title: Peerly API
+  version: 1.0.0
+  description: Group peer evaluation. Cookie sessions and same-origin mutations. Auth compatibility
+    POST /api/auth and command POST /api/assignments remain for older clients; canonical routes
+    below are used by the current client. Test-only seed/cleanup are deliberately excluded from the
+    public contract.
   license:
-    name: Proprietary
-    url: https://github.com/Bunyakorn-K/sdpx-ultrasmooth
+    name: UNLICENSED
+    identifier: LicenseRef-Proprietary
 servers:
-  - url: https://sdpx-ultrasmooth-s1ux.vercel.app
-    description: Staging environment
-  - url: https://sdpx-ultrasmooth.vercel.app
-    description: Production environment
+  - url: /
+    description: Same-origin API (local or configured staging host)
+tags:
+  - name: Health
+    description: Readiness
+  - name: Auth
+    description: Registration and session authentication
+  - name: Assignments
+    description: Assignments, groups, questions and peer evaluations
 security:
-  - SessionCookie: []
+  - cookieAuth: []
 paths:
-  /:
-    get:
-      operationId: getHomepage
-      summary: Render the PairEval landing page
-      security: []
-      responses:
-        '200':
-          description: Homepage rendered successfully.
-          content:
-            text/html:
-              schema:
-                type: string
   /api/health:
     get:
-      operationId: getHealth
-      summary: Liveness check
+      operationId: health
+      summary: Application readiness
+      description: "Traceability: US00 in docs/backlog.md."
+      tags:
+        - Health
+      x-user-stories:
+        - US00
       security: []
       responses:
-        '200':
-          description: Service is up.
+        "200":
+          description: Success
+          headers:
+            x-request-id:
+              description: Correlation ID for this request
+              schema: &a1
+                type: string
+                format: uuid
           content:
             application/json:
               schema:
                 type: object
+                required:
+                  - status
+                  - service
                 properties:
-                  status: { type: string, example: ok }
-                  uptime: { type: number }
-                  timestamp: { type: string, format: date-time }
-  /api/auth/dev-sign-in:
-    post:
-      operationId: devSignIn
-      summary: "TEMPORARY dev-only stub sign-in (see src/lib/auth.ts)"
-      description: |
-        Find-or-creates a user by normalized email and sets the session
-        cookie. No password, no Google OAuth â€” a placeholder until Better
-        Auth is the normal authentication path. Not safe for real student data.
+                  status:
+                    type: string
+                    const: ok
+                  service:
+                    type: string
+                    const: peerly
+        "400": &a2
+          description: Invalid JSON, identifier or business rule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401": &a3
+          description: Authentication required or invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403": &a4
+          description: Wrong origin, role or ownership
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404": &a5
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409": &a6
+          description: Duplicate vote/email or concurrent update conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413": &a7
+          description: Request body exceeds 128 KiB
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429": &a8
+          description: Too many authentication attempts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503": &a9
+          description: Database unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/auth:
+    get:
+      operationId: session
+      summary: Read current session and configuration state
+      description: "Traceability: US01 in docs/backlog.md."
+      tags:
+        - Auth
+      x-user-stories:
+        - US01
       security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [email]
-              properties:
-                email: { type: string, format: email }
-                displayName: { type: string }
-                role:
-                  type: string
-                  enum: [student]
-                  description: Enrolls a new email account as a student so it can join assignments by code.
       responses:
-        '200':
-          description: Signed in; session cookie set.
+        "200":
+          description: Success
+          headers:
+            x-request-id:
+              description: Correlation ID for this request
+              schema: *a1
           content:
             application/json:
               schema:
                 type: object
-                properties:
-                  userId: { type: integer }
-                  displayName: { type: ['string', 'null'] }
-        '400':
-          $ref: '#/components/responses/BadRequest'
-  /api/auth/sign-out:
-    post:
-      operationId: signOut
-      summary: Clear the session cookie
-      responses:
-        '200':
-          description: Signed out.
-  /api/classrooms/{classroomId}/roster:
-    get:
-      operationId: getRoster
-      summary: Roster table (instructor only)
-      parameters:
-        - $ref: '#/components/parameters/ClassroomId'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  roster:
-                    type: array
-                    items: { $ref: '#/components/schemas/RosterRow' }
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /api/assignments/{assignmentId}:
-    get:
-      operationId: getAssignment
-      summary: Get one assignment
-      parameters:
-        - $ref: '#/components/parameters/AssignmentId'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Assignment' }
-        '404':
-          $ref: '#/components/responses/NotFound'
-    patch:
-      operationId: updateAssignment
-      summary: Edit an assignment (DRAFT only â€” FR-ASSIGN-03)
-      parameters:
-        - $ref: '#/components/parameters/AssignmentId'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name: { type: string }
-                groupMaxScore: { type: number }
-                deadlineUtc: { type: ['string', 'null'], format: date-time }
-      responses:
-        '200':
-          description: Updated.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Assignment' }
-        '409':
-          description: Assignment is no longer DRAFT.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-  /api/assignments/{assignmentId}/readiness:
-    get:
-      operationId: getVotingReadiness
-      summary: Whether voting can start (instructor only)
-      parameters:
-        - $ref: '#/components/parameters/AssignmentId'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  readiness: { $ref: '#/components/schemas/VotingReadiness' }
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /api/assignments/{assignmentId}/questions:
-    get:
-      operationId: listQuestions
-      summary: Voting questions, each scored 1-5 per group
-      parameters:
-        - $ref: '#/components/parameters/AssignmentId'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  questions:
-                    type: array
-                    items: { $ref: '#/components/schemas/Question' }
-        '404':
-          $ref: '#/components/responses/NotFound'
-    post:
-      operationId: addQuestion
-      summary: Add a voting question (instructor, before voting starts)
-      parameters:
-        - $ref: '#/components/parameters/AssignmentId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [text]
-              properties:
-                text: { type: string, minLength: 1, maxLength: 300 }
-      responses:
-        '201':
-          description: Created.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Question' }
-        '400':
-          description: Invalid question text.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          description: Voting has already started.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-    delete:
-      operationId: deleteQuestion
-      summary: Remove a voting question (instructor, before voting starts)
-      parameters:
-        - $ref: '#/components/parameters/AssignmentId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [questionId]
-              properties:
-                questionId: { type: integer }
-      responses:
-        '204':
-          description: Deleted.
-        '400':
-          description: Invalid question ID.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          description: Voting has already started.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-  /api/assignments/{assignmentId}/publish:
-    post:
-      operationId: startVoting
-      summary: Start voting; DRAFT -> PUBLISHED
-      parameters:
-        - $ref: '#/components/parameters/AssignmentId'
-      responses:
-        '200':
-          description: Voting started.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  readiness: { $ref: '#/components/schemas/VotingReadiness' }
-                  started: { type: boolean }
-        '422':
-          description: Not ready - needs at least 1 question and 2 groups.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-        '409':
-          description: Assignment is not DRAFT.
-  /api/assignments/{assignmentId}/close:
-    post:
-      operationId: endVoting
-      summary: End voting now (teacher only)
-      description: |
-        Moves the voting deadline to the current time. Scores already given are
-        kept; students can no longer add or change scores.
-      parameters:
-        - $ref: '#/components/parameters/AssignmentId'
-      responses:
-        '204':
-          description: Voting ended.
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          description: Voting is not open (not started yet, or already closed).
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-  /api/assignments/{assignmentId}/ratings:
-    get:
-      operationId: getVotingSheet
-      summary: The caller's voting sheet - questions, groups other than their own, and scores given (students, once voting starts)
-      parameters:
-        - $ref: '#/components/parameters/AssignmentId'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/VotingSheet' }
-        '404':
-          $ref: '#/components/responses/NotFound'
-    put:
-      operationId: saveRating
-      summary: Upsert one 1-5 score for one group on one question (idempotent)
-      parameters:
-        - $ref: '#/components/parameters/AssignmentId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/Rating' }
-      responses:
-        '200':
-          description: Saved.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Rating' }
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '403':
-          description: Voting closed, score outside 1-5, or the caller's own group.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /api/assignments/{assignmentId}/scores:
-    get:
-      operationId: getScores
-      summary: Average 1-5 score per group and question (instructor only)
-      parameters:
-        - $ref: '#/components/parameters/AssignmentId'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/GroupScoresResult' }
-  /api/assignments/{assignmentId}/my-report:
-    get:
-      operationId: getMyReport
-      summary: Legacy personal report restricted to classroom teachers
-      parameters:
-        - $ref: '#/components/parameters/AssignmentId'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/StudentReport' }
-  /api/account:
-    get:
-      operationId: getAccount
-      summary: Read the current managed identity and server-assigned role (AC-AUTH-01)
-      responses:
-        '200':
-          description: Current account; response is never cached.
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [user]
+                required:
+                  - user
+                  - configured
                 properties:
                   user:
-                    type: object
-                    properties:
-                      name: { type: [string, 'null'] }
-                      role: { type: string, enum: [teacher, student] }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-  /api/assignments:
-    get:
-      operationId: listMyAssignments
-      summary: Assignments the caller can open; joinCode only for the teacher
+                    oneOf:
+                      - $ref: "#/components/schemas/User"
+                      - type: "null"
+                  configured:
+                    type: boolean
+        "400": *a2
+        "401": *a3
+        "403": *a4
+        "404": *a5
+        "409": *a6
+        "413": *a7
+        "429": *a8
+        "503": *a9
+  /api/auth/register:
+    post:
+      operationId: register
+      summary: Register and create a session
+      description: "Traceability: US01 in docs/backlog.md."
+      tags:
+        - Auth
+      x-user-stories:
+        - US01
+      security: []
+      parameters:
+        - &a10
+          name: Origin
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uri
+          description: Must match APP_ORIGIN when configured, otherwise the request origin.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Register"
       responses:
-        '200':
-          description: OK
+        "201":
+          description: Created
+          headers:
+            x-request-id:
+              description: Correlation ID for this request
+              schema: *a1
           content:
             application/json:
               schema:
                 type: object
+                required:
+                  - user
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+        "400": *a2
+        "401": *a3
+        "403": *a4
+        "404": *a5
+        "409": *a6
+        "413": *a7
+        "429": *a8
+        "503": *a9
+  /api/auth/login:
+    post:
+      operationId: login
+      summary: Log in and create a session
+      description: "Traceability: US01 in docs/backlog.md."
+      tags:
+        - Auth
+      x-user-stories:
+        - US01
+      security: []
+      parameters:
+        - *a10
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Login"
+      responses:
+        "200":
+          description: Success
+          headers:
+            x-request-id:
+              description: Correlation ID for this request
+              schema: *a1
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - user
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+        "400": *a2
+        "401": *a3
+        "403": *a4
+        "404": *a5
+        "409": *a6
+        "413": *a7
+        "429": *a8
+        "503": *a9
+  /api/auth/logout:
+    post:
+      operationId: logout
+      summary: Revoke the current session
+      description: "Traceability: US01 in docs/backlog.md."
+      tags:
+        - Auth
+      x-user-stories:
+        - US01
+      security:
+        - cookieAuth: []
+      parameters:
+        - *a10
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Success
+          headers:
+            x-request-id:
+              description: Correlation ID for this request
+              schema: *a1
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                properties:
+                  ok:
+                    type: boolean
+        "400": *a2
+        "401": *a3
+        "403": *a4
+        "404": *a5
+        "409": *a6
+        "413": *a7
+        "429": *a8
+        "503": *a9
+  /api/auth/complete-profile:
+    post:
+      operationId: completeProfile
+      summary: Complete user profile with display name and role after OAuth sign-in
+      tags:
+        - Auth
+      parameters:
+        - *a10
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - role
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+                role:
+                  type: string
+                  enum: [teacher, student]
+      responses:
+        "200":
+          description: Profile completed successfully
+          headers:
+            x-request-id:
+              description: Correlation ID for this request
+              schema: *a1
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - ok
+                  - user
+                properties:
+                  ok:
+                    type: boolean
+                  user:
+                    $ref: "#/components/schemas/User"
+        "400": *a2
+        "401": *a3
+        "403": *a4
+        "404": *a5
+        "409": *a6
+        "413": *a7
+        "429": *a8
+        "503": *a9
+  /api/assignments:
+    get:
+      operationId: listAssignments
+      summary: List owned or joined assignments
+      description: "Traceability: US02, US03 in docs/backlog.md."
+      tags:
+        - Assignments
+      x-user-stories:
+        - US02
+        - US03
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Success
+          headers:
+            x-request-id:
+              description: Correlation ID for this request
+              schema: *a1
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - assignments
                 properties:
                   assignments:
                     type: array
-                    items: { $ref: '#/components/schemas/AssignmentSummary' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-    post:
-      operationId: createStandaloneAssignment
-      summary: Create an assignment with its own join code (teachers only)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [name]
-              properties:
-                name: { type: string, minLength: 1, maxLength: 200 }
-                deadlineUtc: { type: ['string', 'null'], format: date-time }
-      responses:
-        '201':
-          description: Created.
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - { $ref: '#/components/schemas/Assignment' }
-                  - type: object
-                    properties:
-                      joinCode: { type: string }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { description: Only teachers create assignments. }
-  /api/classrooms/join:
-    post:
-      operationId: joinClassroom
-      summary: Join an assignment with its join code (the code of its hidden classroom)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [code]
-              properties:
-                code: { type: string, minLength: 1, maxLength: 150 }
-      responses:
-        '201':
-          description: Classroom joined, or membership already exists.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  classroomId: { type: integer }
-                  assignmentId: { type: ['integer', 'null'], description: The assignment to open next }
-        '400': { description: Invalid invitation code. }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { description: Only students may join classrooms. }
-        '404': { description: Classroom not found. }
-  /api/assignments/{assignmentId}/groups:
-    parameters:
-      - $ref: '#/components/parameters/AssignmentId'
-    delete:
-      operationId: deleteAssignmentGroup
-      summary: Classroom teacher deletes a draft assignment group and its answer
-      description: Only before the deadline and publication. Removes assignment enrollments, preserving user accounts and other groups.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [groupId]
-              properties:
-                groupId: { type: integer, minimum: 1 }
-      responses:
-        '204': { description: Group and its enrollments deleted atomically. }
-        '400': { description: Invalid group ID. }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { description: "Group outside assignment, assignment missing, or caller is not a classroom teacher." }
-        '409': { description: "Published, deadline passed, or deletion could not be completed." }
-    get:
-      operationId: listAssignmentGroups
-      summary: List group answers and the caller's selection (AC-GROUP-01)
-      responses:
-        '200':
-          description: Submission details only; no votes or scores are exposed.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  myGroupId: { type: [integer, 'null'] }
-                  groups:
-                    type: array
                     items:
-                      type: object
-                      properties:
-                        id: { type: integer }
-                        name: { type: string }
-                        description: { type: [string, 'null'] }
-                        artifactUrl: { type: [string, 'null'], format: uri }
-                        memberCount: { type: integer, minimum: 0 }
-                        members:
-                          type: array
-                          description: Who joined the group; filled for instructors only, empty for students.
-                          items:
-                            type: object
-                            properties:
-                              id: { type: integer }
-                              name: { type: string }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { description: Assignment not found or not a member. }
+                      $ref: "#/components/schemas/Assignment"
+        "400": *a2
+        "401": *a3
+        "403": *a4
+        "404": *a5
+        "409": *a6
+        "413": *a7
+        "429": *a8
+        "503": *a9
     post:
-      operationId: enrollAssignmentGroup
-      summary: Create an answer/group or select a group before voting (AC-GROUP-01)
-      description: Teachers create answers without joining; students create and join, or select an existing group in this assignment.
+      operationId: createAssignment
+      summary: Teacher creates assignment directly with a join code
+      description: "Traceability: US02 in docs/backlog.md."
+      tags:
+        - Assignments
+      x-user-stories:
+        - US02
+      security:
+        - cookieAuth: []
+      parameters:
+        - *a10
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignmentCreate"
+      responses:
+        "201":
+          description: Created
+          headers:
+            x-request-id:
+              description: Correlation ID for this request
+              schema: *a1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssignmentResponse"
+        "400": *a2
+        "401": *a3
+        "403": *a4
+        "404": *a5
+        "409": *a6
+        "413": *a7
+        "429": *a8
+        "503": *a9
+  /api/assignments/join:
+    post:
+      operationId: joinAssignment
+      summary: Student joins a draft assignment by code
+      description: "Traceability: US03 in docs/backlog.md."
+      tags:
+        - Assignments
+      x-user-stories:
+        - US03
+      security:
+        - cookieAuth: []
+      parameters:
+        - *a10
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              anyOf:
-                - required: [name]
-                - required: [groupId]
+              required:
+                - code
               properties:
-                groupId: { type: integer, minimum: 1 }
-                name: { type: string, minLength: 1, maxLength: 100 }
-                description: { type: string, maxLength: 4000 }
-                artifactUrl: { type: string, maxLength: 2000, description: Optional HTTPS submission link. }
+                code:
+                  type: string
+                  pattern: ^[0-9]{6}$
       responses:
-        '201':
-          description: Group created or selection updated.
+        "200":
+          description: Success
+          headers:
+            x-request-id:
+              description: Correlation ID for this request
+              schema: *a1
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  groupId: { type: integer }
-        '400': { description: Invalid group details or URL. }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { description: Teachers cannot join student groups. }
-        '404': { description: Assignment or selected group not found. }
-        '409': { description: "Voting has started, deadline passed, or name already used." }
-        '500': { description: Group could not be saved; no database details returned. }
+                $ref: "#/components/schemas/AssignmentResponse"
+        "400": *a2
+        "401": *a3
+        "403": *a4
+        "404": *a5
+        "409": *a6
+        "413": *a7
+        "429": *a8
+        "503": *a9
+  /api/assignments/{id}:
+    parameters:
+      - &a11
+        name: id
+        in: path
+        required: true
+        schema: *a1
+        description: Assignment UUID
+    get:
+      operationId: getAssignment
+      summary: Read an owned or joined assignment with role-specific vote visibility
+      description: "Traceability: US02, US03, US08 in docs/backlog.md. Teachers can export this data to
+        Excel in the browser (US10); Excel export has no separate server endpoint."
+      tags:
+        - Assignments
+      x-user-stories:
+        - US02
+        - US03
+        - US08
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Success
+          headers:
+            x-request-id:
+              description: Correlation ID for this request
+              schema: *a1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssignmentResponse"
+        "400": *a2
+        "401": *a3
+        "403": *a4
+        "404": *a5
+        "409": *a6
+        "413": *a7
+        "429": *a8
+        "503": *a9
+  /api/assignments/{id}/groups:
+    parameters:
+      - *a11
+    post:
+      operationId: createGroup
+      summary: Create a group before voting starts
+      description: "Traceability: US04 in docs/backlog.md."
+      tags:
+        - Assignments
+      x-user-stories:
+        - US04
+      security:
+        - cookieAuth: []
+      parameters:
+        - *a10
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+      responses:
+        "201":
+          description: Created
+          headers:
+            x-request-id:
+              description: Correlation ID for this request
+              schema: *a1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssignmentResponse"
+        "400": *a2
+        "401": *a3
+        "403": *a4
+        "404": *a5
+        "409": *a6
+        "413": *a7
+        "429": *a8
+        "503": *a9
+  /api/assignments/{id}/groups/join:
+    parameters:
+      - *a11
+    post:
+      operationId: joinGroup
+      summary: Student joins exactly one group per assignment
+      description: "Traceability: US04 in docs/backlog.md."
+      tags:
+        - Assignments
+      x-user-stories:
+        - US04
+      security:
+        - cookieAuth: []
+      parameters:
+        - *a10
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - groupId
+              properties:
+                groupId: *a1
+      responses:
+        "200":
+          description: Success
+          headers:
+            x-request-id:
+              description: Correlation ID for this request
+              schema: *a1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssignmentResponse"
+        "400": *a2
+        "401": *a3
+        "403": *a4
+        "404": *a5
+        "409": *a6
+        "413": *a7
+        "429": *a8
+        "503": *a9
+  /api/assignments/{id}/questions:
+    parameters:
+      - *a11
+    put:
+      operationId: updateQuestions
+      summary: Owner replaces question list before voting; Excel import uses this same contract
+      description: "Traceability: US05, US09 in docs/backlog.md."
+      tags:
+        - Assignments
+      x-user-stories:
+        - US05
+        - US09
+      security:
+        - cookieAuth: []
+      parameters:
+        - *a10
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - questions
+              properties:
+                questions:
+                  $ref: "#/components/schemas/Questions"
+      responses:
+        "200":
+          description: Success
+          headers:
+            x-request-id:
+              description: Correlation ID for this request
+              schema: *a1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssignmentResponse"
+        "400": *a2
+        "401": *a3
+        "403": *a4
+        "404": *a5
+        "409": *a6
+        "413": *a7
+        "429": *a8
+        "503": *a9
+  /api/assignments/{id}/voting/start:
+    parameters:
+      - *a11
+    post:
+      operationId: startVoting
+      summary: Owner opens voting with questions and two populated groups
+      description: "Traceability: US06 in docs/backlog.md."
+      tags:
+        - Assignments
+      x-user-stories:
+        - US06
+      security:
+        - cookieAuth: []
+      parameters:
+        - *a10
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Success
+          headers:
+            x-request-id:
+              description: Correlation ID for this request
+              schema: *a1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssignmentResponse"
+        "400": *a2
+        "401": *a3
+        "403": *a4
+        "404": *a5
+        "409": *a6
+        "413": *a7
+        "429": *a8
+        "503": *a9
+  /api/assignments/{id}/voting/stop:
+    parameters:
+      - *a11
+    post:
+      operationId: stopVoting
+      summary: Owner closes voting and publishes final scores
+      description: "Traceability: US08 in docs/backlog.md."
+      tags:
+        - Assignments
+      x-user-stories:
+        - US08
+      security:
+        - cookieAuth: []
+      parameters:
+        - *a10
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Success
+          headers:
+            x-request-id:
+              description: Correlation ID for this request
+              schema: *a1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssignmentResponse"
+        "400": *a2
+        "401": *a3
+        "403": *a4
+        "404": *a5
+        "409": *a6
+        "413": *a7
+        "429": *a8
+        "503": *a9
+  /api/assignments/{id}/votes:
+    parameters:
+      - *a11
+    post:
+      operationId: submitVote
+      summary: Student scores another group or an individual from another group
+      description: "Traceability: US07 and US11 in docs/backlog.md. Each student's own session identifies the voter. Group mode requires groupId; individual mode requires studentId from another populated group. Reject self/same-group targets, duplicate ballots and submissions outside active voting or after deadline."
+      tags:
+        - Assignments
+      x-user-stories:
+        - US07
+      security:
+        - cookieAuth: []
+      parameters:
+        - *a10
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - scores
+              oneOf:
+                - required: [groupId]
+                - required: [studentId]
+              properties:
+                groupId: *a1
+                studentId: *a1
+                scores:
+                  type: array
+                  items: &a12
+                    type: integer
+                    minimum: 1
+                    maximum: 5
+                  minItems: 1
+                  maxItems: 100
+                  description: Exactly one score per assignment question.
+      responses:
+        "201":
+          description: Created
+          headers:
+            x-request-id:
+              description: Correlation ID for this request
+              schema: *a1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssignmentResponse"
+        "400": *a2
+        "401": *a3
+        "403": *a4
+        "404": *a5
+        "409": *a6
+        "413": *a7
+        "429": *a8
+        "503": *a9
 components:
   securitySchemes:
-    SessionCookie:
+    cookieAuth:
       type: apiKey
       in: cookie
-      name: __Secure-neon-auth.session_token
-      description: |
-        Managed Better Auth session cookie validated by the Neon SDK.
-        The legacy pe_uid cookie is allowed only in explicitly enabled isolated
-        non-production tests.
-  parameters:
-    ClassroomId:
-      name: classroomId
-      in: path
-      required: true
-      schema: { type: integer }
-    AssignmentId:
-      name: assignmentId
-      in: path
-      required: true
-      schema: { type: integer }
-  responses:
-    BadRequest:
-      description: Invalid request body.
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
-    Unauthorized:
-      description: Not signed in.
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
-    NotFound:
-      description: |
-        Not found â€” used both for genuinely missing resources and for
-        resources outside the caller's scope (FR-AUTHZ-02: never 403, so a
-        caller can't infer that a resource exists elsewhere).
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
+      name: pair_session
+      description: Opaque HttpOnly session; Secure over HTTPS and SameSite=Lax. Login/Register issue the cookie.
   schemas:
-    ErrorResponse:
+    Error:
       type: object
-      required: [error]
+      required:
+        - error
+        - code
       properties:
         error:
-          type: object
-          required: [code, message]
-          properties:
-            code: { type: string, example: INVALID_BODY }
-            message: { type: string }
-            details: {}
-    RosterRow:
+          type: string
+        code:
+          type: string
+    User:
       type: object
+      required:
+        - id
+        - name
+        - email
+        - role
       properties:
-        userId: { type: integer }
-        displayName: { type: ['string', 'null'] }
-        email: { type: string }
-        status: { type: string, enum: [PENDING, ACTIVE] }
-        lastLoginAt: { type: ['string', 'null'], format: date-time }
+        id: *a1
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum:
+            - teacher
+            - student
+    Member:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id: *a1
+        name:
+          type: string
+    Group:
+      type: object
+      required:
+        - id
+        - name
+        - members
+      properties:
+        id: *a1
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/Member"
+    Vote:
+      type: object
+      required:
+        - userId
+        - scores
+        - createdAt
+      oneOf:
+        - required: [groupId]
+        - required: [studentId]
+      properties:
+        userId:
+          type: string
+          description: User UUID for the owner/current voter; anonymous for other voters in student results.
+        groupId: *a1
+        studentId: *a1
+        scores:
+          type: array
+          items: *a12
+          minItems: 1
+          maxItems: 100
+        createdAt: &a13
+          type: string
+          format: date-time
+    Questions:
+      type: array
+      items:
+        type: string
+        minLength: 1
+        maxLength: 1000
+      maxItems: 100
+    AssignmentCreate:
+      type: object
+      required:
+        - title
+        - deadline
+      properties:
+        evaluationMode:
+          type: string
+          enum: [group, individual]
+          default: group
+          description: Individual mode evaluates students from other groups, using the same questions and 1–5 score scale.
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        subject:
+          type: string
+          maxLength: 100
+        deadline: *a13
+        questions:
+          $ref: "#/components/schemas/Questions"
     Assignment:
       type: object
+      required:
+        - id
+        - ownerId
+        - title
+        - description
+        - subject
+        - code
+        - deadline
+        - status
+        - questions
+        - groups
+        - students
+        - votes
+        - createdAt
+        - color
       properties:
-        id: { type: integer }
-        classroomId: { type: integer }
-        name: { type: string }
-        status: { type: string, enum: [DRAFT, PUBLISHED] }
-        groupMaxScore: { type: string }
-        deadlineUtc: { type: ['string', 'null'], format: date-time }
-    AssignmentSummary:
-      type: object
-      properties:
-        id: { type: integer }
-        name: { type: string }
-        status: { type: string, enum: [DRAFT, PUBLISHED] }
-        deadlineUtc: { type: ['string', 'null'], format: date-time }
-        classroomId: { type: integer }
-        role: { type: string, enum: [INSTRUCTOR, STUDENT] }
-        joinCode: { type: string, description: Present only for the teacher }
-    VotingReadiness:
-      type: object
-      properties:
-        ready: { type: boolean }
-        questionCount: { type: integer }
-        groupCount: { type: integer }
-        message: { type: string }
-    Question:
-      type: object
-      properties:
-        id: { type: integer }
-        text: { type: string }
-    Rating:
-      type: object
-      required: [questionId, groupId, score]
-      properties:
-        questionId: { type: integer }
-        groupId: { type: integer }
-        score: { type: integer, minimum: 1, maximum: 5 }
-    VotingSheet:
-      type: object
-      properties:
-        myGroupId: { type: ['integer', 'null'] }
+        evaluationMode:
+          type: string
+          enum: [group, individual]
+          description: Absent in older assignments, which use group evaluation.
+        id: *a1
+        ownerId: *a1
+        title:
+          type: string
+        description:
+          type: string
+        subject:
+          type: string
+        code:
+          type: string
+          pattern: ^[0-9]{6}$
+        deadline: *a13
+        status:
+          type: string
+          enum:
+            - draft
+            - active
+            - closed
         questions:
-          type: array
-          items: { $ref: '#/components/schemas/Question' }
+          $ref: "#/components/schemas/Questions"
         groups:
           type: array
           items:
-            type: object
-            properties:
-              id: { type: integer }
-              name: { type: string }
-              description: { type: ['string', 'null'] }
-              artifactUrl: { type: ['string', 'null'] }
-        ratings:
-          type: array
-          items: { $ref: '#/components/schemas/Rating' }
-    GroupScoreRow:
-      type: object
-      properties:
-        groupId: { type: integer }
-        groupName: { type: string }
-        questions:
+            $ref: "#/components/schemas/Group"
+        students:
           type: array
           items:
-            type: object
-            properties:
-              questionId: { type: integer }
-              average: { type: ['number', 'null'] }
-              count: { type: integer }
-        average: { type: ['number', 'null'], description: Mean of all scores the group received }
-        raterCount: { type: integer }
-        weightedScore: { type: number, description: average / 5 x maxScore }
-    GroupScoresResult:
-      type: object
-      properties:
-        rows:
+            $ref: "#/components/schemas/Member"
+        votes:
           type: array
-          items: { $ref: '#/components/schemas/GroupScoreRow' }
-        maxScore: { type: number }
-        questions:
-          type: array
-          items: { $ref: '#/components/schemas/Question' }
-    StudentReport:
+          items:
+            $ref: "#/components/schemas/Vote"
+        createdAt: *a13
+        color:
+          type: string
+    AssignmentResponse:
       type: object
+      required:
+        - assignment
       properties:
-        participation:
-          type: object
-          properties:
-            assigned: { type: integer, description: questions x groups other than the caller's }
-            submitted: { type: integer }
+        assignment:
+          $ref: "#/components/schemas/Assignment"
+    Login:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+    Register:
+      type: object
+      required:
+        - name
+        - email
+        - password
+        - role
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+        role:
+          type: string
+          enum:
+            - teacher
+            - student

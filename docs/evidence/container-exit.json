@@ -1,0 +1,7 @@
+{
+  "date": "2026-10-20T04:05:28.421Z",
+  "probe": "real node:test assertion failure inside the unit container",
+  "exitCode": 1,
+  "failingAssertionDetected": true,
+  "passed": true
+}

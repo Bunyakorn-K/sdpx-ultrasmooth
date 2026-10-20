@@ -2,43 +2,41 @@
 
 ## Decision Summary
 
-ทีม: [
-67015026 ฉัตรนรินทร บุญแสง
-67015052 ธนพนธ์ ภูพานทอง
-67015067 นนทพันธ์ อินทวงศ์
-67015080 บุณยกร เกตุแก้ว
-67015193 สิรภพ แสงสุข
-]
-Domain: PairEval (ระบบประเมินผลนักศึกษาแบบ Pairwise Comparison)
-Date: 21 July 2026
+- Project: Peerly / pair-eval
+- Domain: group peer evaluation
+- Date: 2026-10-20
+- Team members: not supplied; no names inferred
 
 ## Frontend
 
-- Framework: Next.js
-- Language: TypeScript
-- Styling: Tailwind CSS
-- Rationale: ต้องการความรวดเร็วในการพัฒนา จบหน้าบ้านและหลังบ้านในโปรเจกต์เดียว และ AI เขียนโค้ด Stack นี้ได้แม่นยำมาก
+- Next.js 16 App Router, React 19, TypeScript strict
+- MUI 9 + Emotion; shared theme + responsive CSS
+- Rationale: retain the existing project and the user's explicit MUI/design requirements
 
 ## Backend
 
-- Framework: Next.js API Routes (App Router)
-- Language: TypeScript
-- Rationale: ลดความซับซ้อนของการเชื่อมต่อ API ไม่ต้องตั้งค่า Server แยก และหมดปัญหาเรื่อง CORS
+- Next.js Route Handlers as HTTP adapters
+- Application services with repository interfaces; business policies independent of React/SQL
+- Auth: scrypt password hashes, opaque sessions stored as SHA-256 hashes, HttpOnly/SameSite cookies
+- Rationale: same-origin application with server-side role/ownership enforcement; no token in browser storage
 
 ## Database
 
-- Lakebase Postgres through Neon, using the existing Drizzle ORM and postgres driver.
-- Owner-requested change on 2026-10-19 supersedes the earlier Supabase-hosting plan.
-- Managed Better Auth via @neondatabase/auth; email/password initially. Service provisioning and live signup proof still require Neon sign-in.
-- Secrets are injected at runtime only. No managed credentials are stored in the repository.
+- Neon PostgreSQL over HTTP in production (`DATABASE_DRIVER=neon`, default)
+- PostgreSQL 17 over TCP in Docker/CI (`DATABASE_DRIVER=postgres`)
+- Parameterized SQL in both transports
+- Assignment aggregates stored in JSONB with optimistic version checks; users/sessions/rate limits relational
+- Rationale: preserve Neon requirement and make Docker tests work without depending on Neon networking
 
 ## Deployment
 
-- Platform: Vercel
-- Staging URL: https://sdpx-ultrasmooth-s1ux.vercel.app/
-- Commit-to-live time: 1 นาที 45 วินาที (วัดเมื่อ WS-01)
+- Prepared for Vercel staging or the non-root Docker runtime
+- Staging URL: not configured
+- Commit-to-live time: not measured; no remote/deployment has been created for this checkout
+- Auto-deploy and branch protections: workflow/configuration prepared; remote verification pending
 
 ## AI Tools
 
-- Code generation: GitHub Copilot / Claude
-- Review policy: ทุก AI-generated code ต้องอ่านและอธิบายได้ก่อน commit
+- Coding agent: Codex
+- Review policy: AI-generated changes need human review; this work does not claim a team review has happened
+- Verification commands: see root `AGENTS.md` and `TEST_PLAN.md`

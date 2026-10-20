@@ -1,30 +1,30 @@
-import { Locator, Page } from '@playwright/test';
+import type { Page, Locator } from "@playwright/test";
+import { seed } from "@/features/assignments/data/demo-data";
 
 export class HomePage {
-  readonly heading: Locator;
-  readonly universityLabel: Locator;
-  readonly signInButton: Locator;
-  readonly brandLink: Locator;
-  readonly createAccountLink: Locator;
-  readonly homeLink: Locator;
-  readonly howItWorksLink: Locator;
-  readonly aboutLink: Locator;
-
+  readonly navigation: Locator;
+  readonly mainCta: Locator;
+  readonly demoButton: Locator;
+  readonly title: Locator;
+  readonly audienceCards: Locator;
   constructor(private readonly page: Page) {
-    this.heading = page.getByRole('heading', {
-      name: 'Fairer student evaluation through pairwise comparison',
+    this.navigation = page.getByRole("navigation");
+    this.mainCta = page.getByTestId("main-cta");
+    this.demoButton = page.getByRole("button", { name: "ลองใช้งานตัวอย่าง" });
+    this.title = page.getByRole("heading", {
+      name: "ทุกความคิดเห็น สร้างการเรียนรู้ที่ดีกว่า.",
     });
-    this.universityLabel = page.getByText('University Evaluation System');
-    this.signInButton = page.getByRole('button', { name: /sign in/i });
-    const navigation = page.getByRole('navigation', { name: 'Main' });
-    this.brandLink = navigation.getByRole('link', { name: 'PairEval.' });
-    this.createAccountLink = navigation.getByRole('link', { name: 'Create account' });
-    this.homeLink = page.getByRole('link', { name: 'Home', exact: true });
-    this.howItWorksLink = page.getByRole('link', { name: 'How it works', exact: true });
-    this.aboutLink = page.getByRole('link', { name: 'About', exact: true });
+    this.audienceCards = page.getByTestId("audience-card");
   }
-
   async goto() {
-    await this.page.goto('/');
+    await this.page.addInitScript((data) => {
+      if (!localStorage.getItem("pair-eval-demo")) {
+        localStorage.setItem("pair-eval-demo", JSON.stringify(data));
+      }
+    }, seed());
+    await this.page.goto("/");
+  }
+  async exploreDemo() {
+    await this.demoButton.click();
   }
 }
