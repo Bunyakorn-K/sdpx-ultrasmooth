@@ -68,7 +68,7 @@ src/
 2. **Feature Domain (`src/features/*/domain/`):** Pure TypeScript logic, Invariant rules, Scoring calculations และ Validation functions **ต้องไม่มี dependency ต่อ React, Next.js หรือ Database ใดๆ**
 3. **Feature Server Services (`src/features/*/server/`):** ควบคุม Transaction, สิทธิ์ผู้ใช้งาน, และประสานงานระหว่าง Domain กับ Data Repository
 4. **Feature Data Repositories (`src/features/*/data/`):** จัดการ SQL queries ผ่าน Parameterized queries เท่านั้น แยก Interface ไว้เพื่อให้ Service ทดสอบด้วย Mock/Fake ได้ง่าย
-5. **UI & Theme (`src/features/*/components/`, `shared/theme/`):** ใช้ Material UI v9 ตาม Design System ใน `shared/theme/theme.ts` โดยคง visual harmony ตาม `public/design.jpg`
+5. **UI & Theme (`src/features/*/components/`, `src/shared/theme/`):** ใช้ Material UI v9 ตาม Design System ใน `src/shared/theme/theme.ts` โดยคง visual harmony ตาม `public/design.jpg`
 
 ### Database & Concurrency Conventions
 - **Dual Transport:**
