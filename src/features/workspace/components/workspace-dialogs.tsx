@@ -1,4 +1,7 @@
 "use client";
+import { Dialog, DialogContent, DialogTitle, IconButton } from "@mui/material";
+import { Close } from "@mui/icons-material";
+import { AuthForm } from "@/features/auth/components/auth-form";
 import { AssignmentEditorDialog } from "@/features/assignments/components/assignment-editor-dialog";
 import { PairwiseDialog } from "@/features/pairwise/components/pairwise-dialog";
 import type { ComparisonChoice } from "@/features/pairwise/types";
@@ -88,6 +91,42 @@ export function WorkspaceDialogs({
           })
         }
       />
+      <Dialog
+        open={modal === "login" || modal === "register"}
+        onClose={() => setModal(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{
+            m: 0,
+            p: 2,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <span>{modal === "register" ? "สร้างบัญชีใหม่" : "เข้าสู่ระบบ"}</span>
+          <IconButton
+            aria-label="close"
+            onClick={() => setModal(null)}
+            size="small"
+          >
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <AuthForm
+            mode={modal === "register" ? "register" : "login"}
+            busy={busy}
+            configured={controller.configured}
+            error={error}
+            onSubmit={submit}
+            onSwitch={(target) => setModal(target)}
+            onDemo={() => controller.enterDemo("teacher")}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -133,9 +133,9 @@ function castVote(
   if (
     !Array.isArray(scores) ||
     scores.length !== assignment.questions.length ||
-    scores.some((score) => !Number.isInteger(score) || score < 1 || score > 6)
+    scores.some((score) => !Number.isInteger(score) || score < 1 || score > 5)
   )
-    throw new AppError("กรุณาให้คะแนนทุกข้อ ตั้งแต่ 1–6");
+    throw new AppError("กรุณาให้คะแนนทุกข้อ ตั้งแต่ 1–5");
   if (!assignment.students.some((s) => s.id === user.id)) {
     assignment.students.push({ id: user.id, name: user.name });
   }
