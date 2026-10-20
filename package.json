@@ -12,10 +12,10 @@
     "github:setup": "node scripts/setup-github.mjs",
     "deploy:staging": "node scripts/deploy-staging.mjs",
     "deploy:production": "node scripts/deploy-production.mjs",
-    "format": "prettier --write src shared scripts tests",
+    "format": "prettier --write src scripts tests",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit",
-    "test:coverage": "node scripts/prepare-test-output.mjs && c8 --all --check-coverage --lines 80 --functions 80 --branches 65 --include \"src/features/assignments/domain/*.ts\" --include \"src/features/assignments/server/assignment-service.ts\" --include \"src/features/auth/server/auth-service.ts\" --include \"src/features/auth/server/password-service.ts\" --include \"src/features/pairwise/domain/*.ts\" --include \"src/features/classroom/domain/*.ts\" --include \"src/features/classroom/server/classroom-service.ts\" --include \"shared/domain/*.ts\" --reporter text --reporter lcov --reporter html --reporter json-summary node --import tsx --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-results/unit.xml tests/*.test.mjs tests/unit/*.test.ts",
+    "test:coverage": "node scripts/prepare-test-output.mjs && c8 --all --check-coverage --lines 80 --functions 80 --branches 65 --include \"src/features/assignments/domain/*.ts\" --include \"src/features/assignments/server/assignment-service.ts\" --include \"src/features/auth/server/auth-service.ts\" --include \"src/features/auth/server/password-service.ts\" --include \"src/features/pairwise/domain/*.ts\" --include \"src/features/classroom/domain/*.ts\" --include \"src/features/classroom/server/classroom-service.ts\" --include \"src/shared/domain/*.ts\" --reporter text --reporter lcov --reporter html --reporter json-summary node --import tsx --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-results/unit.xml tests/*.test.mjs tests/unit/*.test.ts",
     "spec:lint": "redocly lint docs/openapi.yaml",
     "test:e2e:repeat": "playwright test --repeat-each=3",
     "test:fidelity": "node scripts/verify-test-fidelity.mjs"

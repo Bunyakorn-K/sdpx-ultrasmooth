@@ -15,7 +15,7 @@ Next.js route files stay in `app/`: `page.tsx`, `layout.tsx` and `api/**/route.t
 | `app/(workspace)/results/page.tsx` | `features/assignments/screens/assignment-list-screen.tsx` (results view) |
 | `app/api/**/route.ts` | Feature `server/http-handlers.ts` modules |
 
-The `(workspace)` route group shares a layout without adding a URL segment. Components, hooks, domain rules, services and repository interfaces are organized inside the owning feature. Reusable infrastructure lives in `shared/`.
+The `(workspace)` route group shares a layout without adding a URL segment. Components, hooks, domain rules, services and repository interfaces are organized inside the owning feature. Reusable infrastructure lives in `src/shared/`.
 
 ```mermaid
 flowchart LR

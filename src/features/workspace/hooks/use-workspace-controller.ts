@@ -170,9 +170,7 @@ export function useWorkspaceController() {
       modal === "register"
     ) {
       const mode =
-        pathname === "/register" || modal === "register"
-          ? "register"
-          : "login";
+        pathname === "/register" || modal === "register" ? "register" : "login";
       await runTask(async () => {
         await auth.authenticate(mode, fields);
         setView("dashboard");
