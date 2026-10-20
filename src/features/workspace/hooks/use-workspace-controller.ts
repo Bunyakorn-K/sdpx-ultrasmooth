@@ -31,7 +31,7 @@ export function useWorkspaceController() {
     ? decodeURIComponent(pathname.split("/")[2])
     : null;
   function setView(next: "home" | "dashboard") {
-    router.push(next === "home" ? "/" : "/classrooms");
+    router.push(next === "home" ? "/" : "/assignments");
   }
   function setSelected(id: string | null) {
     router.push(id ? `/assignments/${encodeURIComponent(id)}` : "/assignments");
@@ -168,8 +168,16 @@ export function useWorkspaceController() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const fields = Object.fromEntries(new FormData(event.currentTarget));
-    if (pathname === "/login" || pathname === "/register") {
-      const mode = pathname === "/register" ? "register" : "login";
+    if (
+      pathname === "/login" ||
+      pathname === "/register" ||
+      modal === "login" ||
+      modal === "register"
+    ) {
+      const mode =
+        pathname === "/register" || modal === "register"
+          ? "register"
+          : "login";
       await runTask(async () => {
         await auth.authenticate(mode, fields);
         setView("dashboard");
