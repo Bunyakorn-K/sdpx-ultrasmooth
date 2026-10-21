@@ -139,3 +139,85 @@ test("ClassroomService: Teacher links assignment to classroom", async () => {
     /เฉพาะผู้สอนเท่านั้น/,
   );
 });
+
+test("ClassroomService: Allowed email domains support @prefix and subdomains (e.g. @kmitl.ac.th)", async () => {
+  const teacher = makeUser({ role: "teacher" });
+  const repo = new FakeClassroomRepository();
+  const service = new ClassroomService(repo);
+
+  // Teacher sets allowed domains as "@kmitl.ac.th"
+  const classroom = await service.create(teacher, {
+    name: "วิศวกรรมคอมพิวเตอร์",
+    slug: "cpe-2026",
+    allowed_email_domains: ["@kmitl.ac.th"],
+  });
+
+  // Student 1: Main domain @kmitl.ac.th
+  const student1 = makeUser({
+    role: "student",
+    email: "65010001@kmitl.ac.th",
+    name: "Somchai Kmitl",
+  });
+  const joined1 = await service.join(student1, "CPE-2026"); // Case-insensitive slug
+  assert.equal(joined1.id, classroom.id);
+  assert.ok(joined1.members.some((m) => m.email === student1.email && m.role === "STUDENT"));
+
+  // Student 2: Subdomain @student.kmitl.ac.th
+  const student2 = makeUser({
+    role: "student",
+    email: "65010002@student.kmitl.ac.th",
+    name: "Somsri Student",
+  });
+  const joined2 = await service.join(student2, "cpe-2026");
+  assert.ok(joined2.members.some((m) => m.email === student2.email));
+
+  // Student 3: Subdomain @it.kmitl.ac.th
+  const student3 = makeUser({
+    role: "student",
+    email: "65010003@it.kmitl.ac.th",
+    name: "Somkiat IT",
+  });
+  const joined3 = await service.join(student3, "cpe-2026");
+  assert.ok(joined3.members.some((m) => m.email === student3.email));
+
+  // Student 4: Non-matching domain (gmail.com) -> Rejected with 403
+  const outsider = makeUser({
+    role: "student",
+    email: "outsider@gmail.com",
+    name: "Gmail User",
+  });
+  await assert.rejects(
+    () => service.join(outsider, "cpe-2026"),
+    /อีเมลของคุณไม่อยู่ในโดเมนที่ได้รับอนุญาตสำหรับห้องเรียนนี้/,
+  );
+});
+
+test("ClassroomService: Joining classroom activates PENDING member from CSV roster (FR-CLASS-04)", async () => {
+  const teacher = makeUser({ role: "teacher" });
+  const repo = new FakeClassroomRepository();
+  const service = new ClassroomService(repo);
+
+  const classroom = await service.create(teacher, {
+    name: "วิชาระบบฐานข้อมูล",
+    slug: "db-101",
+  });
+
+  // Import CSV with pending student
+  const csv = `email,group_name,display_name
+somchai@kmitl.ac.th,Team Alpha,Somchai`;
+  await service.importRoster(teacher, classroom.id, csv);
+
+  // Student logs in with Google and joins
+  const student = makeUser({
+    id: "google-uid-12345",
+    role: "student",
+    email: "somchai@kmitl.ac.th",
+    name: "Somchai (Google)",
+  });
+
+  const joined = await service.join(student, "DB-101");
+  const member = joined.members.find((m) => m.email === "somchai@kmitl.ac.th");
+  assert.ok(member);
+  assert.equal(member.user_id, student.id); // Binds real google user_id
+  assert.equal(member.status, "ACTIVE"); // Activates from PENDING
+});

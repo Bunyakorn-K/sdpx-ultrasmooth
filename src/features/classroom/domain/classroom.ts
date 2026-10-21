@@ -8,6 +8,22 @@ import type {
 } from "../types";
 import type { ParseRosterResult } from "./roster-parser";
 
+export function normalizeDomain(domain: string): string {
+  return domain.trim().toLowerCase().replace(/^[@.]/, "");
+}
+
+export function isDomainAllowed(email: string, allowedDomains?: string[]): boolean {
+  if (!allowedDomains || allowedDomains.length === 0) return true;
+  const userDomain = email.split("@")[1]?.trim().toLowerCase();
+  if (!userDomain) return false;
+
+  return allowedDomains.some((d) => {
+    const cleanAllowed = normalizeDomain(d);
+    if (!cleanAllowed) return false;
+    return userDomain === cleanAllowed || userDomain.endsWith("." + cleanAllowed);
+  });
+}
+
 export function slugify(text: string): string {
   const base = text
     .trim()
@@ -51,9 +67,9 @@ export function createClassroom(
     name,
     slug,
     timezone: input.timezone?.trim() || "Asia/Bangkok",
-    allowed_email_domains: (input.allowed_email_domains || []).map((d) =>
-      d.trim().toLowerCase(),
-    ),
+    allowed_email_domains: (input.allowed_email_domains || [])
+      .map(normalizeDomain)
+      .filter(Boolean),
     status: "ACTIVE",
     created_by: user.id,
     created_at: now,

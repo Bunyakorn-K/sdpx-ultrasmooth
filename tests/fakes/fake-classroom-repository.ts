@@ -16,13 +16,18 @@ export class FakeClassroomRepository implements ClassroomRepository {
     );
   }
 
-  async listForUser(userId: string): Promise<Classroom[]> {
+  async listForUser(userId: string, userEmail?: string): Promise<Classroom[]> {
+    const emailNorm = userEmail?.toLowerCase();
     return [...this.records.values()]
       .map((r) => structuredClone(r.classroom))
       .filter(
         (c) =>
           c.created_by === userId ||
-          c.members.some((m) => m.user_id === userId),
+          c.members.some(
+            (m) =>
+              m.user_id === userId ||
+              (emailNorm && m.email?.toLowerCase() === emailNorm),
+          ),
       );
   }
 
@@ -33,7 +38,7 @@ export class FakeClassroomRepository implements ClassroomRepository {
 
   async findBySlug(slug: string): Promise<ClassroomRecord | null> {
     const record = [...this.records.values()].find(
-      (r) => r.classroom.slug === slug,
+      (r) => r.classroom.slug.toLowerCase() === slug.toLowerCase(),
     );
     return record ? structuredClone(record) : null;
   }
