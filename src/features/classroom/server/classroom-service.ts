@@ -1,4 +1,5 @@
 import type { User } from "@/features/auth/types";
+import type { AuditService } from "@/features/audit/server/audit-service";
 import { AppError } from "@/shared/domain/app-error";
 import {
   createClassroom,
@@ -14,7 +15,10 @@ import type { ClassroomRepository } from "./classroom-repository";
 const MAX_RETRIES = 5;
 
 export class ClassroomService {
-  constructor(private readonly repository: ClassroomRepository) {}
+  constructor(
+    private readonly repository: ClassroomRepository,
+    private readonly auditService?: AuditService,
+  ) {}
 
   async list(user: User): Promise<Classroom[]> {
     return this.repository.listForUser(user.id);
@@ -82,6 +86,14 @@ export class ClassroomService {
 
       const updated = addStaffMember(record.classroom, input, user);
       if (await this.repository.update(updated, record.version)) {
+        await this.auditService?.record({
+          actor_id: user.id,
+          action: "ROLE_CHANGE",
+          resource_type: "classroom_member",
+          resource_id: updated.members[updated.members.length - 1].id,
+          classroom_id: updated.id,
+          after_state: { email: input.email, role: input.role },
+        }).catch(() => {});
         return updated;
       }
     }
@@ -95,6 +107,14 @@ export class ClassroomService {
 
       const updated = removeMember(record.classroom, memberId, user);
       if (await this.repository.update(updated, record.version)) {
+        await this.auditService?.record({
+          actor_id: user.id,
+          action: "ROLE_CHANGE",
+          resource_type: "classroom_member",
+          resource_id: memberId,
+          classroom_id: updated.id,
+          before_state: { memberId },
+        }).catch(() => {});
         return updated;
       }
     }
