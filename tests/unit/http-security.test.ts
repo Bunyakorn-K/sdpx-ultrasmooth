@@ -84,3 +84,39 @@ test("SEC02: legitimate browser Origin matches the request Host behind Next inte
     }),
   );
 });
+
+test("SEC02: proxy headers x-forwarded-proto and x-forwarded-host are respected", () => {
+  requireSameOrigin(
+    new Request("http://localhost:3000/api", {
+      headers: {
+        "x-forwarded-proto": "https",
+        "x-forwarded-host": "sdpx-ultrasmooth.vercel.app",
+        origin: "https://sdpx-ultrasmooth.vercel.app",
+      },
+    }),
+  );
+
+  requireSameOrigin(
+    new Request("http://localhost:3000/api", {
+      headers: {
+        "x-forwarded-proto": "https, http",
+        host: "sdpx-ultrasmooth.vercel.app",
+        origin: "https://sdpx-ultrasmooth.vercel.app",
+      },
+    }),
+  );
+
+  assert.throws(
+    () =>
+      requireSameOrigin(
+        new Request("http://localhost:3000/api", {
+          headers: {
+            "x-forwarded-proto": "https",
+            "x-forwarded-host": "sdpx-ultrasmooth.vercel.app",
+            origin: "https://attacker.invalid",
+          },
+        }),
+      ),
+    AppError,
+  );
+});
