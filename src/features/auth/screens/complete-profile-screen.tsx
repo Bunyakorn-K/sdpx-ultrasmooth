@@ -185,6 +185,14 @@ export function CompleteProfileScreen() {
                     <MenuItem value="student">นักเรียน (Student)</MenuItem>
                   </TextField>
 
+                  {/* FR-PRIV-01: PDPA Privacy Notice */}
+                  <Alert severity="info" sx={{ mt: 1, borderRadius: "8px", fontSize: "0.8rem" }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
+                      ประกาศการคุ้มครองข้อมูลส่วนบุคคล (PDPA Notice — FR-PRIV-01)
+                    </Typography>
+                    ระบบจะจัดเก็บอีเมล ชื่อ และผลการประเมินเป็นเวลา 2 ปีการศึกษา (time-on-task 1 ปีการศึกษา) เพื่อการประเมินผลและการตรวจสอบความสุจริตทางวิชาการ โดยข้อมูลตัวตนผู้ประเมินจะถูกปกปิดเป็นความลับตามมาตรฐาน Anonymity
+                  </Alert>
+
                   {error && <Alert severity="error">{error}</Alert>}
                 </div>
 

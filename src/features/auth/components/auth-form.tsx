@@ -8,6 +8,7 @@ import {
   Divider,
   MenuItem,
   TextField,
+  Typography,
 } from "@mui/material";
 import GoogleIcon from "@mui/icons-material/Google";
 import type { FormEventHandler } from "react";
@@ -154,6 +155,14 @@ export function AuthForm({
           slotProps={{ htmlInput: { minLength: 8, maxLength: 128 } }}
           required
         />
+        {registering && (
+          <Alert severity="info" sx={{ mt: 1, borderRadius: "8px", fontSize: "0.8rem" }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
+              ประกาศการคุ้มครองข้อมูลส่วนบุคคล (PDPA Notice — FR-PRIV-01)
+            </Typography>
+            ระบบจัดเก็บข้อมูล (อีเมล, ชื่อ, ผลการประเมิน) 2 ปีการศึกษา เพื่อใช้ประเมินผลและตรวจสอบความสุจริตทางวิชาการ โดยตัวตนผู้ประเมินจะถูกปกปิดเป็นความลับ
+          </Alert>
+        )}
         {error && <Alert severity="error">{error}</Alert>}
       </div>
       <div className="auth-actions">
