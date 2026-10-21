@@ -146,6 +146,73 @@ function castVote(
     createdAt: new Date().toISOString(),
   });
 }
+function overrideScore(
+  { assignment, isOwner, user }: PolicyContext,
+  input: CommandInput,
+) {
+  if (!isOwner) throw new AppError("เฉพาะครูเจ้าของงานเท่านั้น", 403);
+  const targetId = String(input.targetId || "").trim();
+  const targetType = input.targetType === "student" ? "student" : "group";
+  const overriddenScore = Number(input.score);
+  const reason = String(input.reason || "").trim();
+
+  if (!targetId) throw new AppError("ต้องระบุ targetId ในการแก้ไขคะแนน", 400);
+  if (isNaN(overriddenScore) || overriddenScore < 0) {
+    throw new AppError("คะแนนต้องเป็นตัวเลขที่มากกว่าหรือเท่ากับ 0", 400);
+  }
+  // FR-SCORE-08: บังคับกรอกเหตุผล
+  if (!reason) {
+    throw new AppError("กรุณาระบุเหตุผลในการแก้ไขคะแนน (FR-SCORE-08)", 400);
+  }
+
+  assignment.scoreOverrides = assignment.scoreOverrides || [];
+  assignment.scoreOverrides.push({
+    targetId,
+    targetType,
+    overriddenScore,
+    reason,
+    overriddenBy: user.id,
+    overriddenAt: new Date().toISOString(),
+  });
+}
+function finalizeAssignment(
+  { assignment, isOwner, user }: PolicyContext,
+) {
+  if (!isOwner) throw new AppError("เฉพาะครูเจ้าของงานเท่านั้น", 403);
+  if (assignment.status !== "closed") {
+    throw new AppError("สามารถ Finalize ได้เฉพาะงานที่ปิดรับการประเมินแล้วเท่านั้น", 400);
+  }
+
+  // FR-SCORE-09: Snapshot inputs and outputs
+  assignment.status = "finalized";
+  assignment.finalizedSnapshot = {
+    finalizedAt: new Date().toISOString(),
+    finalizedBy: user.id,
+    inputs: {
+      votes: JSON.parse(JSON.stringify(assignment.votes)),
+      groups: JSON.parse(JSON.stringify(assignment.groups)),
+      questions: [...assignment.questions],
+    },
+    outputs: {
+      overrides: assignment.scoreOverrides ? [...assignment.scoreOverrides] : [],
+    },
+  };
+}
+function reopenAssignment(
+  { assignment, isOwner }: PolicyContext,
+  input: CommandInput,
+) {
+  if (!isOwner) throw new AppError("เฉพาะครูเจ้าของงานเท่านั้น", 403);
+  if (assignment.status !== "finalized") {
+    throw new AppError("สามารถ Reopen ได้เฉพาะงานที่ Finalize แล้วเท่านั้น", 400);
+  }
+  const reason = String(input.reason || "").trim();
+  if (!reason) {
+    throw new AppError("กรุณาระบุเหตุผลในการเปิดประเมินใหม่ (FR-ASSIGN-03)", 400);
+  }
+  assignment.status = "closed";
+  assignment.reopenReason = reason;
+}
 const commandHandlers: Record<string, CommandHandler> = {
   join: joinAssignment,
   group: createGroup,
@@ -154,6 +221,9 @@ const commandHandlers: Record<string, CommandHandler> = {
   stop: stopVoting,
   questions: updateQuestions,
   vote: castVote,
+  overrideScore,
+  finalize: finalizeAssignment,
+  reopen: reopenAssignment,
 };
 export function applyAssignmentCommand(
   assignment: Assignment,

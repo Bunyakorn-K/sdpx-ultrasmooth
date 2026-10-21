@@ -14,6 +14,30 @@ export type Vote = VoteAnswer &
     | { groupId: string; studentId?: never }
     | { studentId: string; groupId?: never }
   );
+export type ScoreOverride = {
+  targetId: string;
+  targetType: "student" | "group";
+  originalScore?: number;
+  overriddenScore: number;
+  reason: string;
+  overriddenBy: string;
+  overriddenAt: string;
+};
+
+export type FinalizedSnapshot = {
+  finalizedAt: string;
+  finalizedBy: string;
+  inputs: {
+    votes: Vote[];
+    groups: Group[];
+    questions: string[];
+  };
+  outputs: {
+    overrides?: ScoreOverride[];
+    scores?: Record<string, unknown>;
+  };
+};
+
 export type Assignment = {
   id: string;
   ownerId: string;
@@ -23,7 +47,10 @@ export type Assignment = {
   subject: string;
   code: string;
   deadline: string;
-  status: "draft" | "active" | "closed";
+  status: "draft" | "active" | "closed" | "finalized";
+  scoreOverrides?: ScoreOverride[];
+  finalizedSnapshot?: FinalizedSnapshot;
+  reopenReason?: string;
   evaluationMode?: EvaluationMode;
   questions: string[];
   groups: Group[];
