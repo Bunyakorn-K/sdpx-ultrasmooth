@@ -13,11 +13,29 @@ const codes: Record<number, string> = {
   503: "SERVICE_UNAVAILABLE",
 };
 export function requireSameOrigin(request: Request) {
-  const expected =
-    process.env.APP_ORIGIN ||
-    `${new URL(request.url).protocol}//${request.headers.get("host") || new URL(request.url).host}`;
-  if (request.headers.get("origin") !== expected)
+  const origin = request.headers.get("origin");
+  if (!origin) throw new AppError("คำขอไม่ถูกต้อง", 403);
+
+  if (process.env.APP_ORIGIN) {
+    const configuredOrigin = process.env.APP_ORIGIN.replace(/\/+$/, "");
+    if (origin !== configuredOrigin) {
+      throw new AppError("คำขอไม่ถูกต้อง", 403);
+    }
+    return;
+  }
+
+  const proto =
+    request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ||
+    new URL(request.url).protocol.replace(":", "");
+  const host =
+    request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ||
+    request.headers.get("host") ||
+    new URL(request.url).host;
+
+  const expected = `${proto}://${host}`;
+  if (origin !== expected) {
     throw new AppError("คำขอไม่ถูกต้อง", 403);
+  }
 }
 export async function readJsonObject(
   request: Request,
