@@ -162,10 +162,68 @@ export function calculateItemScores(
       .toFixed(3),
   );
 
+  const kAnonymity =
+    side === "INDIVIDUAL"
+      ? checkKAnonymityThreshold(itemId, comparisons, pairs, minComparisons)
+      : { isSatisfied: true, submittedEvaluatorsCount: 0, kMin: minComparisons };
+
   return {
     itemId,
     side,
     criterionScores,
     totalScore,
+    kAnonymity,
+    displayScore: kAnonymity.isSatisfied ? totalScore : null,
+    displayStatus: kAnonymity.isSatisfied ? null : "ยังมีข้อมูลไม่พอ",
   };
 }
+
+/**
+ * FR-ANON-02: k-anonymity threshold
+ * ไม่แสดงคะแนน individual แก่เจ้าตัว จนกว่าจะมีผู้ประเมินที่ submit แล้ว >= k_min (default 3)
+ */
+export interface KAnonymityCheck {
+  isSatisfied: boolean;
+  submittedEvaluatorsCount: number;
+  kMin: number;
+  statusMessage?: string;
+}
+
+export function checkKAnonymityThreshold(
+  itemId: string,
+  comparisons: Comparison[],
+  pairs: PairAssignment[],
+  kMin: number = 3,
+): KAnonymityCheck {
+  const pairMap = new Map(pairs.map((p) => [p.id, p]));
+  const submittedEvaluators = new Set<string>();
+
+  for (const comp of comparisons) {
+    if (comp.status !== "SUBMITTED") continue;
+    const pair = pairMap.get(comp.pair_assignment_id);
+    if (!pair) continue;
+    if (pair.item_a_id === itemId || pair.item_b_id === itemId) {
+      submittedEvaluators.add(comp.evaluator_user_id);
+    }
+  }
+
+  const count = submittedEvaluators.size;
+  const isSatisfied = count >= kMin;
+  return {
+    isSatisfied,
+    submittedEvaluatorsCount: count,
+    kMin,
+    statusMessage: isSatisfied ? undefined : "ยังมีข้อมูลไม่พอ",
+  };
+}
+
+/**
+ * FR-ANON-04: ในกลุ่มขนาด m = 3 เตือนว่า anonymity ต่ำมาก
+ */
+export function getGroupAnonymityWarning(groupSize: number): string | null {
+  if (groupSize === 3) {
+    return "ในกลุ่มขนาด 3 คน ความเป็นนิรนาม (Anonymity) ต่ำมาก และควรให้ปิด individual evaluation ได้ (FR-ANON-04)";
+  }
+  return null;
+}
+
