@@ -95,6 +95,17 @@ export class AssignmentService {
             before_state: { status: "finalized" },
             after_state: { status: "closed" },
           }).catch(() => {});
+        } else if (input.action === "updateDeadline") {
+          await this.auditService?.record({
+            actor_id: user.id,
+            action: "ASSIGNMENT_PUBLISH",
+            resource_type: "assignment",
+            resource_id: updated.id,
+            assignment_id: updated.id,
+            classroom_id: updated.classroomId || null,
+            before_state: { deadline: record.assignment.deadline },
+            after_state: { deadline: updated.deadline },
+          }).catch(() => {});
         }
         return visibleAssignment(updated, user.id);
       }

@@ -213,6 +213,41 @@ function reopenAssignment(
   assignment.status = "closed";
   assignment.reopenReason = reason;
 }
+function updateDeadline(
+  { assignment, isOwner }: PolicyContext,
+  input: CommandInput,
+) {
+  if (!isOwner) throw new AppError("เฉพาะครูเจ้าของงานเท่านั้น", 403);
+  if (assignment.status === "finalized") {
+    throw new AppError("ไม่สามารถแก้ไขกำหนดส่งของงานที่ Finalize แล้ว", 400);
+  }
+
+  const newDeadlineStr = String(input.deadline || "").trim();
+  const newDeadlineTime = new Date(newDeadlineStr).getTime();
+  if (isNaN(newDeadlineTime)) {
+    throw new AppError("รูปแบบวันเวลาสิ้นสุดไม่ถูกต้อง", 400);
+  }
+
+  const currentDeadlineTime = new Date(assignment.deadline).getTime();
+  const now = Date.now();
+
+  // FR-ASSIGN-04: ขยาย deadline ได้ทุกเมื่อ · ร่นเข้าได้เฉพาะเมื่อยังไม่ถึง deadline เดิม
+  const isShortening = newDeadlineTime < currentDeadlineTime;
+  if (isShortening) {
+    if (now >= currentDeadlineTime) {
+      throw new AppError("ไม่สามารถร่นกำหนดส่งได้เนื่องจากเลยกำหนดส่งเดิมแล้ว (FR-ASSIGN-04)", 400);
+    }
+    if (newDeadlineTime <= now) {
+      throw new AppError("กำหนดส่งที่ร่นเข้ามาต้องเป็นเวลาในอนาคต", 400);
+    }
+  }
+
+  const isExtension = newDeadlineTime > currentDeadlineTime;
+  assignment.deadline = new Date(newDeadlineTime).toISOString();
+  if (isExtension && assignment.status === "closed" && newDeadlineTime > now) {
+    assignment.status = "active";
+  }
+}
 const commandHandlers: Record<string, CommandHandler> = {
   join: joinAssignment,
   group: createGroup,
@@ -224,6 +259,7 @@ const commandHandlers: Record<string, CommandHandler> = {
   overrideScore,
   finalize: finalizeAssignment,
   reopen: reopenAssignment,
+  updateDeadline,
 };
 export function applyAssignmentCommand(
   assignment: Assignment,
