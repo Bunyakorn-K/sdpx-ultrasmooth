@@ -151,11 +151,22 @@ jobs:
 
       - name: Migrate production database
         run: |
-          npx vercel env pull .env.migrate --environment=production --token "$VERCEL_TOKEN" --yes
-          set -a; . ./.env.migrate; set +a
-          rm .env.migrate
-          npm run db:init
+          # Use DATABASE_URL from GitHub Secrets if configured.
+          # Otherwise attempt to pull from Vercel (if not marked sensitive).
+          if [ -z "$DATABASE_URL" ]; then
+            npx vercel env pull .env.migrate --environment=production --token "$VERCEL_TOKEN" --yes || true
+            if [ -f .env.migrate ]; then
+              set -a; . ./.env.migrate; set +a
+              rm -f .env.migrate
+            fi
+          fi
+          if [ -n "$DATABASE_URL" ] && [ "$DATABASE_URL" != "[SENSITIVE]" ]; then
+            npm run db:init
+          else
+            echo "::warning::DATABASE_URL is not set in GitHub Secrets or is marked [SENSITIVE] in Vercel. Database migration was skipped in CI. To run migrations in CI, add DATABASE_URL to GitHub Secrets."
+          fi
         env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || secrets.PRODUCTION_DATABASE_URL || secrets.POSTGRES_URL }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
