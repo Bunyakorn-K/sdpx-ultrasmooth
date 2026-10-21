@@ -7,6 +7,7 @@ import {
   addStaffMember,
   removeMember,
   archiveClassroom,
+  isDomainAllowed,
 } from "../domain/classroom";
 import { parseRosterCsv } from "../domain/roster-parser";
 import type { Classroom, ClassroomMember, CreateClassroomInput } from "../types";
@@ -21,7 +22,7 @@ export class ClassroomService {
   ) {}
 
   async list(user: User): Promise<Classroom[]> {
-    return this.repository.listForUser(user.id);
+    return this.repository.listForUser(user.id, user.email);
   }
 
   async get(user: User, id: string): Promise<Classroom> {
@@ -138,11 +139,14 @@ export class ClassroomService {
     const trimmed = code.trim();
     if (!trimmed) throw new AppError("กรุณากรอกรหัสเข้าร่วมห้องเรียน", 400);
 
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed);
+
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       const record =
         (await this.repository.findBySlug(trimmed.toLowerCase())) ||
         (await this.repository.findBySlug(trimmed)) ||
-        (await this.repository.findById(trimmed));
+        (isUuid ? await this.repository.findById(trimmed) : null) ||
+        (this.repository.findByAssignmentCode ? await this.repository.findByAssignmentCode(trimmed) : null);
 
       if (!record) throw new AppError("ไม่พบห้องเรียนจากรหัสที่ระบุ", 404);
       const classroom = record.classroom;
@@ -152,22 +156,35 @@ export class ClassroomService {
       }
 
       if (classroom.allowed_email_domains && classroom.allowed_email_domains.length > 0) {
-        const userDomain = user.email.split("@")[1]?.toLowerCase();
-        const allowed = classroom.allowed_email_domains.some(
-          (d) => d.toLowerCase() === userDomain,
-        );
-        if (!allowed) {
+        if (!isDomainAllowed(user.email, classroom.allowed_email_domains)) {
           throw new AppError("อีเมลของคุณไม่อยู่ในโดเมนที่ได้รับอนุญาตสำหรับห้องเรียนนี้", 403);
         }
       }
 
-      const isMember = classroom.members.some(
+      const existingMemberIndex = classroom.members.findIndex(
         (m) =>
           m.user_id === user.id ||
           m.email.toLowerCase() === user.email.toLowerCase(),
       );
-      if (isMember) {
-        return classroom;
+
+      if (existingMemberIndex !== -1) {
+        const existing = classroom.members[existingMemberIndex];
+        if (existing.user_id === user.id && existing.status === "ACTIVE") {
+          return classroom;
+        }
+
+        const updatedMembers = [...classroom.members];
+        updatedMembers[existingMemberIndex] = {
+          ...existing,
+          user_id: user.id,
+          display_name: user.name || existing.display_name,
+          status: "ACTIVE",
+        };
+        const updatedClassroom: Classroom = { ...classroom, members: updatedMembers };
+        if (await this.repository.update(updatedClassroom, record.version)) {
+          return updatedClassroom;
+        }
+        continue;
       }
 
       const newMember: ClassroomMember = {

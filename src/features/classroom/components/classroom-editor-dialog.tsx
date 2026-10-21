@@ -54,7 +54,7 @@ export function ClassroomEditorDialog({
     try {
       const domains = allowedDomains
         .split(",")
-        .map((d) => d.trim())
+        .map((d) => d.trim().toLowerCase().replace(/^[@.]/, ""))
         .filter(Boolean);
 
       await onSubmit({
