@@ -138,7 +138,7 @@ export function AssignmentEditorDialog({
             label="รูปแบบการประเมิน"
             defaultValue="group"
             slotProps={{ inputLabel: { shrink: true } }}
-            helperText="รายคน: นักเรียนแต่ละคนประเมินสมาชิกจากกลุ่มอื่น ไม่ประเมินตัวเองหรือเพื่อนในกลุ่มเดียวกัน"
+            helperText="ประเมินรายคน: ประเมินเพื่อนร่วมกลุ่มรายคน (FR-ANON-04: ในกลุ่มขนาด 3 คน ความเป็นนิรนามจะต่ำมาก สามารถปิดการประเมินรายคนได้โดยตั้งค่าคะแนนรายคนเป็น 0)"
           >
             <MenuItem value="group">ประเมินกลุ่ม</MenuItem>
             <MenuItem value="individual">ประเมินรายคน</MenuItem>

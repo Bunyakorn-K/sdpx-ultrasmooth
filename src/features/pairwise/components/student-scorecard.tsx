@@ -117,14 +117,44 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
     active.completionThreshold ?? 0.9,
   );
 
+  const individualScores =
+    user && (active.individualMaxScore ?? 0) > 0
+      ? calculateItemScores(
+          user.id,
+          "INDIVIDUAL",
+          criteria,
+          pairs,
+          comparisons,
+          active.individualMaxScore ?? 0,
+          active.scoreFloor ?? 0.6,
+          active.scoreCeiling ?? 1.0,
+          active.minComparisons ?? 3,
+        )
+      : null;
+
   const groupComponent = groupScores?.totalScore ?? 0;
-  const individualComponent = 0;
+  const individualComponent = individualScores?.displayScore ?? 0;
+  const individualHasSufficientData = individualScores
+    ? individualScores.kAnonymity.isSatisfied
+    : true;
   const personalFinalScore = Number(
     ((groupComponent + individualComponent) * M).toFixed(2),
   );
 
   return (
     <Stack spacing={3}>
+      {individualScores && !individualHasSufficientData && (
+        <Alert severity="warning" sx={{ borderRadius: "12px" }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            คะแนนส่วนบุคคล: ยังมีข้อมูลไม่พอ (FR-ANON-02)
+          </Typography>
+          <Typography variant="body2">
+            ระบบจะแสดงคะแนนส่วนบุคคลเมื่อมีเพื่อนในกลุ่มส่งประเมินครบอย่างน้อย{" "}
+            {individualScores.kAnonymity.kMin} คน เพื่อรักษาความเป็นส่วนตัวของผู้ประเมิน
+          </Typography>
+        </Alert>
+      )}
+
       {/* Header Disclaimer Alert (FR-SCORE-07) */}
       <Alert
         severity={active.status === "closed" ? "success" : "info"}
