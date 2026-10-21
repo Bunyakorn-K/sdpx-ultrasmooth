@@ -31,7 +31,7 @@ export function useWorkspaceController() {
     ? decodeURIComponent(pathname.split("/")[2])
     : null;
   function setView(next: "home" | "dashboard") {
-    router.push(next === "home" ? "/" : "/assignments");
+    router.push(next === "home" ? "/" : "/classrooms");
   }
   function setSelected(id: string | null) {
     router.push(id ? `/assignments/${encodeURIComponent(id)}` : "/assignments");
@@ -99,6 +99,11 @@ export function useWorkspaceController() {
   ) {
     setError("");
     setModalContext(context || null);
+    if (nextModal === "login" || nextModal === "register") {
+      setModal(null);
+      router.push(`/${nextModal}`);
+      return;
+    }
     setModal(nextModal);
   }
   function enterDemo(role: "teacher" | "student") {

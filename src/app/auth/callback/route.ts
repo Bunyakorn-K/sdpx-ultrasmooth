@@ -10,6 +10,12 @@ const hashToken = (token: string) =>
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
+  const origin = forwardedHost
+    ? `${forwardedProto}://${forwardedHost}`
+    : requestUrl.origin;
+
   const code = requestUrl.searchParams.get("code");
   const errorParam = requestUrl.searchParams.get("error");
   const errorDescription = requestUrl.searchParams.get("error_description");
@@ -23,7 +29,7 @@ export async function GET(request: Request) {
     );
     const msg = errorDescription || errorParam;
     return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(msg)}`, requestUrl.origin),
+      new URL(`/login?error=${encodeURIComponent(msg)}`, origin),
     );
   }
 
@@ -49,7 +55,7 @@ export async function GET(request: Request) {
             encodeURIComponent(
               "ยังไม่ได้ตั้งค่า NEXT_PUBLIC_SUPABASE_URL หรือ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ใน .env.local",
             ),
-          requestUrl.origin,
+          origin,
         ),
       );
     }
@@ -85,7 +91,7 @@ export async function GET(request: Request) {
           `/login?error=${encodeURIComponent(
             exchangeError.message || "auth_failed",
           )}`,
-          requestUrl.origin,
+          origin,
         ),
       );
     }
@@ -99,7 +105,7 @@ export async function GET(request: Request) {
             encodeURIComponent(
               "ยังไม่ได้ตั้งค่า DATABASE_URL ใน .env.local (กรุณาระบุ Connection string จาก Supabase Database Settings > Database)",
             ),
-          requestUrl.origin,
+          origin,
         ),
       );
       cookiesToSet.forEach(({ name, value, options }) => {
@@ -132,7 +138,7 @@ export async function GET(request: Request) {
         }
 
         const response = NextResponse.redirect(
-          new URL(targetUrl, requestUrl.origin),
+          new URL(targetUrl, origin),
         );
 
         // Crucial: Transfer Supabase auth cookies onto the response object
@@ -161,7 +167,7 @@ export async function GET(request: Request) {
             encodeURIComponent(
               "เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล กรุณาตรวจสอบ DATABASE_URL ใน .env.local",
             ),
-          requestUrl.origin,
+          origin,
         ),
       );
       cookiesToSet.forEach(({ name, value, options }) => {
@@ -171,7 +177,7 @@ export async function GET(request: Request) {
     }
 
     // Fallback if no user email
-    const response = NextResponse.redirect(new URL(next, requestUrl.origin));
+    const response = NextResponse.redirect(new URL(next, origin));
     cookiesToSet.forEach(({ name, value, options }) => {
       response.cookies.set(name, value, options);
     });
@@ -185,7 +191,7 @@ export async function GET(request: Request) {
         encodeURIComponent(
           "ไม่พบรหัสยืนยันจาก Google OAuth (กรุณาตรวจสอบว่าได้เปิดใช้งาน Google Provider ใน Supabase และระบุ Redirect URLs ถูกต้อง)",
         ),
-      requestUrl.origin,
+      origin,
     ),
   );
 }

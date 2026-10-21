@@ -43,16 +43,16 @@ test.describe("Database-backed authenticated journeys", () => {
       .getByRole("button", { name: "เข้าสู่ระบบ", exact: true })
       .first()
       .click();
-    const dialog = page.getByRole("dialog");
-    await dialog.getByLabel("อีเมล").fill(users.student.email);
-    await dialog
+    await expect(page).toHaveURL(/\/login/);
+    await page.getByLabel("อีเมล").fill(users.student.email);
+    await page
       .getByLabel("รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)")
       .fill(users.student.password);
-    await dialog
+    await page
       .getByRole("button", { name: "เข้าสู่ระบบ", exact: true })
       .click();
     await expect(
-      page.getByRole("heading", { name: "Assignment ของฉัน." }),
+      page.getByRole("heading", { name: "ห้องเรียนของฉัน (Classrooms)" }),
     ).toBeVisible();
     await expect(
       page.getByText(users.student.name, { exact: true }).first(),
