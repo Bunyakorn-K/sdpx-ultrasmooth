@@ -32,3 +32,21 @@ CREATE TABLE IF NOT EXISTS e2e_test_runs (
   run_id uuid PRIMARY KEY,
   user_ids jsonb NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id uuid PRIMARY KEY,
+  actor_id uuid NOT NULL REFERENCES users(id),
+  action text NOT NULL,
+  resource_type text NOT NULL,
+  resource_id text NOT NULL,
+  classroom_id uuid REFERENCES classrooms(id) ON DELETE SET NULL,
+  assignment_id uuid REFERENCES assignments(id) ON DELETE SET NULL,
+  before_state jsonb,
+  after_state jsonb,
+  reason text,
+  ip_address text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS audit_logs_classroom ON audit_logs(classroom_id);
+CREATE INDEX IF NOT EXISTS audit_logs_assignment ON audit_logs(assignment_id);
+CREATE INDEX IF NOT EXISTS audit_logs_created_at ON audit_logs(created_at);
