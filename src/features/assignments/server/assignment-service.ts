@@ -1,4 +1,5 @@
 import type { User } from "@/features/auth/types";
+import type { AuditService } from "@/features/audit/server/audit-service";
 import type { ClassroomRepository } from "@/features/classroom/server/classroom-repository";
 import { AppError } from "@/shared/domain/app-error";
 import { applyAssignmentCommand } from "../domain/assignment-policy";
@@ -14,6 +15,7 @@ export class AssignmentService {
     private readonly repository: AssignmentRepository,
     private readonly generateCode: () => string,
     private readonly classroomRepository?: ClassroomRepository,
+    private readonly auditService?: AuditService,
   ) {}
 
   async list(user: User) {
@@ -58,8 +60,44 @@ export class AssignmentService {
         String(input.action),
         input,
       );
-      if (await this.repository.update(updated, record.version))
+      if (await this.repository.update(updated, record.version)) {
+        if (input.action === "overrideScore") {
+          await this.auditService?.record({
+            actor_id: user.id,
+            action: "SCORE_OVERRIDE",
+            resource_type: "assignment_score",
+            resource_id: String(input.targetId),
+            assignment_id: updated.id,
+            classroom_id: updated.classroomId || null,
+            reason: String(input.reason || ""),
+            after_state: { score: input.score, targetId: input.targetId },
+          }).catch(() => {});
+        } else if (input.action === "finalize") {
+          await this.auditService?.record({
+            actor_id: user.id,
+            action: "ASSIGNMENT_FINALIZE",
+            resource_type: "assignment",
+            resource_id: updated.id,
+            assignment_id: updated.id,
+            classroom_id: updated.classroomId || null,
+            before_state: { status: "closed" },
+            after_state: { status: "finalized" },
+          }).catch(() => {});
+        } else if (input.action === "reopen") {
+          await this.auditService?.record({
+            actor_id: user.id,
+            action: "ASSIGNMENT_REOPEN",
+            resource_type: "assignment",
+            resource_id: updated.id,
+            assignment_id: updated.id,
+            classroom_id: updated.classroomId || null,
+            reason: String(input.reason || ""),
+            before_state: { status: "finalized" },
+            after_state: { status: "closed" },
+          }).catch(() => {});
+        }
         return visibleAssignment(updated, user.id);
+      }
     }
     throw new AppError("มีการเปลี่ยนแปลงข้อมูล กรุณาลองอีกครั้ง", 409);
   }
