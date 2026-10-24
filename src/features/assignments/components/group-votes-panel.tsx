@@ -89,7 +89,7 @@ export function GroupVotesPanel({
             </Stack>
             {individual && (
               <Typography color="text.secondary" sx={{ mb: 2 }}>
-                คะแนนที่ได้รับ {average(assignment, member.id).toFixed(2)} / 5 ·{" "}
+                คะแนนที่ได้รับ {average(assignment, member.id).toFixed(2)} / 6 ·{" "}
                 {targetVotes(assignment, member.id).length} ผู้ประเมิน
               </Typography>
             )}
@@ -154,7 +154,7 @@ export function GroupVotesPanel({
                                     sx={{ mb: 1 }}
                                   >
                                     {index + 1}. {question}:{" "}
-                                    <strong>{vote.scores[index]} / 5</strong>
+                                    <strong>{vote.scores[index]} / 6</strong>
                                   </Typography>
                                 ))
                               : "—"}

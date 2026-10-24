@@ -5,11 +5,14 @@ export function visibleAssignment(
 ): Assignment {
   if (assignment.ownerId === userId) return assignment;
   const votes =
-    assignment.status === "closed"
+    assignment.status === "closed" || assignment.status === "finalized"
       ? assignment.votes.map((vote) => ({
           ...vote,
           userId: vote.userId === userId ? userId : "anonymous",
         }))
       : assignment.votes.filter((vote) => vote.userId === userId);
-  return { ...assignment, votes };
+  const visible = { ...assignment, votes };
+  // Finalization snapshots contain raw ballots and must remain owner-only.
+  delete visible.finalizedSnapshot;
+  return visible;
 }

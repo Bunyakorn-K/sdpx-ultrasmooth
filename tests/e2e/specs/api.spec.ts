@@ -147,14 +147,14 @@ test.describe("Database-backed authenticated journeys", () => {
       expect(
         (
           await student.post(`${root}/votes`, {
-            data: { groupId: target.id, scores: [6, 5] },
+            data: { groupId: target.id, scores: [7, 5] },
           })
         ).status(),
       ).toBe(400);
       const submissions = await Promise.all(
         [1, 2].map(() =>
           student.post(`${root}/votes`, {
-            data: { groupId: target.id, scores: [4, 5] },
+            data: { groupId: target.id, scores: [6, 5] },
           }),
         ),
       );
@@ -177,7 +177,7 @@ test.describe("Database-backed authenticated journeys", () => {
       const result = (await (await teacher.get(root)).json())
         .assignment as Assignment;
       expect(result.votes).toHaveLength(1);
-      expect(result.votes[0].scores).toEqual([4, 5]);
+      expect(result.votes[0].scores).toEqual([6, 5]);
     } finally {
       await Promise.all([
         teacher.dispose(),

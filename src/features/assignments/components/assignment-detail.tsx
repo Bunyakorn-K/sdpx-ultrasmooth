@@ -7,7 +7,7 @@ import {
   PlayArrow,
   Stop,
 } from "@mui/icons-material";
-import { Button, Chip, IconButton, Tab, Tabs } from "@mui/material";
+import { Button, Chip, IconButton, Tab, Tabs, Typography } from "@mui/material";
 import { GroupsPanel } from "./groups-panel";
 import { CriteriaPanel } from "./criteria-panel";
 import { PairwiseReportsPanel } from "@/features/pairwise/components/pairwise-reports-panel";
@@ -16,6 +16,7 @@ import { StudentVotingPanel } from "./student-voting-panel";
 import { isIndividualEvaluation } from "../domain/evaluation-targets";
 
 import type { Assignment } from "../types";
+import type { CsvReport } from "@/features/pairwise/services/csv-service";
 import type { User } from "@/features/auth/types";
 type AssignmentDetailProps = {
   active: Assignment | undefined;
@@ -26,6 +27,7 @@ type AssignmentDetailProps = {
   setSelected: (id: string | null) => void;
   action: (command: string, input?: Record<string, unknown>) => Promise<void>;
   exportExcel: (assignment: Assignment) => Promise<void>;
+  exportCsv: (assignment: Assignment, report: CsvReport) => Promise<void>;
   setToast: (message: string) => void;
   setError: (message: string) => void;
   setTab: (tab: number) => void;
@@ -42,6 +44,7 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
     busy,
     action,
     exportExcel,
+    exportCsv,
     setToast,
     setError,
     tab,
@@ -70,8 +73,20 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
             label={statusLabels[active.status]}
             color={active.status === "active" ? "secondary" : "default"}
           />
-          <h1>{active.title}</h1>
-          <p>{active.description}</p>
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{ fontWeight: 800, mt: 2, mb: 1, overflowWrap: "anywhere" }}
+          >
+            {active.title}
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ maxWidth: 650, overflowWrap: "anywhere" }}
+          >
+            {active.description}
+          </Typography>
           <div className="detail-meta">
             <span>
               {isIndividualEvaluation(active) ? "ประเมินรายคน" : "ประเมินกลุ่ม"}
@@ -97,29 +112,48 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
             </span>
           </div>
         </div>
-        {teacher && (active.status === "draft" || active.status === "active") && (
-          <div className="detail-actions">
-            {active.status === "draft" ? (
-              <Button
-                variant="contained"
-                startIcon={<PlayArrow />}
-                disabled={busy}
-                onClick={() => action("start")}
-              >
-                เริ่มโหวต
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                startIcon={<Stop />}
-                disabled={busy}
-                onClick={() => action("stop")}
-              >
-                หยุดโหวตและรวมคะแนน
-              </Button>
-            )}
-          </div>
-        )}
+        {teacher &&
+          (active.status === "draft" || active.status === "active") && (
+            <div className="detail-actions">
+              {active.status === "draft" ? (
+                <Button
+                  variant="contained"
+                  startIcon={<PlayArrow />}
+                  disabled={busy}
+                  onClick={() => action("start")}
+                >
+                  เริ่มโหวต
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  startIcon={<Stop />}
+                  disabled={busy}
+                  onClick={() => action("stop")}
+                >
+                  หยุดโหวตและรวมคะแนน
+                </Button>
+              )}
+            </div>
+          )}
+        {teacher &&
+          active.ownerId === user?.id &&
+          active.status === "closed" && (
+            <Button
+              variant="outlined"
+              disabled={busy}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "Finalize these results and notify students? The saved results will be locked.",
+                  )
+                )
+                  void action("finalize");
+              }}
+            >
+              Finalize results
+            </Button>
+          )}
       </div>
       <Tabs
         variant="scrollable"
@@ -158,8 +192,9 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
             active={active}
             teacher={teacher}
             exportExcel={exportExcel}
+            exportCsv={exportCsv}
           />
-        ) : active.status === "closed" ? (
+        ) : active.status === "closed" || active.status === "finalized" ? (
           <StudentScorecard active={active} user={user} />
         ) : (
           <StudentVotingPanel

@@ -18,6 +18,8 @@ import {
 import type { WorkspaceController } from "@/features/workspace/hooks/use-workspace-controller";
 import type { ReactNode } from "react";
 import { DemoStudentSwitcher } from "./demo-student-switcher";
+import { NotificationBell } from "@/features/notifications/components/notification-bell";
+
 export function WorkspaceShell({
   controller,
   children,
@@ -148,26 +150,32 @@ export function WorkspaceShell({
           <span>
             {active ? (
               <>
-                {nav === "classrooms"
-                  ? "ห้องเรียนของฉัน"
-                  : "Assignment ของฉัน"}{" "}
+                {nav === "classrooms" ? "ห้องเรียนของฉัน" : "Assignment ของฉัน"}{" "}
                 <span className="breadcrumb">/</span>{" "}
                 <strong>{active.title}</strong>
               </>
             ) : (
               <strong>
-                {nav === "classrooms"
-                  ? "ห้องเรียนของฉัน"
-                  : "Assignment ของฉัน"}
+                {nav === "classrooms" ? "ห้องเรียนของฉัน" : "Assignment ของฉัน"}
               </strong>
             )}
           </span>
           <div>
+            {user && (
+              <NotificationBell
+                key={`${user.id}:${demo}:${teacher}`}
+                mode={demo ? "demo" : teacher ? "teacher" : "student"}
+              />
+            )}
             {demo && (
               <Chip
                 size="small"
                 label="โหมดสาธิต"
-                sx={{ bgcolor: "#edf7f3", color: "#41957d" }}
+                sx={{
+                  bgcolor: "#edf7f3",
+                  color: "#41957d",
+                  display: { xs: "none", sm: "inline-flex" },
+                }}
               />
             )}
             {demo && (
@@ -195,7 +203,7 @@ export function WorkspaceShell({
             <Alert
               severity="info"
               icon={false}
-              sx={{ mb: 3, bgcolor: "#f0f8fa", fontSize: 14 }}
+              sx={{ mb: 3, bgcolor: "#f0f8fa" }}
             >
               กำลังทดลองด้วยข้อมูลตัวอย่าง บันทึกเฉพาะในเบราว์เซอร์นี้{" "}
               <button
