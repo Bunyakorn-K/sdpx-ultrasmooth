@@ -60,6 +60,15 @@ test("US02-US04-US09: import questions, create work, join by code and select a g
     "เทคโนโลยี",
     futureLocalDeadline(),
   );
+  await expect(assignment.dialog.locator("input[type=file]")).toHaveCount(0);
+  await assignment.dialog
+    .getByRole("button", { name: "สร้าง assignment", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "งานทดสอบ Excel" }),
+  ).toBeVisible();
+  await assignment.selectTab("คำถาม (3)");
+  await page.getByRole("button", { name: "แก้ไข / เพิ่มคำถาม" }).click();
   const wb = new Workbook();
   const sheet = wb.addWorksheet("Questions");
   sheet.addRow(["คำถาม"]);
@@ -75,11 +84,13 @@ test("US02-US04-US09: import questions, create work, join by code and select a g
     assignment.dialog.getByLabel("คำถาม (1 บรรทัดต่อ 1 คำถาม)"),
   ).toHaveValue("ความคิดสร้างสรรค์\nความครบถ้วน");
   await assignment.dialog
-    .getByRole("button", { name: "สร้าง assignment", exact: true })
+    .getByRole("button", { name: "บันทึก", exact: true })
     .click();
+  await expect(assignment.dialog).toBeHidden();
   await expect(
-    page.getByRole("heading", { name: "งานทดสอบ Excel" }),
+    page.getByRole("tab", { name: "คำถาม (2)", exact: true }),
   ).toBeVisible();
+  await assignment.selectTab("กลุ่ม (0)");
   const code = (await assignment.joinCode.innerText()).trim();
   await assignment.createGroup("กลุ่มทดสอบ");
   await assignment.switchRole("student");
@@ -90,6 +101,7 @@ test("US02-US04-US09: import questions, create work, join by code and select a g
   await expect(
     page.getByText("ความคิดสร้างสรรค์", { exact: true }),
   ).toBeVisible();
+  await expect(page.getByText("ความครบถ้วน", { exact: true })).toBeVisible();
 });
 // US06 AC2: no opening a vote with fewer than two populated groups.
 test("US06 AC2: insufficient groups prevent opening a vote", async ({
@@ -113,5 +125,3 @@ test("US06 AC2: insufficient groups prevent opening a vote", async ({
   ).toContainText("อย่างน้อย 2 กลุ่ม");
   await expect(assignment.startButton).toBeVisible();
 });
-
-
