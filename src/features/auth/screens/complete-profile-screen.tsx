@@ -156,7 +156,7 @@ export function CompleteProfileScreen() {
                         color="success"
                         variant="outlined"
                         size="small"
-                        sx={{ fontSize: "0.85rem", py: 1.5, px: 0.5 }}
+                        sx={{ py: 1.5, px: 0.5 }}
                       />
                     </Box>
                   )}
@@ -186,7 +186,7 @@ export function CompleteProfileScreen() {
                   </TextField>
 
                   {/* FR-PRIV-01: PDPA Privacy Notice */}
-                  <Alert severity="info" sx={{ mt: 1, borderRadius: "8px", fontSize: "0.8rem" }}>
+                  <Alert severity="info" sx={{ mt: 1, borderRadius: "8px" }}>
                     <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
                       ประกาศการคุ้มครองข้อมูลส่วนบุคคล (PDPA Notice — FR-PRIV-01)
                     </Typography>

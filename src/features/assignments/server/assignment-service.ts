@@ -8,6 +8,8 @@ import { createAssignment } from "../domain/create-assignment";
 import type { Assignment } from "../types";
 import type { AssignmentRepository } from "./assignment-repository";
 
+import { assignmentEvent } from "@/features/notifications/domain/notification-policy";
+
 const MAX_RETRIES = 5;
 
 export class AssignmentService {
@@ -19,8 +21,8 @@ export class AssignmentService {
   ) {}
 
   async list(user: User) {
-    return (await this.repository.listForUser(user.id, user.email)).map((assignment) =>
-      visibleAssignment(assignment, user.id),
+    return (await this.repository.listForUser(user.id, user.email)).map(
+      (assignment) => visibleAssignment(assignment, user.id),
     );
   }
 
@@ -29,7 +31,9 @@ export class AssignmentService {
     if (!record) throw new AppError("ไม่พบ assignment", 404);
     const assignment = record.assignment;
     const isOwner = assignment.ownerId === user.id;
-    const isJoined = assignment.students.some((student) => student.id === user.id);
+    const isJoined = assignment.students.some(
+      (student) => student.id === user.id,
+    );
     if (!isOwner && !isJoined) {
       const hasAccess = await this.checkClassroomAccess(user, assignment);
       if (!hasAccess) {
@@ -49,63 +53,81 @@ export class AssignmentService {
         record.assignment.ownerId !== user.id &&
         !record.assignment.students.some((s) => s.id === user.id)
       ) {
-        const hasAccess = await this.checkClassroomAccess(user, record.assignment);
+        const hasAccess = await this.checkClassroomAccess(
+          user,
+          record.assignment,
+        );
         if (!hasAccess) {
           throw new AppError("คุณไม่มีสิทธิ์เข้าถึง assignment นี้", 403);
         }
       }
+      const previousStatus = record.assignment.status;
       const updated = applyAssignmentCommand(
         record.assignment,
         user,
         String(input.action),
         input,
       );
-      if (await this.repository.update(updated, record.version)) {
+      if (
+        await this.repository.update(
+          updated,
+          record.version,
+          assignmentEvent(previousStatus, updated, record.version),
+        )
+      ) {
         if (input.action === "overrideScore") {
-          await this.auditService?.record({
-            actor_id: user.id,
-            action: "SCORE_OVERRIDE",
-            resource_type: "assignment_score",
-            resource_id: String(input.targetId),
-            assignment_id: updated.id,
-            classroom_id: updated.classroomId || null,
-            reason: String(input.reason || ""),
-            after_state: { score: input.score, targetId: input.targetId },
-          }).catch(() => {});
+          await this.auditService
+            ?.record({
+              actor_id: user.id,
+              action: "SCORE_OVERRIDE",
+              resource_type: "assignment_score",
+              resource_id: String(input.targetId),
+              assignment_id: updated.id,
+              classroom_id: updated.classroomId || null,
+              reason: String(input.reason || ""),
+              after_state: { score: input.score, targetId: input.targetId },
+            })
+            .catch(() => {});
         } else if (input.action === "finalize") {
-          await this.auditService?.record({
-            actor_id: user.id,
-            action: "ASSIGNMENT_FINALIZE",
-            resource_type: "assignment",
-            resource_id: updated.id,
-            assignment_id: updated.id,
-            classroom_id: updated.classroomId || null,
-            before_state: { status: "closed" },
-            after_state: { status: "finalized" },
-          }).catch(() => {});
+          await this.auditService
+            ?.record({
+              actor_id: user.id,
+              action: "ASSIGNMENT_FINALIZE",
+              resource_type: "assignment",
+              resource_id: updated.id,
+              assignment_id: updated.id,
+              classroom_id: updated.classroomId || null,
+              before_state: { status: "closed" },
+              after_state: { status: "finalized" },
+            })
+            .catch(() => {});
         } else if (input.action === "reopen") {
-          await this.auditService?.record({
-            actor_id: user.id,
-            action: "ASSIGNMENT_REOPEN",
-            resource_type: "assignment",
-            resource_id: updated.id,
-            assignment_id: updated.id,
-            classroom_id: updated.classroomId || null,
-            reason: String(input.reason || ""),
-            before_state: { status: "finalized" },
-            after_state: { status: "closed" },
-          }).catch(() => {});
+          await this.auditService
+            ?.record({
+              actor_id: user.id,
+              action: "ASSIGNMENT_REOPEN",
+              resource_type: "assignment",
+              resource_id: updated.id,
+              assignment_id: updated.id,
+              classroom_id: updated.classroomId || null,
+              reason: String(input.reason || ""),
+              before_state: { status: "finalized" },
+              after_state: { status: "closed" },
+            })
+            .catch(() => {});
         } else if (input.action === "updateDeadline") {
-          await this.auditService?.record({
-            actor_id: user.id,
-            action: "ASSIGNMENT_PUBLISH",
-            resource_type: "assignment",
-            resource_id: updated.id,
-            assignment_id: updated.id,
-            classroom_id: updated.classroomId || null,
-            before_state: { deadline: record.assignment.deadline },
-            after_state: { deadline: updated.deadline },
-          }).catch(() => {});
+          await this.auditService
+            ?.record({
+              actor_id: user.id,
+              action: "ASSIGNMENT_PUBLISH",
+              resource_type: "assignment",
+              resource_id: updated.id,
+              assignment_id: updated.id,
+              classroom_id: updated.classroomId || null,
+              before_state: { deadline: record.assignment.deadline },
+              after_state: { deadline: updated.deadline },
+            })
+            .catch(() => {});
         }
         return visibleAssignment(updated, user.id);
       }
@@ -119,7 +141,9 @@ export class AssignmentService {
   ): Promise<boolean> {
     if (!this.classroomRepository) return false;
     if (assignment.classroomId) {
-      const record = await this.classroomRepository.findById(assignment.classroomId);
+      const record = await this.classroomRepository.findById(
+        assignment.classroomId,
+      );
       if (record) {
         const c = record.classroom;
         const isMember =
@@ -127,7 +151,8 @@ export class AssignmentService {
           c.members.some(
             (m) =>
               m.user_id === user.id ||
-              (user.email && m.email?.toLowerCase() === user.email.toLowerCase()),
+              (user.email &&
+                m.email?.toLowerCase() === user.email.toLowerCase()),
           );
         if (isMember) return true;
       }

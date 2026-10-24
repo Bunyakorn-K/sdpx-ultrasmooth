@@ -15,7 +15,41 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import type { FormEventHandler } from "react";
+import { useEffect, useState, type FormEventHandler } from "react";
+
+function minimumDeadline() {
+  // datetime-local uses the browser's timezone and minute precision.
+  const nextMinute = new Date(
+    Math.floor(Date.now() / 60_000) * 60_000 + 60_000,
+  );
+  return new Date(
+    nextMinute.getTime() - nextMinute.getTimezoneOffset() * 60_000,
+  )
+    .toISOString()
+    .slice(0, 16);
+}
+
+function DeadlineField() {
+  const [minimum, setMinimum] = useState(minimumDeadline);
+  useEffect(() => {
+    const timer = setInterval(() => setMinimum(minimumDeadline()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return (
+    <TextField
+      name="deadline"
+      label="วันและเวลาสิ้นสุด"
+      type="datetime-local"
+      required
+      onFocus={() => setMinimum(minimumDeadline())}
+      helperText="เลือกวันและเวลาที่ยังไม่ผ่าน ตามเวลาท้องถิ่นของคุณ"
+      slotProps={{
+        inputLabel: { shrink: true },
+        htmlInput: { min: minimum, step: 60 },
+      }}
+    />
+  );
+}
 export type EditorMode = "create" | "join" | "group" | "questions";
 type EditorProps = {
   mode: EditorMode | null;
@@ -55,7 +89,18 @@ export function AssignmentEditorDialog({
       title={mode ? titles[mode] : ""}
       busy={busy}
       onClose={onClose}
-      onSubmit={onSubmit}
+      onSubmit={(event) => {
+        const deadline = event.currentTarget.elements.namedItem("deadline");
+        if (deadline instanceof HTMLInputElement) {
+          // Recheck at submission if the dialog was left open or the tab slept.
+          deadline.min = minimumDeadline();
+          if (!event.currentTarget.reportValidity()) {
+            event.preventDefault();
+            return;
+          }
+        }
+        onSubmit(event);
+      }}
       actions={
         <>
           <Button color="inherit" disabled={busy} onClick={onClose}>
@@ -143,43 +188,7 @@ export function AssignmentEditorDialog({
             <MenuItem value="group">ประเมินกลุ่ม</MenuItem>
             <MenuItem value="individual">ประเมินรายคน</MenuItem>
           </TextField>
-          <TextField
-            name="deadline"
-            label="วันและเวลาสิ้นสุด"
-            type="datetime-local"
-            required
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
-
-          <TextField
-            name="questions"
-            label="คำถาม (1 บรรทัดต่อ 1 คำถาม)"
-            multiline
-            minRows={3}
-            value={questionText}
-            onChange={(e) => onQuestionsChange(e.target.value)}
-          />
-          <div className="import-row">
-            <Button
-              component="label"
-              disabled={busy}
-              startIcon={<FileUploadOutlined />}
-              color="secondary"
-              variant="outlined"
-            >
-              นำเข้า Excel
-              <input
-                type="file"
-                hidden
-                accept=".xlsx"
-                onChange={(e) => {
-                  void onImport(e.target.files?.[0]);
-                  e.target.value = "";
-                }}
-              />
-            </Button>
-            <span>อ่านคำถามจากคอลัมน์แรก · สูงสุด 100 ข้อ</span>
-          </div>
+          <DeadlineField />
 
           <Accordion
             variant="outlined"
@@ -282,7 +291,8 @@ export function AssignmentEditorDialog({
             <span>อ่านคำถามจากคอลัมน์แรก · สูงสุด 100 ข้อ</span>
           </div>
           <Alert severity="info" icon={false}>
-            การประเมินแบบ Pairwise ใช้ระบบเปรียบเทียบคู่ 6 ระดับ (Forced Choice — ไม่มีตัวเลือกเท่ากัน) และแก้ไขได้ก่อนเริ่มโหวต
+            การประเมินแบบ Pairwise ใช้ระบบเปรียบเทียบคู่ 6 ระดับ (Forced Choice
+            — ไม่มีตัวเลือกเท่ากัน) และแก้ไขได้ก่อนเริ่มโหวต
           </Alert>
         </>
       )}

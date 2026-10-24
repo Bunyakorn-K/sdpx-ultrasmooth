@@ -57,6 +57,7 @@ export async function cleanupTestRun(
   }
   const users =
     await sql`SELECT email FROM users WHERE id IN (SELECT jsonb_array_elements_text(user_ids)::uuid FROM e2e_test_runs WHERE run_id=${runId})`;
+  await sql`DELETE FROM audit_logs WHERE actor_id IN (SELECT jsonb_array_elements_text(user_ids)::uuid FROM e2e_test_runs WHERE run_id=${runId})`;
   await sql`DELETE FROM assignments WHERE owner_id IN (SELECT jsonb_array_elements_text(user_ids)::uuid FROM e2e_test_runs WHERE run_id=${runId})`;
   await sql`DELETE FROM users WHERE id IN (SELECT jsonb_array_elements_text(user_ids)::uuid FROM e2e_test_runs WHERE run_id=${runId})`;
   for (const user of users) {

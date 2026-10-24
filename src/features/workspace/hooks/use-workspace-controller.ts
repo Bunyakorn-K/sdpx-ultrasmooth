@@ -9,9 +9,11 @@ import { loadDemoAssignments } from "@/features/assignments/data/demo-storage";
 import { useAssignments } from "@/features/assignments/hooks/use-assignments";
 import {
   exportAnswersToExcel,
+  exportAnswersToCsv,
   readQuestionsFromExcel,
 } from "@/features/assignments/services/excel-service";
 import type { Assignment } from "@/features/assignments/types";
+import type { CsvReport } from "@/features/pairwise/services/csv-service";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useClassrooms } from "@/features/classroom/hooks/use-classrooms";
 import { useEffect, useState, type FormEvent } from "react";
@@ -194,11 +196,7 @@ export function useWorkspaceController() {
           ...fields,
           classroomId,
           deadline: new Date(String(fields.deadline)).toISOString(),
-          questions: parseQuestions(
-            String(fields.questions || questionText || ""),
-          ).length
-            ? parseQuestions(String(fields.questions || questionText))
-            : DEFAULT_QUESTIONS,
+          questions: [...DEFAULT_QUESTIONS],
         });
         if (classroomId) {
           try {
@@ -239,6 +237,13 @@ export function useWorkspaceController() {
     await runTask(async () => {
       await exportAnswersToExcel(assignment);
       setToast("ส่งออกไฟล์ Excel เรียบร้อยแล้ว");
+    });
+  }
+  async function exportCsv(assignment: Assignment, report: CsvReport) {
+    if (!teacher) return;
+    await runTask(async () => {
+      await exportAnswersToCsv(assignment, report);
+      setToast("ส่งออกไฟล์ CSV เรียบร้อยแล้ว");
     });
   }
   return {
@@ -290,6 +295,7 @@ export function useWorkspaceController() {
     submit,
     importExcel,
     exportExcel,
+    exportCsv,
     filtered,
     signOut,
   };

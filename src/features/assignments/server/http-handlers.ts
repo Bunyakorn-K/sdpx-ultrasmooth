@@ -25,6 +25,7 @@ const commands = new Set([
   "start",
   "stop",
   "vote",
+  "finalize",
 ]);
 const events: Record<string, string> = {
   create: "assignment_created",
@@ -35,6 +36,7 @@ const events: Record<string, string> = {
   start: "voting_started",
   stop: "voting_stopped",
   vote: "vote_submitted",
+  finalize: "assignment_finalized",
 };
 export const listAssignmentsResponse = withApi(
   "/api/assignments",

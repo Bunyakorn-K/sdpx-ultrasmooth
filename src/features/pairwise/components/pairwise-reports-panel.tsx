@@ -7,6 +7,8 @@ import {
   Button,
   Chip,
   Paper,
+  Menu,
+  MenuItem,
   Stack,
   Tab,
   Table,
@@ -24,6 +26,7 @@ import {
   WarningAmber,
 } from "@mui/icons-material";
 import type { Assignment } from "@/features/assignments/types";
+import type { CsvReport } from "../services/csv-service";
 import {
   calculateItemScores,
   calculateParticipation,
@@ -41,14 +44,17 @@ export type PairwiseReportsPanelProps = {
   active: Assignment;
   teacher: boolean;
   exportExcel: (assignment: Assignment) => Promise<void>;
+  exportCsv: (assignment: Assignment, report: CsvReport) => Promise<void>;
 };
 
 export function PairwiseReportsPanel({
   active,
   teacher,
   exportExcel,
+  exportCsv,
 }: PairwiseReportsPanelProps) {
   const [reportTab, setReportTab] = useState<number>(0);
+  const [csvAnchor, setCsvAnchor] = useState<HTMLElement | null>(null);
 
   const criteria: Criterion[] = active.questions.map((q, idx) => ({
     id: `crit-${idx}`,
@@ -131,7 +137,10 @@ export function PairwiseReportsPanel({
     const submittedCount = active.votes.filter(
       (v) => v.userId === student.id,
     ).length;
-    const p = calculateParticipation(submittedCount, Math.max(1, assignedCount));
+    const p = calculateParticipation(
+      submittedCount,
+      Math.max(1, assignedCount),
+    );
     const M = calculateParticipationMultiplier(
       p,
       active.completionThreshold ?? 0.9,
@@ -177,7 +186,11 @@ export function PairwiseReportsPanel({
           <Typography component="h2" variant="h5" sx={{ fontWeight: 700 }}>
             รายงานและผลการประเมินเปรียบเทียบคู่
           </Typography>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mt: 1 }}>
+          <Stack
+            direction="row"
+            spacing={1.5}
+            sx={{ alignItems: "center", mt: 1 }}
+          >
             <Chip
               size="small"
               label={
@@ -189,21 +202,58 @@ export function PairwiseReportsPanel({
               variant="outlined"
             />
             <Typography variant="body2" color="text.secondary">
-              {active.votes.length} การส่งคำตอบ · การคำนวณตามสูตร Pure Function (§9)
+              {active.votes.length} การส่งคำตอบ · การคำนวณตามสูตร Pure Function
+              (§9)
             </Typography>
           </Stack>
         </Box>
 
         {teacher && (
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<FileDownloadOutlined />}
-            onClick={() => exportExcel(active)}
-            sx={{ flexShrink: 0 }}
-          >
-            ส่งออก Excel
-          </Button>
+          <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<FileDownloadOutlined />}
+              onClick={() => exportExcel(active)}
+              sx={{ flexShrink: 0 }}
+            >
+              ส่งออก Excel
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<FileDownloadOutlined />}
+              aria-haspopup="menu"
+              aria-controls={csvAnchor ? "csv-report-menu" : undefined}
+              aria-expanded={Boolean(csvAnchor)}
+              onClick={(event) => setCsvAnchor(event.currentTarget)}
+            >
+              ส่งออก CSV
+            </Button>
+            <Menu
+              id="csv-report-menu"
+              anchorEl={csvAnchor}
+              open={Boolean(csvAnchor)}
+              onClose={() => setCsvAnchor(null)}
+            >
+              {(
+                [
+                  ["group-summary", "สรุปคะแนนกลุ่ม"],
+                  ["individual-summary", "สรุปคะแนนรายบุคคล"],
+                  ["pair-coverage", "ความครอบคลุมคู่"],
+                ] as const
+              ).map(([report, label]) => (
+                <MenuItem
+                  key={report}
+                  onClick={() => {
+                    setCsvAnchor(null);
+                    void exportCsv(active, report);
+                  }}
+                >
+                  {label}
+                </MenuItem>
+              ))}
+            </Menu>
+          </Stack>
         )}
       </Stack>
 
@@ -276,10 +326,15 @@ export function PairwiseReportsPanel({
               </Stack>
 
               <TableContainer>
-                <Table size="small" aria-label={`เกณฑ์คะแนนกลุ่ม ${group.name}`}>
+                <Table
+                  size="small"
+                  aria-label={`เกณฑ์คะแนนกลุ่ม ${group.name}`}
+                >
                   <TableHead>
                     <TableRow sx={{ bgcolor: "action.hover" }}>
-                      <TableCell sx={{ fontWeight: 600 }}>เกณฑ์การประเมิน</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>
+                        เกณฑ์การประเมิน
+                      </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 600 }}>
                         น้ำหนัก
                       </TableCell>
@@ -295,7 +350,9 @@ export function PairwiseReportsPanel({
                       <TableCell align="right" sx={{ fontWeight: 600 }}>
                         คะแนนถ่วงน้ำหนัก
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>สถานะ/Flags</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>
+                        สถานะ/Flags
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -341,7 +398,10 @@ export function PairwiseReportsPanel({
 
       {/* Tab 1: Individual Summary (FR-REPORT-02) */}
       {reportTab === 1 && (
-        <Paper variant="outlined" sx={{ borderRadius: "12px", overflow: "hidden" }}>
+        <Paper
+          variant="outlined"
+          sx={{ borderRadius: "12px", overflow: "hidden" }}
+        >
           <TableContainer>
             <Table aria-label="สรุปคะแนนรายบุคคล">
               <TableHead>
@@ -389,7 +449,10 @@ export function PairwiseReportsPanel({
                     <TableCell align="right">
                       {row.groupComponent.toFixed(2)}
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, color: "secondary.main" }}>
+                    <TableCell
+                      align="right"
+                      sx={{ fontWeight: 700, color: "secondary.main" }}
+                    >
                       {row.finalScore.toFixed(2)}
                     </TableCell>
                   </TableRow>
@@ -416,7 +479,9 @@ export function PairwiseReportsPanel({
               <TableHead>
                 <TableRow sx={{ bgcolor: "action.hover" }}>
                   <TableCell sx={{ fontWeight: 600 }}>เกณฑ์</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>คู่เปรียบเทียบ (Item A vs Item B)</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>
+                    คู่เปรียบเทียบ (Item A vs Item B)
+                  </TableCell>
                   <TableCell align="right" sx={{ fontWeight: 600 }}>
                     จำนวนที่ได้รับ (Coverage R)
                   </TableCell>
@@ -428,15 +493,21 @@ export function PairwiseReportsPanel({
               </TableHead>
               <TableBody>
                 {criteria.map((crit) => {
-                  const critPairs = pairs.filter((p) => p.criterion_id === crit.id);
+                  const critPairs = pairs.filter(
+                    (p) => p.criterion_id === crit.id,
+                  );
                   return (
                     <TableRow key={crit.id}>
-                      <TableCell sx={{ fontWeight: 500 }}>{crit.name}</TableCell>
+                      <TableCell sx={{ fontWeight: 500 }}>
+                        {crit.name}
+                      </TableCell>
                       <TableCell>
                         {groups.map((g) => g.name).join(" vs ")}
                       </TableCell>
                       <TableCell align="right">{critPairs.length}</TableCell>
-                      <TableCell align="right">{active.targetCoverage ?? 5}</TableCell>
+                      <TableCell align="right">
+                        {active.targetCoverage ?? 5}
+                      </TableCell>
                       <TableCell>
                         <Chip
                           size="small"
@@ -464,7 +535,9 @@ export function PairwiseReportsPanel({
             สัญญาณความสมบูรณ์และความน่าเชื่อถือ (Integrity & Quality Signals)
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            ระบบตรวจสอบความผิดปกติทางสถิติอัตโนมัติ (§10) เพื่อเป็นข้อมูลสนับสนุนการตัดสินใจของผู้สอน (ไม่ใช่การลงโทษอัตโนมัติ)
+            ระบบตรวจสอบความผิดปกติทางสถิติอัตโนมัติ (§10)
+            เพื่อเป็นข้อมูลสนับสนุนการตัดสินใจของผู้สอน
+            (ไม่ใช่การลงโทษอัตโนมัติ)
           </Typography>
 
           {signals.length === 0 ? (
@@ -473,7 +546,8 @@ export function PairwiseReportsPanel({
               severity="success"
               sx={{ borderRadius: "12px" }}
             >
-              ไม่พบสัญญาณผิดปกติในชุดข้อมูลนี้ การประเมินมีความน่าเชื่อถือและสม่ำเสมอตามเกณฑ์มาตรฐาน
+              ไม่พบสัญญาณผิดปกติในชุดข้อมูลนี้
+              การประเมินมีความน่าเชื่อถือและสม่ำเสมอตามเกณฑ์มาตรฐาน
             </Alert>
           ) : (
             signals.map((sig, idx) => (
@@ -487,7 +561,11 @@ export function PairwiseReportsPanel({
                   bgcolor: "#fffdfa",
                 }}
               >
-                <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: 1 }}>
+                <Stack
+                  direction="row"
+                  spacing={1.5}
+                  sx={{ alignItems: "center", mb: 1 }}
+                >
                   <Chip
                     size="small"
                     color="warning"

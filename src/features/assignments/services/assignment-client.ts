@@ -18,6 +18,7 @@ const commandEndpoints: Record<
   questions: { suffix: "questions", method: "PUT" },
   start: { suffix: "voting/start", method: "POST" },
   stop: { suffix: "voting/stop", method: "POST" },
+  finalize: { suffix: "finalize", method: "POST" },
   vote: { suffix: "votes", method: "POST" },
 };
 export async function sendAssignmentCommand(input: Record<string, unknown>) {

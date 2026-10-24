@@ -224,7 +224,7 @@ export function ClassroomDetail({
 
       {/* Tabs */}
       <Tabs
-        value={tab}
+        value={!teacher && tab === 3 ? 0 : tab}
         onChange={(_, val) => setTab(val)}
         variant="scrollable"
         scrollButtons="auto"
@@ -234,11 +234,13 @@ export function ClassroomDetail({
         <Tab icon={<AssignmentOutlined />} iconPosition="start" label={`Assignment (${assignments.length})`} />
         <Tab icon={<GroupOutlined />} iconPosition="start" label={`นักศึกษาและกลุ่ม (${students.length} คน)`} />
         <Tab icon={<SchoolOutlined />} iconPosition="start" label={`ผู้สอน & TA (${staffMembers.length} คน)`} />
-        <Tab icon={<SettingsOutlined />} iconPosition="start" label="การตั้งค่าห้องเรียน" />
+        {teacher && (
+          <Tab icon={<SettingsOutlined />} iconPosition="start" label="การตั้งค่าห้องเรียน" />
+        )}
       </Tabs>
 
       {/* Tab 0: Assignments */}
-      {tab === 0 && (
+      {(tab === 0 || (!teacher && tab === 3)) && (
         <Stack spacing={2.5}>
           {assignments.length === 0 ? (
             <Paper
@@ -353,13 +355,15 @@ export function ClassroomDetail({
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 นำเข้ารายชื่อผ่านไฟล์ CSV เพื่อสร้างกลุ่มและนักศึกษาอัตโนมัติ
               </Typography>
-              <Button
-                variant="contained"
-                startIcon={<FileUploadOutlined />}
-                onClick={() => setRosterOpen(true)}
-              >
-                นำเข้ารายชื่อ (CSV)
-              </Button>
+              {teacher && (
+                <Button
+                  variant="contained"
+                  startIcon={<FileUploadOutlined />}
+                  onClick={() => setRosterOpen(true)}
+                >
+                  นำเข้ารายชื่อ (CSV)
+                </Button>
+              )}
             </Paper>
           ) : (
             <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: "12px" }}>
@@ -497,7 +501,7 @@ export function ClassroomDetail({
       )}
 
       {/* Tab 3: Settings */}
-      {tab === 3 && (
+      {teacher && tab === 3 && (
         <Paper variant="outlined" sx={{ p: 3, borderRadius: "12px", bgcolor: "background.paper" }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
             การตั้งค่าห้องเรียน (Classroom Settings)
@@ -533,7 +537,7 @@ export function ClassroomDetail({
 
       {/* Roster Import Dialog */}
       <RosterImportDialog
-        open={rosterOpen}
+        open={teacher && rosterOpen}
         onClose={() => setRosterOpen(false)}
         onImportConfirm={async (roster) => {
           try {
@@ -546,7 +550,7 @@ export function ClassroomDetail({
       />
 
       {/* Add Staff Modal */}
-      <Dialog open={staffModalOpen} onClose={() => setStaffModalOpen(false)} maxWidth="xs" fullWidth>
+      <Dialog open={teacher && staffModalOpen} onClose={() => setStaffModalOpen(false)} maxWidth="xs" fullWidth>
         <form onSubmit={handleAddStaffSubmit}>
           <DialogTitle sx={{ fontWeight: 700 }}>เพิ่มผู้สอนหรือผู้ช่วยสอน</DialogTitle>
           <DialogContent sx={{ pt: 1 }}>
@@ -590,7 +594,7 @@ export function ClassroomDetail({
 
       {/* Link Existing Assignment Dialog */}
       <Dialog
-        open={linkOpen}
+        open={teacher && linkOpen}
         onClose={() => !linking && setLinkOpen(false)}
         maxWidth="xs"
         fullWidth

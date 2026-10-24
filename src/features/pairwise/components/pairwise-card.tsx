@@ -142,7 +142,7 @@ export function PairwiseCard({
       <FormControl component="fieldset" fullWidth data-testid="vote-question">
         <FormLabel
           component="legend"
-          sx={{ fontSize: 14, mb: 1.5, color: "text.primary" }}
+          sx={{ mb: 1.5, color: "text.primary" }}
         >
           เลือกระดับการเปรียบเทียบ (6 ระดับ — ไม่มีตัวเลือกเท่ากัน):
         </FormLabel>

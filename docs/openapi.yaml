@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Peerly API
-  version: 1.0.0
+  version: 1.1.0
   description: Group peer evaluation. Cookie sessions and same-origin mutations. Auth compatibility
     POST /api/auth and command POST /api/assignments remain for older clients; canonical routes
     below are used by the current client. Test-only seed/cleanup are deliberately excluded from the
@@ -13,6 +13,8 @@ servers:
   - url: /
     description: Same-origin API (local or configured staging host)
 tags:
+  - name: Notifications
+    description: Private student in-app inbox; email and push delivery are deferred
   - name: Health
     description: Readiness
   - name: Auth
@@ -22,6 +24,96 @@ tags:
 security:
   - cookieAuth: []
 paths:
+  /api/notifications:
+    get:
+      operationId: listNotifications
+      summary: List the student's notifications and unread count
+      description: Creates deduplicated reminders on access for active assignments due within 48 hours that still have eligible unfinished work. Returns 20 items per page, newest first. No score or evaluator identity is included. Teacher accounts are rejected.
+      tags: [Notifications]
+      parameters:
+        - in: query
+          name: before
+          description: Opaque nextCursor from the previous response; URL-encode it without modification.
+          schema: { type: string }
+      responses:
+        "200":
+          description: Private inbox; Cache-Control is no-store.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, unreadCount, nextCursor]
+                properties:
+                  unreadCount: { type: integer, minimum: 0 }
+                  nextCursor: { type: [string, "null"] }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, assignmentId, kind, createdAt, readAt]
+                      properties:
+                        id: { type: string, format: uuid }
+                        assignmentId: { type: string, format: uuid }
+                        kind: { type: string, enum: [assignment_opened, deadline_reminder, results_finalized] }
+                        createdAt: { type: string, format: date-time }
+                        readAt: { type: [string, "null"], format: date-time }
+        "400": { description: Invalid pagination cursor. }
+        "401": { description: Sign-in required. }
+        "403": { description: Student role required. }
+        "503": { description: Database unavailable. }
+  /api/notifications/{id}/read:
+    patch:
+      operationId: readNotification
+      summary: Mark one owned and accessible notification as read
+      description: Same-origin request required. Repeated reads preserve the original read time.
+      tags: [Notifications]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { description: Read state saved. }
+        "400": { description: Invalid notification ID. }
+        "401": { description: Sign-in required. }
+        "403": { description: Student role and same-origin request required. }
+        "404": { description: Notification missing or not owned or no longer accessible. }
+        "503": { description: Database unavailable. }
+  /api/notifications/read-all:
+    post:
+      operationId: readAllNotifications
+      summary: Mark all currently accessible notifications of the student as read
+      description: Same-origin request required; includes all history pages and does not affect another user's inbox.
+      tags: [Notifications]
+      responses:
+        "200": { description: Read states saved. }
+        "401": { description: Sign-in required. }
+        "403": { description: Student role and same-origin request required. }
+        "503": { description: Database unavailable. }
+  /api/assignments/{id}/finalize:
+    post:
+      operationId: finalizeAssignment
+      summary: Owner finalizes a closed assignment and creates student notifications
+      description: Uses existing domain validation, optimistic concurrency, and an atomic notification/audit write.
+      tags: [Assignments]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200": { description: Finalized assignment with notification events persisted. }
+        "400": { description: Assignment is not closed or ID/body is invalid. }
+        "401": { description: Sign-in required. }
+        "403": { description: Assignment owner teacher and same-origin request required. }
+        "404": { description: Assignment not found. }
+        "409": { description: Concurrent updates could not be resolved. }
+        "503": { description: Database unavailable. }
   /api/health:
     get:
       operationId: health
@@ -737,7 +829,7 @@ paths:
                   items: &a12
                     type: integer
                     minimum: 1
-                    maximum: 5
+                    maximum: 6
                   minItems: 1
                   maxItems: 100
                   description: Exactly one score per assignment question.
@@ -862,7 +954,7 @@ components:
           type: string
           enum: [group, individual]
           default: group
-          description: Individual mode evaluates students from other groups, using the same questions and 1–5 score scale.
+          description: Individual mode evaluates students from other groups, using the same questions and 1–6 score scale.
         title:
           type: string
           minLength: 1
