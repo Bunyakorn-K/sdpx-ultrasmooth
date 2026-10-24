@@ -34,7 +34,7 @@ export function ClassroomList({
   onOpenCreate,
   onJoinClassroom,
 }: ClassroomListProps) {
-  const [filter, setFilter] = useState<"all" | "ACTIVE" | "ARCHIVED">("all");
+  const [filter, setFilter] = useState<"all" | "ACTIVE" | "ARCHIVED">("ACTIVE");
   const [query, setQuery] = useState("");
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinCode, setJoinCode] = useState("");
@@ -89,9 +89,9 @@ export function ClassroomList({
           variant="scrollable"
           aria-label="สถานะ classroom"
         >
-          <Tab value="all" label={`ทั้งหมด (${classrooms.length})`} />
           <Tab value="ACTIVE" label="เปิดใช้งานอยู่" />
-          <Tab value="ARCHIVED" label="เก็บถาวร (Archive)" />
+          <Tab value="ARCHIVED" label="เก็บถาวร" />
+          <Tab value="all" label={`ทั้งหมด (${classrooms.length})`} />
         </Tabs>
         <TextField
           placeholder="ค้นหาห้องเรียน..."

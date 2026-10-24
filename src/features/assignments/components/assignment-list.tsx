@@ -11,7 +11,7 @@ import {
   SchoolOutlined,
   Search,
 } from "@mui/icons-material";
-import { Button, Tab, Tabs, TextField } from "@mui/material";
+import { Button, Tab, Tabs, TextField, Typography } from "@mui/material";
 
 import { DEFAULT_QUESTIONS as baseQuestions } from "@/features/assignments/constants";
 import { PersonArt } from "@/shared/components/person-art";
@@ -56,15 +56,19 @@ export function AssignmentList(props: AssignmentListProps) {
           <div className="eyebrow mint-text">
             LET’S MAKE LEARNING MEANINGFUL
           </div>
-          <h1>
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{ fontWeight: 800, my: 1.5 }}
+          >
             {nav === "results" ? "ผลการประเมิน" : "Assignment ของฉัน"}
             <span>.</span>
-          </h1>
-          <p>
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
             {teacher
               ? "สร้างพื้นที่ให้ทุกคนได้แสดงความคิดเห็น และเรียนรู้ไปด้วยกัน"
               : "ร่วมทีม แบ่งปันความคิดเห็น และเรียนรู้ไปด้วยกัน"}
-          </p>
+          </Typography>
         </div>
         <Button
           variant="contained"
@@ -169,13 +173,25 @@ export function AssignmentList(props: AssignmentListProps) {
                   month: "short",
                 })}
               </span>
-              <h3>{a.title}</h3>
-              <p>
+              <Typography
+                variant="h6"
+                component="h3"
+                sx={{ fontWeight: 700, my: 1 }}
+              >
+                {a.title}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 {isIndividualEvaluation(a)
                   ? "ประเมินรายคนจากกลุ่มอื่น"
                   : "ประเมินกลุ่ม"}
-              </p>
-              <p>{a.description}</p>
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mb: 2, overflowWrap: "anywhere" }}
+              >
+                {a.description}
+              </Typography>
               <div className="assignment-meta">
                 <span>
                   <GroupsOutlined />

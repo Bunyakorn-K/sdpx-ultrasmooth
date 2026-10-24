@@ -115,7 +115,7 @@ export function AuthForm({
         </Button>
         {googleError && <Alert severity="error">{googleError}</Alert>}
 
-        <Divider sx={{ my: 0.5, fontSize: "0.85rem", color: "text.secondary" }}>
+        <Divider sx={{ my: 0.5, typography: "caption", color: "text.secondary" }}>
           หรือเข้าสู่ระบบด้วยบัญชี
         </Divider>
 
@@ -156,7 +156,7 @@ export function AuthForm({
           required
         />
         {registering && (
-          <Alert severity="info" sx={{ mt: 1, borderRadius: "8px", fontSize: "0.8rem" }}>
+          <Alert severity="info" sx={{ mt: 1, borderRadius: "8px" }}>
             <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
               ประกาศการคุ้มครองข้อมูลส่วนบุคคล (PDPA Notice — FR-PRIV-01)
             </Typography>

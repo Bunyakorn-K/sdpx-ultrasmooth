@@ -1,5 +1,10 @@
 import type { Assignment } from "../types";
 import {
+  CSV_REPORTS,
+  worksheetToCsv,
+  type CsvReport,
+} from "@/features/pairwise/services/csv-service";
+import {
   buildPairEvalWorkbook,
   formatExportFilename,
   type ExportData,
@@ -42,8 +47,17 @@ export async function readQuestionsFromExcel(file: File): Promise<string[]> {
 }
 
 export async function exportAnswersToExcel(a: Assignment) {
+  return downloadAnswers(a);
+}
+
+export async function exportAnswersToCsv(a: Assignment, report: CsvReport) {
+  return downloadAnswers(a, report);
+}
+
+async function downloadAnswers(a: Assignment, report?: CsvReport) {
   const classroomSlug = "classroom";
-  const assignmentSlug = a.title.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "assignment";
+  const assignmentSlug =
+    a.title.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "assignment";
 
   const classroom: Classroom = {
     id: "classroom-1",
@@ -85,7 +99,12 @@ export async function exportAnswersToExcel(a: Assignment) {
     completion_threshold: 0.9,
     scoring_formula_version: "v2.0",
     pairing_seed: 42,
-    status: a.status === "active" ? "OPEN" : a.status === "closed" ? "CLOSED" : "DRAFT",
+    status:
+      a.status === "active"
+        ? "OPEN"
+        : a.status === "closed"
+          ? "CLOSED"
+          : "DRAFT",
     criteria,
     created_by: a.ownerId,
     created_at: a.createdAt,
@@ -161,15 +180,25 @@ export async function exportAnswersToExcel(a: Assignment) {
   };
 
   const wb = await buildPairEvalWorkbook(exportData);
-  const buffer = await wb.xlsx.writeBuffer();
+  const sheet = report ? wb.getWorksheet(CSV_REPORTS[report]) : undefined;
+  if (report && !sheet) throw Error("ไม่พบรายงานที่ต้องการส่งออก");
+  const buffer = sheet ? worksheetToCsv(sheet) : await wb.xlsx.writeBuffer();
   const url = URL.createObjectURL(
     new Blob([buffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      type: report
+        ? "text/csv;charset=utf-8"
+        : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     }),
   );
   const link = document.createElement("a");
   link.href = url;
-  link.download = formatExportFilename(classroomSlug, assignmentSlug, "results");
+  link.download = formatExportFilename(
+    classroomSlug,
+    assignmentSlug,
+    report ?? "results",
+    new Date(),
+    report ? "csv" : "xlsx",
+  );
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

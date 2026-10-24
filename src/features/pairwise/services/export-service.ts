@@ -191,7 +191,9 @@ export async function buildPairEvalWorkbook(data: ExportData) {
       itemBName,
       assignment.target_coverage,
       actualCoverage,
-      actualCoverage >= assignment.min_comparisons ? "SUFFICIENT" : "LOW_COVERAGE",
+      actualCoverage >= assignment.min_comparisons
+        ? "SUFFICIENT"
+        : "LOW_COVERAGE",
     ]);
   }
 
@@ -202,7 +204,10 @@ export async function buildPairEvalWorkbook(data: ExportData) {
   metaSheet.addRow(["Classroom Slug", classroom.slug]);
   metaSheet.addRow(["Assignment", assignment.name]);
   metaSheet.addRow(["Assignment Slug", assignment.slug]);
-  metaSheet.addRow(["Scoring Formula Version", assignment.scoring_formula_version]);
+  metaSheet.addRow([
+    "Scoring Formula Version",
+    assignment.scoring_formula_version,
+  ]);
   metaSheet.addRow(["Group Max Score", assignment.group_max_score]);
   metaSheet.addRow(["Individual Max Score", assignment.individual_max_score]);
   metaSheet.addRow(["Score Floor", assignment.score_floor]);
@@ -232,6 +237,7 @@ export function formatExportFilename(
   assignmentSlug: string,
   report: string = "results",
   now: Date = new Date(),
+  extension: "xlsx" | "csv" = "xlsx",
 ): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   const yyyy = now.getUTCFullYear();
@@ -239,5 +245,5 @@ export function formatExportFilename(
   const dd = pad(now.getUTCDate());
   const hh = pad(now.getUTCHours());
   const min = pad(now.getUTCMinutes());
-  return `${classroomSlug}_${assignmentSlug}_${report}_${yyyy}${mm}${dd}-${hh}${min}.xlsx`;
+  return `${classroomSlug}_${assignmentSlug}_${report}_${yyyy}${mm}${dd}-${hh}${min}.${extension}`;
 }
