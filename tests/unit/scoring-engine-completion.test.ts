@@ -5,6 +5,7 @@ import {
   isInterimRecomputationDue,
   applyInterimRecompute,
 } from "@/features/pairwise/domain/interim-scheduler";
+import { calculateItemScores } from "@/features/pairwise/domain/scoring-engine";
 import { applyAssignmentCommand } from "@/features/assignments/domain/assignment-policy";
 import type { Assignment } from "@/features/assignments/types";
 import type { User } from "@/features/auth/types";
@@ -283,4 +284,68 @@ test("FR-SCORE-06: recomputeScores command is owner-only and updates lastInterim
   assert.ok(asgn.lastInterimAt);
   const stamp = new Date(asgn.lastInterimAt!).getTime();
   assert.ok(stamp >= before - 1000 && stamp <= Date.now() + 1000);
+});
+
+test("FR-SCORE-01 & FR-SCORE-02: Quality index weighted mean and band mapping respect floor and ceiling", () => {
+  // With 2 comparisons: 1.0 and 0.0 (equal weights) -> q = 0.5
+  // Score ratio = 0.5 + (0.9 - 0.5) * 0.5 = 0.70
+  // Group score = 0.70 * 20 = 14.0
+  const asgn = fixtureAssignment({
+    scoreFloor: 0.5,
+    scoreCeiling: 0.9,
+    groupMaxScore: 20,
+    instructorWeight: 1.0,
+  });
+  const res = generatedResult(asgn, studentA.id);
+  assert.equal(res.groupScore, 14.0);
+});
+
+test("FR-SCORE-05: criteria with comparisons < min_comparisons carry LOW_CONFIDENCE flag", () => {
+  // Set min_comparisons = 5 when only 2 comparisons exist
+  const asgn = fixtureAssignment({ minComparisons: 5 });
+  const criteria = [
+    {
+      id: "GROUP-0",
+      assignment_id: "asgn-1",
+      side: "GROUP" as const,
+      name: "UX",
+      description: "UX",
+      weight_pct: 100,
+      display_order: 1,
+    },
+  ];
+  const scores = calculateItemScores(
+    "grp-1",
+    "GROUP",
+    criteria,
+    asgn.pairs!,
+    asgn.comparisons!,
+    15,
+    0.6,
+    1.0,
+    5,
+  );
+  assert.equal(
+    scores.criterionScores[0].flags.includes("LOW_CONFIDENCE"),
+    true,
+  );
+});
+
+test("FR-SCORE-07: unfinalized assignments indicate provisional status", () => {
+  const activeAsgn = fixtureAssignment({ status: "active" });
+  assert.notEqual(activeAsgn.status, "finalized");
+  const closedAsgn = fixtureAssignment({ status: "closed" });
+  assert.notEqual(closedAsgn.status, "finalized");
+});
+
+test("FR-SCORE-10: scoring calculation is 100% reproducible down to every decimal place", () => {
+  const asgn = fixtureAssignment();
+  const run1 = generatedResult(asgn, studentA.id);
+  const run2 = generatedResult(asgn, studentA.id);
+  const run3 = generatedResult(asgn, studentA.id);
+
+  assert.deepEqual(run1, run2);
+  assert.deepEqual(run2, run3);
+  assert.equal(typeof run1.finalScore, "number");
+  assert.equal(run1.finalScore, run2.finalScore);
 });

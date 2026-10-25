@@ -6,6 +6,7 @@ import { applyAssignmentCommand } from "../domain/assignment-policy";
 import { visibleAssignment } from "../domain/assignment-visibility";
 import { createAssignment } from "../domain/create-assignment";
 import { applyClassroomRoster } from "../domain/classroom-roster";
+import { isInterimRecomputationDue } from "@/features/pairwise/domain/interim-scheduler";
 import type { Assignment } from "../types";
 import type { AssignmentRepository } from "./assignment-repository";
 
@@ -47,6 +48,14 @@ export class AssignmentService {
       if (!hasAccess) {
         throw new AppError("คุณไม่มีสิทธิ์เข้าถึง assignment นี้", 403);
       }
+    }
+    if (
+      isOwner &&
+      (assignment.status === "active" || assignment.status === "closed") &&
+      isInterimRecomputationDue(assignment.lastInterimAt, "Asia/Bangkok")
+    ) {
+      assignment.lastInterimAt = new Date().toISOString();
+      await this.repository.update(assignment, record.version).catch(() => {});
     }
     return visibleAssignment(assignment, user.id);
   }
