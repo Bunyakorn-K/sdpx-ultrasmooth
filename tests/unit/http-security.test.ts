@@ -8,6 +8,7 @@ import {
   errorResponse,
   withApi,
 } from "@/shared/server/http";
+
 test("SEC01: malformed JSON, arrays and null produce 400 instead of server failure", async () => {
   for (const body of ["{", "[]", "null", "42"])
     await assert.rejects(

@@ -5,7 +5,11 @@ import {
   calculateItemScores,
   getGroupAnonymityWarning,
 } from "@/features/pairwise/domain/scoring-engine";
-import type { PairAssignment, Comparison, Criterion } from "@/features/pairwise/types";
+import type {
+  PairAssignment,
+  Comparison,
+  Criterion,
+} from "@/features/pairwise/types";
 
 test("FR-ANON-02: k-anonymity threshold masks individual score when submitted evaluators < k_min (default 3)", () => {
   const studentId = "student-nok";

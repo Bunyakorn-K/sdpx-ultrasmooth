@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { requireTestEnvironment } from "@/shared/server/test-environment";
+
 const token = "test-only-not-a-real-secret-1234567890";
 const request = new Request("http://localhost/api/test/seed", {
   headers: { "x-test-token": token },

@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
+
 const sourcePath = "src/features/assignments/domain/assignment-policy.ts";
 const original = await readFile(sourcePath, "utf8");
 const mutant = original.replace("if (alreadyVoted)", "if (false)");

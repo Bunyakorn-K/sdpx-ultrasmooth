@@ -51,7 +51,7 @@ evidence of an integrated feature.
 - FR-EVAL-13: durable offline answer queue and automatic reconnect synchronization. Current hook retains unsaved answers in memory and offers retry.
 - FR-REPORT-05: score distribution chart per criterion.
 - FR-API-05: asynchronous export job and delivery link.
-- FR-APPEAL-01 / FR-APPEAL-02: student appeal within 7 days and instructor response/decision flow.
+- FR-APPEAL-01 / FR-APPEAL-02: implemented on 2026-10-25. Assignment appeals tab supports student requests within seven days and owning-teacher uphold/override decisions. Verified locally with domain/service tests and PostgreSQL/browser E2E; remote deployment remains unverified (see lab-status).
 - FR-A11Y-07: manual NVDA/VoiceOver verification has not been evidenced.
 
 ## Scope decisions and verification, not automatically new implementation work

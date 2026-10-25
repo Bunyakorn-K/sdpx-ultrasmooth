@@ -46,19 +46,25 @@ test("US01: auth screens render login and register forms with role selection and
   page,
 }) => {
   await page.goto("/login");
-  await expect(page.getByRole("heading", { name: "ยินดีต้อนรับกลับมา" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "ยินดีต้อนรับกลับมา" }),
+  ).toBeVisible();
   await expect(page.getByLabel("อีเมล")).toBeVisible();
   await expect(page.getByLabel("รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)")).toBeVisible();
 
   // Switch to register screen
   await page.getByRole("button", { name: "ยังไม่มีบัญชี? สมัครสมาชิก" }).click();
   await expect(page).toHaveURL(/\/register/);
-  await expect(page.getByRole("heading", { name: "เริ่มต้นการเรียนรู้ร่วมกัน" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "เริ่มต้นการเรียนรู้ร่วมกัน" }),
+  ).toBeVisible();
   await expect(page.getByLabel("ชื่อที่แสดง")).toBeVisible();
   await expect(page.getByLabel("ฉันเป็น")).toBeVisible();
 
   // Switch back to login
   await page.getByRole("button", { name: "มีบัญชีแล้ว? เข้าสู่ระบบ" }).click();
   await expect(page).toHaveURL(/\/login/);
-  await expect(page.getByRole("heading", { name: "ยินดีต้อนรับกลับมา" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "ยินดีต้อนรับกลับมา" }),
+  ).toBeVisible();
 });

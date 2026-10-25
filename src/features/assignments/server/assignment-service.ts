@@ -74,6 +74,13 @@ export class AssignmentService {
       }
       const previousStatus = record.assignment.status;
       const previousGeneration = record.assignment.pairGeneration ?? 0;
+      const appealBefore =
+        input.action === "resolveAppeal"
+          ? structuredClone(
+              record.assignment.appeals?.find((r) => r.id === input.appealId) ??
+                null,
+            )
+          : null;
       const updated = applyAssignmentCommand(
         record.assignment,
         user,
@@ -110,6 +117,27 @@ export class AssignmentService {
                 : assignmentEvent(previousStatus, updated, record.version)),
           input.action === "submitEvaluation"
             ? updated.evaluationSubmissions?.at(-1)
+            : undefined,
+          ["submitAppeal", "resolveAppeal"].includes(String(input.action))
+            ? (() => {
+                const appeal =
+                  input.action === "submitAppeal"
+                    ? updated.appeals!.at(-1)!
+                    : updated.appeals!.find((r) => r.id === input.appealId)!;
+                return {
+                  actorId: user.id,
+                  action:
+                    input.action === "submitAppeal"
+                      ? ("APPEAL_SUBMIT" as const)
+                      : appeal.decision?.outcome === "override"
+                        ? ("SCORE_OVERRIDE" as const)
+                        : ("APPEAL_RESOLVE" as const),
+                  appealId: appeal.id,
+                  before: appealBefore,
+                  after: appeal,
+                  reason: appeal.decision?.response ?? appeal.message,
+                };
+              })()
             : undefined,
         )
       ) {

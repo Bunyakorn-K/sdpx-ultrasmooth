@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { User } from "@/features/auth/types";
 import type { Assignment } from "@/features/assignments/types";
+
 export function makeUser(overrides: Partial<User> = {}): User {
   return {
     id: randomUUID(),

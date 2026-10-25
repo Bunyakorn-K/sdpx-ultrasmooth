@@ -2,7 +2,9 @@ import { readFile } from "node:fs/promises";
 import postgres from "postgres";
 
 if (!process.env.DATABASE_URL || process.env.DATABASE_URL === "[SENSITIVE]") {
-  console.error("Set a valid DATABASE_URL first (cannot be empty or [SENSITIVE]).");
+  console.error(
+    "Set a valid DATABASE_URL first (cannot be empty or [SENSITIVE]).",
+  );
   process.exit(1);
 }
 

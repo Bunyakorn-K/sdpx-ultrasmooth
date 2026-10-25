@@ -61,7 +61,11 @@ export function ClassroomDetailScreen() {
     return <LoadingState message="กำลังโหลดข้อมูลห้องเรียน..." />;
   }
 
-  if (workspace.loadingAssignments && !classroomAssignments.length && classroom?.assignment_ids?.length) {
+  if (
+    workspace.loadingAssignments &&
+    !classroomAssignments.length &&
+    classroom?.assignment_ids?.length
+  ) {
     return <LoadingState message="กำลังโหลดข้อมูล Assignment ในห้องเรียน..." />;
   }
 

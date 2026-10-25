@@ -4,7 +4,10 @@ import { AuditService } from "@/features/audit/server/audit-service";
 import type { AuditRepository } from "@/features/audit/server/audit-repository";
 import type { AuditLogEntry } from "@/features/audit/types";
 import { ClassroomService } from "@/features/classroom/server/classroom-service";
-import type { ClassroomRepository, ClassroomRecord } from "@/features/classroom/server/classroom-repository";
+import type {
+  ClassroomRepository,
+  ClassroomRecord,
+} from "@/features/classroom/server/classroom-repository";
 import type { Classroom } from "@/features/classroom/types";
 import type { User } from "@/features/auth/types";
 
@@ -15,13 +18,19 @@ class FakeAuditRepository implements AuditRepository {
     this.entries.push(entry);
   }
 
-  async listByClassroom(classroomId: string, limit = 100): Promise<AuditLogEntry[]> {
+  async listByClassroom(
+    classroomId: string,
+    limit = 100,
+  ): Promise<AuditLogEntry[]> {
     return this.entries
       .filter((e) => e.classroom_id === classroomId)
       .slice(0, limit);
   }
 
-  async listByAssignment(assignmentId: string, limit = 100): Promise<AuditLogEntry[]> {
+  async listByAssignment(
+    assignmentId: string,
+    limit = 100,
+  ): Promise<AuditLogEntry[]> {
     return this.entries
       .filter((e) => e.assignment_id === assignmentId)
       .slice(0, limit);
@@ -34,7 +43,11 @@ class FakeClassroomRepository implements ClassroomRepository {
   async listForUser(userId: string): Promise<Classroom[]> {
     return Array.from(this.store.values())
       .map((r) => r.classroom)
-      .filter((c) => c.created_by === userId || c.members.some((m) => m.user_id === userId));
+      .filter(
+        (c) =>
+          c.created_by === userId ||
+          c.members.some((m) => m.user_id === userId),
+      );
   }
 
   async findById(id: string): Promise<ClassroomRecord | null> {
@@ -42,7 +55,10 @@ class FakeClassroomRepository implements ClassroomRepository {
   }
 
   async findBySlug(slug: string): Promise<ClassroomRecord | null> {
-    return Array.from(this.store.values()).find((r) => r.classroom.slug === slug) || null;
+    return (
+      Array.from(this.store.values()).find((r) => r.classroom.slug === slug) ||
+      null
+    );
   }
 
   async create(classroom: Classroom): Promise<boolean> {
@@ -125,7 +141,10 @@ test("FR-AUDIT-02: Requires reason for SCORE_OVERRIDE and ASSIGNMENT_REOPEN", as
     reason: "อุทธรณ์ผ่านการพิจารณา เนื่องจากส่งผลงานเพิ่มเติมตรงเวลา",
   });
   assert.equal(override.action, "SCORE_OVERRIDE");
-  assert.equal(override.reason, "อุทธรณ์ผ่านการพิจารณา เนื่องจากส่งผลงานเพิ่มเติมตรงเวลา");
+  assert.equal(
+    override.reason,
+    "อุทธรณ์ผ่านการพิจารณา เนื่องจากส่งผลงานเพิ่มเติมตรงเวลา",
+  );
 });
 
 test("FR-AUDIT-03: Append-only integrity (no delete or update APIs exist)", () => {
@@ -133,10 +152,22 @@ test("FR-AUDIT-03: Append-only integrity (no delete or update APIs exist)", () =
   const service = new AuditService(fakeRepo);
 
   // Validate that no delete or update methods exist on service or repository
-  assert.equal((service as unknown as Record<string, unknown>).delete, undefined);
-  assert.equal((service as unknown as Record<string, unknown>).update, undefined);
-  assert.equal((fakeRepo as unknown as Record<string, unknown>).delete, undefined);
-  assert.equal((fakeRepo as unknown as Record<string, unknown>).update, undefined);
+  assert.equal(
+    (service as unknown as Record<string, unknown>).delete,
+    undefined,
+  );
+  assert.equal(
+    (service as unknown as Record<string, unknown>).update,
+    undefined,
+  );
+  assert.equal(
+    (fakeRepo as unknown as Record<string, unknown>).delete,
+    undefined,
+  );
+  assert.equal(
+    (fakeRepo as unknown as Record<string, unknown>).update,
+    undefined,
+  );
 });
 
 test("FR-AUDIT-01: ClassroomService records ROLE_CHANGE when staff is added", async () => {
@@ -145,8 +176,15 @@ test("FR-AUDIT-01: ClassroomService records ROLE_CHANGE when staff is added", as
   const classroomRepo = new FakeClassroomRepository();
   const classroomService = new ClassroomService(classroomRepo, auditService);
 
-  const teacher: User = { id: "teacher-1", name: "Ajarn Somchai", email: "somchai@uni.ac.th", role: "teacher" };
-  const classroom = await classroomService.create(teacher, { name: "Software Engineering" });
+  const teacher: User = {
+    id: "teacher-1",
+    name: "Ajarn Somchai",
+    email: "somchai@uni.ac.th",
+    role: "teacher",
+  };
+  const classroom = await classroomService.create(teacher, {
+    name: "Software Engineering",
+  });
 
   await classroomService.addStaff(teacher, classroom.id, {
     email: "ta@uni.ac.th",
@@ -159,5 +197,8 @@ test("FR-AUDIT-01: ClassroomService records ROLE_CHANGE when staff is added", as
   assert.equal(auditEntries[0].action, "ROLE_CHANGE");
   assert.equal(auditEntries[0].actor_id, teacher.id);
   assert.equal(auditEntries[0].classroom_id, classroom.id);
-  assert.deepEqual(auditEntries[0].after_state, { email: "ta@uni.ac.th", role: "TA" });
+  assert.deepEqual(auditEntries[0].after_state, {
+    email: "ta@uni.ac.th",
+    role: "TA",
+  });
 });

@@ -1,14 +1,11 @@
 "use client";
 
+import { Alert, Box, Chip, Paper, Stack, Typography } from "@mui/material";
 import {
-  Alert,
-  Box,
-  Chip,
-  Paper,
-  Stack,
-  Typography,
-} from "@mui/material";
-import { CheckCircleOutlined, Functions, WarningAmber } from "@mui/icons-material";
+  CheckCircleOutlined,
+  Functions,
+  WarningAmber,
+} from "@mui/icons-material";
 import type { Assignment } from "@/features/assignments/types";
 import { solveFeasibility, type GroupInfo } from "../domain/pairing-engine";
 
@@ -19,9 +16,7 @@ export type FeasibilityPanelProps = {
   busy?: boolean;
 };
 
-export function FeasibilityPanel({
-  active,
-}: FeasibilityPanelProps) {
+export function FeasibilityPanel({ active }: FeasibilityPanelProps) {
   const S = active.students.length;
   const N = active.groups.length;
   const targetR = active.targetCoverage ?? 5;
@@ -61,16 +56,15 @@ export function FeasibilityPanel({
               การคำนวณความเป็นไปได้ของการจับคู่ (Feasibility Solver §8.2)
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              ตรวจสอบว่าเป้าหมาย Coverage R = {targetR} เป็นไปได้ทางคณิตศาสตร์ภายใต้ข้อจำกัดของห้องเรียนหรือไม่
+              ตรวจสอบว่าเป้าหมาย Coverage R = {targetR}{" "}
+              เป็นไปได้ทางคณิตศาสตร์ภายใต้ข้อจำกัดของห้องเรียนหรือไม่
             </Typography>
           </Box>
         </Stack>
 
         <Chip
           label={
-            isFeasible
-              ? "เป็นไปได้สมบูรณ์ (Feasible)"
-              : "ปรับลด Coverage อัตโนมัติ"
+            isFeasible ? "เป็นไปได้สมบูรณ์ (Feasible)" : "ปรับลด Coverage อัตโนมัติ"
           }
           color={isFeasible ? "success" : "warning"}
           variant="outlined"
@@ -112,9 +106,15 @@ export function FeasibilityPanel({
           </Typography>
           <Typography
             variant="h6"
-            sx={{ fontWeight: 700, color: isFeasible ? "text.primary" : "warning.dark" }}
+            sx={{
+              fontWeight: 700,
+              color: isFeasible ? "text.primary" : "warning.dark",
+            }}
           >
-            {feasibility.feasibleR} <Typography component="span" variant="caption">(เป้าหมาย {targetR})</Typography>
+            {feasibility.feasibleR}{" "}
+            <Typography component="span" variant="caption">
+              (เป้าหมาย {targetR})
+            </Typography>
           </Typography>
         </Box>
         <Box>

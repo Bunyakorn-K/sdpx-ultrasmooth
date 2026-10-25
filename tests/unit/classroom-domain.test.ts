@@ -46,10 +46,11 @@ s3@univ.ac.th,Beta,6601003,Somkiat
 s4@univ.ac.th,Beta,6601004,Somporn`;
 
   const parsed = parseRosterCsv(csv);
-  const { classroom: updated, addedCount, updatedCount } = applyRosterImport(
-    classroom,
-    parsed,
-  );
+  const {
+    classroom: updated,
+    addedCount,
+    updatedCount,
+  } = applyRosterImport(classroom, parsed);
 
   assert.equal(addedCount, 4);
   assert.equal(updatedCount, 0);
@@ -70,17 +71,21 @@ test("FR-CLASS-05: Upsert CSV updates group assignment without deleting existing
   const csv1 = `email,group_name
 s1@univ.ac.th,Alpha
 s2@univ.ac.th,Alpha`;
-  const { classroom: step1 } = applyRosterImport(classroom, parseRosterCsv(csv1));
+  const { classroom: step1 } = applyRosterImport(
+    classroom,
+    parseRosterCsv(csv1),
+  );
 
   // Re-import with s1 moved to Gamma and new student s3
   const csv2 = `email,group_name
 s1@univ.ac.th,Gamma
 s2@univ.ac.th,Alpha
 s3@univ.ac.th,Gamma`;
-  const { classroom: step2, addedCount, updatedCount } = applyRosterImport(
-    step1,
-    parseRosterCsv(csv2),
-  );
+  const {
+    classroom: step2,
+    addedCount,
+    updatedCount,
+  } = applyRosterImport(step1, parseRosterCsv(csv2));
 
   assert.equal(addedCount, 1);
   assert.equal(updatedCount, 2);

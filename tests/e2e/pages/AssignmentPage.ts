@@ -1,4 +1,5 @@
 import type { Page, Locator } from "@playwright/test";
+
 export class AssignmentPage {
   readonly cards: Locator;
   readonly groups: Locator;
@@ -35,9 +36,7 @@ export class AssignmentPage {
   async gotoAssignments() {
     const pathname = new URL(this.page.url()).pathname;
     if (pathname !== "/assignments") {
-      await this.page
-        .getByRole("button", { name: /Assignment ของฉัน/ })
-        .click();
+      await this.page.getByRole("button", { name: /Assignment ของฉัน/ }).click();
       await this.page.waitForURL((u) => u.pathname === "/assignments");
     }
   }
@@ -107,9 +106,7 @@ export class AssignmentPage {
       .getByRole("button", { name: "สร้างกลุ่ม", exact: true })
       .click();
     await this.page.getByLabel("ชื่อกลุ่ม").fill(name);
-    await this.page
-      .getByRole("button", { name: "บันทึก", exact: true })
-      .click();
+    await this.page.getByRole("button", { name: "บันทึก", exact: true }).click();
   }
   async joinExistingGroup() {
     await this.page.getByRole("button", { name: "เข้าร่วมกลุ่มนี้" }).click();

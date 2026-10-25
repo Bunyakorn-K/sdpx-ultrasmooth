@@ -1,4 +1,5 @@
 import type { Assignment } from "../types";
+import { appealScore } from "../domain/appeals";
 import { generatedCriteria } from "@/features/pairwise/domain/regeneration";
 import {
   CSV_REPORTS,
@@ -174,6 +175,12 @@ async function downloadAnswers(a: Assignment, report?: CsvReport) {
   });
 
   const exportData: ExportData = {
+    finalScoreOverrides: Object.fromEntries(
+      a.students.flatMap((s) => {
+        const score = appealScore(a, s.id, null);
+        return score === null ? [] : [[s.id, score]];
+      }),
+    ),
     generation: a.pairGeneration,
     classroom,
     assignment: pairwiseAssignment,

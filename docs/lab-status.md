@@ -1,5 +1,10 @@
 # WS01–WS08 Implementation Status
 
+## Temporary E2E pause and tooling (2026-10-25)
+
+- At the project owner's request, the CI E2E job is temporarily disabled with a job-level condition. Local Playwright scripts and assertions remain available. Production deployment depends on the lint/unit/build job while this pause is active; re-enable E2E and restore its deployment dependency together.
+- CI uses the configured Oxlint command and now checks Oxfmt formatting. ESLint remains available through `npm run lint:eslint`. Runtime and package installation remain Node.js 24 and `npm ci`.
+
 Source instructions in `docs/labs/` are preserved. This document separates implemented artifacts and locally verified evidence from tasks that require a real repository, hosting account or team member.
 
 For requirement-by-requirement implementation mapping and explicit specifications, see [PairEval PRD](labs/pairwise_evaluation_prd.md). Business coverage measured >96% across domain rules, feasibility solver, scoring engine, quality signals, and roster parser.
@@ -351,3 +356,12 @@ Testing was paused at the user's request on 2026-10-20. Completed checks: lint, 
 No Git remote or staging URL has been selected for this checkout. The GitHub login being available does not identify the intended repository/visibility. No Issues, Project, deployment, ruleset or fabricated CI result were created on an arbitrary target. `docs/github-setup.md` gives the remaining configuration and proof steps.
 
 No student/team names, human code approvals, clean-clone observations from other machines, remote screenshots or unmeasured timings are invented. Current authentication is the implemented PostgreSQL cookie session, not Neon Auth as a hosted provider.
+# Student appeals (2026-10-25)
+
+- FR-APPEAL-01: Assignment detail now includes an Appeals tab after finalization (or for existing request history). Assignment students submit a required explanation within seven days of the server's finalization timestamp. One request per student/finalization/generation; server rejects expired, duplicate, stale and unauthorized requests.
+- FR-APPEAL-02: only the owning teacher can read all requests and record an explanation with either uphold or a bounded personal final-score override. Students see only their own requests and responses. Teacher resolution is permitted after the intake window; resolved and superseded requests are immutable.
+- Requests and decisions live in the existing versioned assignment JSONB aggregate. The repository atomically writes the mutation and append-only appeal/score-override audit. Concurrent duplicates/decisions are revalidated on retry. No schema migration is needed for appeals.
+- Override changes only the appellant's final total in student results, teacher results, and XLSX/CSV individual summaries. Original ballots and finalized snapshot remain unchanged. Reopen/refinalize or pair regeneration starts a different result cycle; old appeals remain history and cannot alter the new result.
+- Local verification: 3 appeals E2E journeys passed (1280px, 390px and guarded isolated PostgreSQL authorization/privacy/concurrency/audit). No production database was changed. Deployment and hosted authentication are not externally verified.
+- Required checks passed: 156 unit/integration tests, lint, typecheck, OpenAPI lint, production build, coverage (97.34% lines / 100% functions / 87.45% branches), and mutation fidelity. Excel/CSV regression verifies nonzero and zero personal-total overrides without changing another student's result.
+- Current limitations: no email/push delivery, attachments or multi-message conversation; users read requests/responses in the Assignment tab. Existing broader scoring/finalized-output snapshot gaps in `prd-gap-audit.md` remain separate work.

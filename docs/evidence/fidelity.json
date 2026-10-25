@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-25T07:37:42.792Z",
+  "date": "2026-10-25T08:07:20.532Z",
   "rule": "duplicate vote is rejected",
   "mutationExitCode": 1,
   "failingTestDetected": true,

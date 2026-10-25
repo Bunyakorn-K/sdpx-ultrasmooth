@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { AppError } from "@/shared/domain/app-error";
 import { database } from "@/shared/server/database";
+
 const MAX_ATTEMPTS = 10;
 /** Database-backed limit remains effective across server instances. Never store raw emails here. */
 export async function limitAuthAttempts(email: unknown) {

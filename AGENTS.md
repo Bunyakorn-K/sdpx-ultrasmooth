@@ -19,7 +19,7 @@ Peerly (PairEval) เป็นระบบประเมินผลงาน�
 - **Local Dev Server:** `npm run dev` (starts Next.js at `http://localhost:3000`)
 - **Production Build:** `npm run build`
 - **Database Initialization:** `npm run db:init` (initializes tables from `scripts/schema.sql`)
-- **Linting:** `npm run lint` (ESLint)
+- **Linting:** `npm run lint` (Oxlint; fallback `npm run lint:eslint`)
 - **Type Checking:** `npm run typecheck` (`tsc --noEmit`)
 - **OpenAPI Validation:** `npm run spec:lint` (Redocly validates `docs/openapi.yaml`)
 - **Unit & Integration Tests:** `npm test` (Node.js test runner: `tests/*.test.mjs`, `tests/unit/*.test.ts`)
@@ -27,7 +27,7 @@ Peerly (PairEval) เป็นระบบประเมินผลงาน�
 - **Test Fidelity Verification:** `npm run test:fidelity` (verifies test sensitivity by temporarily mutating domain rules)
 - **End-to-End Browser Tests:** `npm run test:e2e` (Playwright; auto-spawns test server on port 3100 unless `BASE_URL` is set)
 - **E2E Repeatability Check:** `npm run test:e2e:repeat` (runs E2E specs with `--repeat-each=3`)
-- **Code Formatting:** `npm run format` (Prettier)
+- **Code Formatting:** `npm run format` (Oxfmt; check via `npm run format:check`)
 
 ### Docker Commands
 - **Local App + PostgreSQL:** `docker compose up --build`

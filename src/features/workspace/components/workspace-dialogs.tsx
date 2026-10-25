@@ -7,6 +7,7 @@ import {
   isIndividualEvaluation,
 } from "@/features/assignments/domain/evaluation-targets";
 import type { WorkspaceController } from "../hooks/use-workspace-controller";
+
 export function WorkspaceDialogs({
   controller,
 }: {

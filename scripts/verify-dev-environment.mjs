@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { writeFile, mkdir } from "node:fs/promises";
+
 const env = { ...process.env, APP_PORT: "3301" };
 const prefix = ["compose", "-p", "peerly-lab-dev"];
 const run = (args) =>

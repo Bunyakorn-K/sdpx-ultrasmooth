@@ -24,6 +24,7 @@ const commandEndpoints: Record<
   string,
   { suffix: string; method: "POST" | "PUT" }
 > = {
+  resolveAppeal: { suffix: "appeals", method: "PUT" },
   group: { suffix: "groups", method: "POST" },
   joinGroup: { suffix: "groups/join", method: "POST" },
   questions: { suffix: "questions", method: "PUT" },
@@ -45,6 +46,7 @@ export async function sendAssignmentCommand(input: Record<string, unknown>) {
   let path: string;
   let method: "POST" | "PUT" = "POST";
   if (command === "create") path = "/api/assignments";
+  else if (command === "submitAppeal") path = "/api/appeals";
   else {
     const endpoint = Object.hasOwn(commandEndpoints, command)
       ? commandEndpoints[command]
@@ -57,7 +59,9 @@ export async function sendAssignmentCommand(input: Record<string, unknown>) {
     await requestJson<{ assignment: Assignment }>(path, {
       method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(
+        command === "submitAppeal" ? { ...payload, id } : payload,
+      ),
     })
   ).assignment;
 }

@@ -80,9 +80,7 @@ for (const width of [1280, 390]) {
     await page.reload();
     await work.selectTab("ประเมินผลงาน");
     await expect(cards.first().getByRole("radio").last()).toBeChecked();
-    await page
-      .getByRole("button", { name: "ส่งผลประเมิน", exact: true })
-      .click();
+    await page.getByRole("button", { name: "ส่งผลประเมิน", exact: true }).click();
     await expect(
       page.getByRole("dialog").getByText(/ยังไม่ได้ตอบ 2 คู่/),
     ).toBeVisible();

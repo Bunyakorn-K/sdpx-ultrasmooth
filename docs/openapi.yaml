@@ -25,6 +25,80 @@ tags:
 security:
   - cookieAuth: []
 paths:
+  /api/appeals:
+    post:
+      operationId: submitAppeal
+      summary: Student appeals finalized results within seven days
+      description: One request per student per finalization and pair generation. Same-origin cookie session and assignment student membership required. Assignment reads include the caller's private appeals and a public finalizedAt timestamp.
+      tags: [Assignments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, expectedFinalizedAt, message]
+              properties:
+                id: { type: string, format: uuid }
+                expectedFinalizedAt: { type: string, format: date-time }
+                message: { type: string, minLength: 1, maxLength: 2000 }
+      responses:
+        "200":
+          description: Request and audit saved atomically.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssignmentResponse" }
+        "400": { description: Invalid reason or identifier. }
+        "401": { description: Sign-in required. }
+        "403": { description: Student membership and same origin required. }
+        "404": { description: Assignment not found. }
+        "409":
+          {
+            description: "Not finalized, stale result, expired window or duplicate request.",
+          }
+  /api/assignments/{id}/appeals:
+    put:
+      operationId: resolveAppeal
+      summary: Owning teacher responds and upholds or overrides the appellant's total
+      description: Immutable decision with required explanation for the current finalization and generation. Override is bounded by the assignment maximum and affects only the appellant. Raw snapshot remains unchanged. Teacher can resolve after the intake window. Read requests via GET /api/assignments/{id}; students receive only their own requests.
+      tags: [Assignments]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [appealId, expectedFinalizedAt, outcome, response]
+              properties:
+                appealId: { type: string, format: uuid }
+                expectedFinalizedAt: { type: string, format: date-time }
+                outcome: { type: string, enum: [uphold, override] }
+                response: { type: string, minLength: 1, maxLength: 2000 }
+                score:
+                  {
+                    type: number,
+                    minimum: 0,
+                    description: Required for override and bounded by the assignment total maximum.,
+                  }
+      responses:
+        "200":
+          description: Decision and audit saved atomically; results and exports include the override.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssignmentResponse" }
+        "400": { description: "Invalid response, outcome or score." }
+        "401": { description: Sign-in required. }
+        "403": { description: Owning teacher and same origin required. }
+        "404": { description: Assignment or appeal not found. }
+        "409":
+          {
+            description: "Not finalized, stale result, old generation or already resolved.",
+          }
   /api/notifications:
     get:
       operationId: listNotifications
@@ -1297,6 +1371,34 @@ components:
         - createdAt
         - color
       properties:
+        finalizedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Public finalization timestamp for the appeal window; raw snapshot is owner-only.
+        appeals:
+          type: array
+          readOnly: true
+          description: All requests for the owner; only the caller's requests for students. Prior finalization requests remain read-only history.
+          items:
+            type: object
+            required: [id, studentId, message, submittedAt, finalizedAt, generation]
+            properties:
+              id: { type: string, format: uuid }
+              studentId: { type: string, format: uuid }
+              message: { type: string }
+              submittedAt: { type: string, format: date-time }
+              finalizedAt: { type: string, format: date-time }
+              generation: { type: integer, minimum: 0 }
+              decision:
+                type: object
+                required: [outcome, response, decidedBy, decidedAt]
+                properties:
+                  outcome: { type: string, enum: [uphold, override] }
+                  response: { type: string }
+                  score: { type: number, minimum: 0 }
+                  decidedBy: { type: string, description: Teacher identity masked for students. }
+                  decidedAt: { type: string, format: date-time }
         pairGeneration: { type: integer, minimum: 0 }
         pairwiseRequired:
           type: boolean

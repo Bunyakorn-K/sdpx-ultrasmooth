@@ -138,10 +138,7 @@ export const completeProfileResponse = withApi(
         rows[0].password_hash === ROSTER_PENDING_PASSWORD &&
         role !== "student"
       )
-        throw new AppError(
-          "อีเมลนี้อยู่ในรายชื่อนักศึกษา กรุณาสมัครเป็นนักศึกษา",
-          403,
-        );
+        throw new AppError("อีเมลนี้อยู่ในรายชื่อนักศึกษา กรุณาสมัครเป็นนักศึกษา", 403);
       rows = await sql`
         UPDATE users SET name = ${name}, role = ${role},
         password_hash = CASE WHEN password_hash=${ROSTER_PENDING_PASSWORD} THEN '!supabase-auth' ELSE password_hash END

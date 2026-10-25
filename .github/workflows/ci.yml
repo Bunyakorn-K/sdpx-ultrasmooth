@@ -36,6 +36,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Formatting check
+        run: npm run format:check
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -72,6 +75,8 @@ jobs:
           path: coverage/
 
   e2e-tests:
+    # Temporarily paused at the project owner's request; keep the job for re-enabling.
+    if: ${{ false }}
     needs: lint-and-unit-test
     runs-on: ubuntu-latest
 
@@ -132,7 +137,7 @@ jobs:
           retention-days: 7
 
   deploy-production:
-    needs: [lint-and-unit-test, e2e-tests]
+    needs: lint-and-unit-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: production

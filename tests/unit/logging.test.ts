@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { Writable } from "node:stream";
 import { createLogger } from "@/shared/server/logger";
+
 test("SEC08: logger redacts emails, passwords, tokens and cookie/authorization headers", () => {
   const chunks: string[] = [];
   const sink = new Writable({

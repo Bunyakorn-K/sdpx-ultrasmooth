@@ -19,12 +19,18 @@ import {
 import { InfoOutlined } from "@mui/icons-material";
 import type { Assignment } from "@/features/assignments/types";
 import type { User } from "@/features/auth/types";
+import { appealScore } from "@/features/assignments/domain/appeals";
 import {
   calculateItemScores,
   calculateParticipation,
   calculateParticipationMultiplier,
 } from "../domain/scoring-engine";
-import type { Comparison, Criterion, GroupEntity, PairAssignment } from "../types";
+import type {
+  Comparison,
+  Criterion,
+  GroupEntity,
+  PairAssignment,
+} from "../types";
 
 export type StudentScorecardProps = {
   active: Assignment;
@@ -137,8 +143,10 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
   const individualHasSufficientData = individualScores
     ? individualScores.kAnonymity.isSatisfied
     : true;
-  const personalFinalScore = Number(
-    ((groupComponent + individualComponent) * M).toFixed(2),
+  const personalFinalScore = appealScore(
+    active,
+    user?.id ?? "",
+    Number(((groupComponent + individualComponent) * M).toFixed(2)),
   );
 
   return (
@@ -173,7 +181,8 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
           />
         </Stack>
         <Typography variant="body2" sx={{ mt: 0.5 }}>
-          ระบบ PairEval แสดงเฉพาะคะแนนกลุ่มและคะแนนส่วนบุคคลของคุณเท่านั้น จะไม่มีการเปิดเผยคะแนนของผู้ประเมินหรือกลุ่มอื่น
+          ระบบ PairEval แสดงเฉพาะคะแนนกลุ่มและคะแนนส่วนบุคคลของคุณเท่านั้น
+          จะไม่มีการเปิดเผยคะแนนของผู้ประเมินหรือกลุ่มอื่น
         </Typography>
       </Alert>
 
@@ -207,10 +216,14 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
                 color="text.secondary"
                 sx={{ fontWeight: 500 }}
               >
-                / {(active.groupMaxScore ?? 15) + (active.individualMaxScore ?? 0)}
+                /{" "}
+                {(active.groupMaxScore ?? 15) +
+                  (active.individualMaxScore ?? 0)}
               </Typography>
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              {appealScore(active, user?.id ?? "", null) !== null &&
+                "คะแนนรวมปรับตามผลอุทธรณ์ · คะแนนคำนวณเดิม: "}
               คำนวณจาก (คะแนนกลุ่ม {groupComponent.toFixed(2)} + รายคน{" "}
               {individualComponent.toFixed(2)}) × ตัวคูณการมีส่วนร่วม {M.toFixed(2)}
             </Typography>
@@ -230,7 +243,11 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
               {ownGroup?.name || "ยังไม่มีกลุ่ม"}
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", mt: 1 }}
+            >
               การมีส่วนร่วมประเมิน (Participation p):
             </Typography>
             <LinearProgress
@@ -240,7 +257,8 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
               sx={{ height: 6, borderRadius: 4, my: 0.5 }}
             />
             <Typography variant="caption" sx={{ fontWeight: 600 }}>
-              ส่งแล้ว {submittedCount}/{assignedCount} คู่ ({(p * 100).toFixed(0)}%) → ตัวคูณ M = {M.toFixed(2)}
+              ส่งแล้ว {submittedCount}/{assignedCount} คู่ ({(p * 100).toFixed(0)}%)
+              → ตัวคูณ M = {M.toFixed(2)}
             </Typography>
           </Box>
         </Stack>
@@ -272,7 +290,9 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
               <TableBody>
                 {groupScores.criterionScores.map((c) => (
                   <TableRow key={c.criterionId}>
-                    <TableCell sx={{ fontWeight: 500 }}>{c.criterionName}</TableCell>
+                    <TableCell sx={{ fontWeight: 500 }}>
+                      {c.criterionName}
+                    </TableCell>
                     <TableCell align="right">{c.weightPct}%</TableCell>
                     <TableCell align="right">{c.q.toFixed(3)}</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700 }}>
@@ -300,12 +320,16 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
           <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start" }}>
             <InfoOutlined color="secondary" sx={{ fontSize: 20, mt: 0.2 }} />
             <Box>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "secondary.dark" }}>
+              <Typography
+                variant="subtitle2"
+                sx={{ fontWeight: 700, color: "secondary.dark" }}
+              >
                 นโยบายความเป็นธรรม (FR-SCORE-11 & FR-SCORE-12)
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 คะแนนรวมของกลุ่มของคุณจะไม่ถูกลดทอนจากการที่เพื่อนร่วมทีมบางคนไม่ประเมิน
-                ตัวคูณการมีส่วนร่วม (M) จะมีผลเฉพาะกับคะแนนส่วนบุคคลของผู้ที่ประเมินไม่ครบตามเกณฑ์เท่านั้น
+                ตัวคูณการมีส่วนร่วม (M)
+                จะมีผลเฉพาะกับคะแนนส่วนบุคคลของผู้ที่ประเมินไม่ครบตามเกณฑ์เท่านั้น
               </Typography>
             </Box>
           </Stack>

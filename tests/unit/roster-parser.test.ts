@@ -10,10 +10,7 @@ test("FR-AUTH-03: normalizeEmail removes dots and +tags in gmail and lowercases"
     normalizeEmail("Somchai.A+test@gmail.com"),
     "somchaia@gmail.com",
   );
-  assert.equal(
-    normalizeEmail("STUDENT@uni.ac.th"),
-    "student@uni.ac.th",
-  );
+  assert.equal(normalizeEmail("STUDENT@uni.ac.th"), "student@uni.ac.th");
 });
 
 test("FR-CLASS-01: parses valid CSV with mixed case headers", () => {
@@ -41,7 +38,10 @@ charlie@example.com,Borealis,66010003,Charlie`;
     () => parseRosterCsv(csv),
     (err: unknown) => {
       const error = err as Error;
-      assert.match(error.message, /แถวที่ 3: รูปแบบอีเมล "invalid-email-here" ไม่ถูกต้อง/);
+      assert.match(
+        error.message,
+        /แถวที่ 3: รูปแบบอีเมล "invalid-email-here" ไม่ถูกต้อง/,
+      );
       return true;
     },
   );
@@ -57,7 +57,10 @@ alice@example.com,GroupB`;
     () => parseRosterCsv(csv),
     (err: unknown) => {
       const error = err as Error;
-      assert.match(error.message, /แถวที่ 4: อีเมล "alice@example.com" ซ้ำกับแถวที่ 2/);
+      assert.match(
+        error.message,
+        /แถวที่ 4: อีเมล "alice@example.com" ซ้ำกับแถวที่ 2/,
+      );
       return true;
     },
   );

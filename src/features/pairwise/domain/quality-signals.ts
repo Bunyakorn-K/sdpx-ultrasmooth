@@ -187,9 +187,12 @@ export function checkIntransitivity(
         const c = items[k];
 
         // Check if all 3 pairs were evaluated between {a, b, c}
-        const hasAB = preference.has(`${a}>${b}`) || preference.has(`${b}>${a}`);
-        const hasBC = preference.has(`${b}>${c}`) || preference.has(`${c}>${b}`);
-        const hasCA = preference.has(`${c}>${a}`) || preference.has(`${a}>${c}`);
+        const hasAB =
+          preference.has(`${a}>${b}`) || preference.has(`${b}>${a}`);
+        const hasBC =
+          preference.has(`${b}>${c}`) || preference.has(`${c}>${b}`);
+        const hasCA =
+          preference.has(`${c}>${a}`) || preference.has(`${a}>${c}`);
 
         if (hasAB && hasBC && hasCA) {
           testableTriples++;
@@ -202,7 +205,10 @@ export function checkIntransitivity(
           const aBeatsC = preference.has(`${a}>${c}`);
 
           // Cycle A > B > C > A OR B > A > C > B
-          if ((aBeatsB && bBeatsC && cBeatsA) || (bBeatsA && cBeatsB && aBeatsC)) {
+          if (
+            (aBeatsB && bBeatsC && cBeatsA) ||
+            (bBeatsA && cBeatsB && aBeatsC)
+          ) {
             intransitiveTriples++;
           }
         }
@@ -246,7 +252,10 @@ export function checkSpeedRun(
 
   if (submitted.length < 3) return null;
 
-  const totalTime = submitted.reduce((sum, c) => sum + (c.time_on_task_ms || 0), 0);
+  const totalTime = submitted.reduce(
+    (sum, c) => sum + (c.time_on_task_ms || 0),
+    0,
+  );
   const avgTime = totalTime / submitted.length;
 
   if (avgTime < thresholdMs) {
@@ -258,7 +267,8 @@ export function checkSpeedRun(
       metric: Math.round(avgTime),
       threshold: thresholdMs,
       description: `เวลาเฉลี่ยต่อการประเมิน (${(avgTime / 1000).toFixed(1)} วิ) ต่ำกว่าเกณฑ์ (${thresholdMs / 1000} วิ)`,
-      suggestedAction: "ทบทวนคำตอบด้วยตา เนื่องจากผู้ประเมินอาจตอบโดยไม่ได้อ่านหรือเปรียบเทียบอย่างถี่ถ้วน",
+      suggestedAction:
+        "ทบทวนคำตอบด้วยตา เนื่องจากผู้ประเมินอาจตอบโดยไม่ได้อ่านหรือเปรียบเทียบอย่างถี่ถ้วน",
     };
   }
   return null;
@@ -294,12 +304,19 @@ export function analyzeAssignmentSignals(
 
   for (const [key, count] of itemCriterionCounts.entries()) {
     const [itemId, criterionId] = key.split(":");
-    const sig = checkLowCoverage(itemId, criterionId, count, options?.minComparisons ?? 3);
+    const sig = checkLowCoverage(
+      itemId,
+      criterionId,
+      count,
+      options?.minComparisons ?? 3,
+    );
     if (sig) signals.push(sig);
   }
 
   // Evaluator-based signals (QS-02, QS-03, QS-05)
-  const evaluators = Array.from(new Set(comparisons.map((c) => c.evaluator_user_id)));
+  const evaluators = Array.from(
+    new Set(comparisons.map((c) => c.evaluator_user_id)),
+  );
   for (const evaluatorId of evaluators) {
     const sLine = checkStraightLining(
       evaluatorId,

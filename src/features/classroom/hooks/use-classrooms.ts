@@ -83,9 +83,7 @@ export function useClassrooms(
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
       throw new Error(
-        errData.error?.message ||
-          errData.message ||
-          "ไม่สามารถสร้างห้องเรียนได้",
+        errData.error?.message || errData.message || "ไม่สามารถสร้างห้องเรียนได้",
       );
     }
 
@@ -126,9 +124,7 @@ export function useClassrooms(
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
       throw new Error(
-        errData.error?.message ||
-          errData.message ||
-          "ไม่สามารถนำเข้ารายชื่อได้",
+        errData.error?.message || errData.message || "ไม่สามารถนำเข้ารายชื่อได้",
       );
     }
 
@@ -238,9 +234,7 @@ export function useClassrooms(
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
       throw new Error(
-        errData.error?.message ||
-          errData.message ||
-          "ไม่สามารถเก็บห้องเรียนถาวรได้",
+        errData.error?.message || errData.message || "ไม่สามารถเก็บห้องเรียนถาวรได้",
       );
     }
 

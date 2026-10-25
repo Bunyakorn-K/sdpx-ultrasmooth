@@ -1,7 +1,16 @@
 import { database } from "@/shared/server/database";
 import type { Assignment, EvaluationSubmission } from "../types";
 import type { NotificationEvent } from "@/features/notifications/types";
+
 export type AssignmentRecord = { assignment: Assignment; version: number };
+export type AppealAudit = {
+  actorId: string;
+  action: "APPEAL_SUBMIT" | "APPEAL_RESOLVE" | "SCORE_OVERRIDE";
+  appealId: string;
+  before: unknown;
+  after: unknown;
+  reason: string;
+};
 export interface AssignmentRepository {
   listForUser(userId: string, userEmail?: string): Promise<Assignment[]>;
   findById(id: string): Promise<AssignmentRecord | null>;
@@ -11,6 +20,7 @@ export interface AssignmentRepository {
     version: number,
     event?: NotificationEvent,
     submissionAudit?: EvaluationSubmission,
+    appealAudit?: AppealAudit,
   ): Promise<boolean>;
 }
 function toRecord(
@@ -78,6 +88,7 @@ export class PostgresAssignmentRepository implements AssignmentRepository {
     version: number,
     event?: NotificationEvent,
     submissionAudit?: EvaluationSubmission,
+    appealAudit?: AppealAudit,
   ) {
     const sql = database();
     const rows = await sql`WITH updated AS (
@@ -108,6 +119,11 @@ export class PostgresAssignmentRepository implements AssignmentRepository {
         SELECT gen_random_uuid(),${submissionAudit?.evaluatorId ?? null}::uuid,'EVALUATION_SUBMIT','assignment',id::text,id,
           ${JSON.stringify(submissionAudit ? { side: submissionAudit.side, generation: submissionAudit.generation, revision: submissionAudit.revision, answered: submissionAudit.comparisons.length } : {})}::jsonb
         FROM updated WHERE ${submissionAudit !== undefined} RETURNING id
+      ), appeal_audited AS (
+        INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,assignment_id,before_state,after_state,reason)
+        SELECT gen_random_uuid(),${appealAudit?.actorId ?? null}::uuid,${appealAudit?.action ?? null},'appeal',${appealAudit?.appealId ?? null},id,
+          ${JSON.stringify(appealAudit?.before ?? null)}::jsonb,${JSON.stringify(appealAudit?.after ?? null)}::jsonb,${appealAudit?.reason ?? null}
+        FROM updated WHERE ${appealAudit !== undefined} RETURNING id
       ) SELECT id FROM updated`;
     return rows.length > 0;
   }

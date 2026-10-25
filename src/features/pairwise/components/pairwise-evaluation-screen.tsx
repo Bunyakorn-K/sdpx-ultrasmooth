@@ -55,8 +55,7 @@ export function PairwiseEvaluationScreen({
   const otherGroups = active.groups.filter((g) => g.id !== ownGroup?.id);
 
   // FR-PAIR-03: Individual eval evaluates peers within own group excluding self
-  const peersInGroup =
-    ownGroup?.members.filter((m) => m.id !== user?.id) ?? [];
+  const peersInGroup = ownGroup?.members.filter((m) => m.id !== user?.id) ?? [];
 
   // Generate pairing items for display
   // In demo mode: create pairs between groups
@@ -84,7 +83,11 @@ export function PairwiseEvaluationScreen({
   const isComplete = totalItems > 0 && answeredCount === totalItems;
   const expired = useDeadline(active.deadline);
 
-  function handleChoice(pairId: string, targetId: string, choice: ComparisonChoice) {
+  function handleChoice(
+    pairId: string,
+    targetId: string,
+    choice: ComparisonChoice,
+  ) {
     if (expired || active.status !== "active") return;
     setAnswers((prev) => ({ ...prev, [pairId]: choice }));
     const now = new Date();
@@ -176,7 +179,9 @@ export function PairwiseEvaluationScreen({
             variant="contained"
             color="primary"
             endIcon={<Send />}
-            disabled={busy || expired || active.status !== "active" || totalItems === 0}
+            disabled={
+              busy || expired || active.status !== "active" || totalItems === 0
+            }
             onClick={() => setConfirmOpen(true)}
             sx={{ px: 3 }}
           >
@@ -240,7 +245,8 @@ export function PairwiseEvaluationScreen({
             </Alert>
           )}
           <Typography variant="body2" color="text.secondary">
-            คุณสามารถกลับมาแก้ไขและกดส่งใหม่ (Re-submit) ได้ตลอดก่อนถึงกำหนดส่ง (FR-EVAL-06)
+            คุณสามารถกลับมาแก้ไขและกดส่งใหม่ (Re-submit) ได้ตลอดก่อนถึงกำหนดส่ง
+            (FR-EVAL-06)
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2.5 }}>

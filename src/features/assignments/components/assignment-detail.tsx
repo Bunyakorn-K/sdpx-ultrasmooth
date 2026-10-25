@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { AppealsPanel } from "./appeals-panel";
 import { RegeneratePairsDialog } from "@/features/pairwise/components/regenerate-pairs-dialog";
 import { PublishPairsDialog } from "@/features/pairwise/components/publish-pairs-dialog";
 import { GeneratedEvaluationPanel } from "@/features/pairwise/components/generated-evaluation-panel";
@@ -24,6 +25,7 @@ import { isIndividualEvaluation } from "../domain/evaluation-targets";
 import type { Assignment } from "../types";
 import type { CsvReport } from "@/features/pairwise/services/csv-service";
 import type { User } from "@/features/auth/types";
+
 type AssignmentDetailProps = {
   demo: boolean;
   active: Assignment | undefined;
@@ -66,6 +68,11 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
     setVoteTarget,
   } = props;
   if (!active) return null;
+  const showAppeals =
+    (active.status === "finalized" || !!active.appeals?.length) &&
+    (active.ownerId === user?.id ||
+      (user?.role === "student" &&
+        active.students.some((s) => s.id === user.id)));
   return (
     <>
       <Button
@@ -183,9 +190,8 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
       </div>
       {teacher && !active.pairwiseRequired && !active.pairs && (
         <Alert severity="info" sx={{ mb: 3 }}>
-          งานนี้ใช้การประเมินรูปแบบเดิม หากต้องการเปลี่ยนเป็นประเมินแบบคู่
-          ให้ใช้ Re-generate Pairs และยืนยันการเปลี่ยนระบบ
-          คำตอบเดิมจะถูกเก็บเป็นประวัติ
+          งานนี้ใช้การประเมินรูปแบบเดิม หากต้องการเปลี่ยนเป็นประเมินแบบคู่ ให้ใช้ Re-generate
+          Pairs และยืนยันการเปลี่ยนระบบ คำตอบเดิมจะถูกเก็บเป็นประวัติ
         </Alert>
       )}
       {publishOpen &&
@@ -226,6 +232,7 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
         <Tab label={`กลุ่ม (${active.groups.length})`} />
         <Tab label={`คำถาม (${active.questions.length})`} />
         <Tab label={teacher ? "ผลการประเมิน" : "ประเมินผลงาน"} />
+        {showAppeals && <Tab label="อุทธรณ์คะแนน" />}
       </Tabs>
       {tab === 0 && (
         <GroupsPanel
@@ -243,6 +250,14 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
           teacher={teacher}
           setQuestionText={setQuestionText}
           openModal={openModal}
+        />
+      )}
+      {tab === 3 && showAppeals && (
+        <AppealsPanel
+          key={`${active.id}:${user?.id}`}
+          active={active}
+          user={user}
+          command={props.evaluationCommand}
         />
       )}
       {tab === 2 &&

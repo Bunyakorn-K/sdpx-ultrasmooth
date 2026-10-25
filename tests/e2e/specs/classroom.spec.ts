@@ -10,15 +10,21 @@ test("FR-CLASS-01: teacher creates a new classroom and views classroom detail", 
 
   // Navigate to Classrooms via sidebar
   await page.getByRole("button", { name: "ห้องเรียนของฉัน" }).click();
-  await expect(page.getByRole("heading", { name: "ห้องเรียนของฉัน (Classrooms)" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "ห้องเรียนของฉัน (Classrooms)" }),
+  ).toBeVisible();
 
   // Open Create Classroom dialog
   await page.getByTestId("create-classroom-button").click();
   await expect(page.getByRole("dialog")).toBeVisible();
 
   // Fill in classroom details
-  await page.getByLabel("ชื่อห้องเรียน (Classroom Name)").fill("วิศวกรรมซอฟต์แวร์ ภาค 1/2569");
-  await page.getByRole("button", { name: "สร้าง Classroom", exact: true }).click();
+  await page
+    .getByLabel("ชื่อห้องเรียน (Classroom Name)")
+    .fill("วิศวกรรมซอฟต์แวร์ ภาค 1/2569");
+  await page
+    .getByRole("button", { name: "สร้าง Classroom", exact: true })
+    .click();
 
   // Verify new classroom is displayed in list
   await expect(

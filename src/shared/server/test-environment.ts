@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { AppError } from "@/shared/domain/app-error";
+
 export function requireTestEnvironment(
   request: Request,
   environment: Record<string, string | undefined> = process.env,

@@ -10,11 +10,14 @@ import { logBusinessEvent } from "@/shared/server/logger";
 import { PostgresClassroomRepository } from "@/features/classroom/server/classroom-repository";
 import { PostgresAssignmentRepository } from "./assignment-repository";
 import { AssignmentService } from "./assignment-service";
+
 const assignments = new AssignmentService(
   new PostgresAssignmentRepository(),
   new PostgresClassroomRepository(),
 );
 const commands = new Set([
+  "submitAppeal",
+  "resolveAppeal",
   "create",
   "group",
   "joinGroup",
@@ -32,6 +35,8 @@ const commands = new Set([
   "reopen",
 ]);
 const events: Record<string, string> = {
+  submitAppeal: "appeal_submitted",
+  resolveAppeal: "appeal_resolved",
   create: "assignment_created",
   group: "group_created",
   joinGroup: "group_joined",

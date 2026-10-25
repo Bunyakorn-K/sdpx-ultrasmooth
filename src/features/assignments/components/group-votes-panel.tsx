@@ -43,13 +43,10 @@ export function GroupVotesPanel({
           {individual ? "ประเมินนักเรียนจากกลุ่มอื่นรายคน" : "ประเมินกลุ่มอื่น"}
         </Typography>
         <Typography color="text.secondary" sx={{ mt: 1 }}>
-          คำตอบแยกตามบัญชีของนักเรียนแต่ละคน เปรียบเทียบ 1–6 ·
-          หน้านี้สำหรับอาจารย์เจ้าของงาน
+          คำตอบแยกตามบัญชีของนักเรียนแต่ละคน เปรียบเทียบ 1–6 · หน้านี้สำหรับอาจารย์เจ้าของงาน
         </Typography>
       </Box>
-      {!group.members.length && (
-        <Alert severity="info">กลุ่มนี้ยังไม่มีสมาชิก</Alert>
-      )}
+      {!group.members.length && <Alert severity="info">กลุ่มนี้ยังไม่มีสมาชิก</Alert>}
       {group.members.map((member) => {
         const eligible = targets.filter((target) =>
           canEvaluateTarget(assignment, member.id, target.id),
@@ -107,9 +104,7 @@ export function GroupVotesPanel({
                   <TableHead>
                     <TableRow>
                       <TableCell>
-                        {individual
-                          ? "นักเรียนที่รับการประเมิน"
-                          : "กลุ่มที่รับการประเมิน"}
+                        {individual ? "นักเรียนที่รับการประเมิน" : "กลุ่มที่รับการประเมิน"}
                       </TableCell>
                       <TableCell>สถานะ / เวลาส่ง</TableCell>
                       <TableCell>คะแนนรายข้อ</TableCell>

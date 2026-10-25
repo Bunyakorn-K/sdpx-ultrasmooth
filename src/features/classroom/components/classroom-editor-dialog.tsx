@@ -65,18 +65,26 @@ export function ClassroomEditorDialog({
       });
       handleClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการสร้างห้องเรียน");
+      setError(
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการสร้างห้องเรียน",
+      );
     }
   }
 
   return (
-    <Dialog open={open} onClose={() => !busy && handleClose()} maxWidth="sm" fullWidth>
+    <Dialog
+      open={open}
+      onClose={() => !busy && handleClose()}
+      maxWidth="sm"
+      fullWidth
+    >
       <form onSubmit={handleSubmit}>
         <DialogTitle sx={{ fontWeight: 700 }}>สร้าง Classroom ใหม่</DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
           <Stack spacing={2.5}>
             <Typography variant="body2" color="text.secondary">
-              สร้างพื้นที่ห้องเรียนสำหรับการจัดกลุ่ม นำเข้ารายชื่อนักศึกษา และสร้างการประเมินผลงานเปรียบเทียบคู่ (FR-CLASS-01)
+              สร้างพื้นที่ห้องเรียนสำหรับการจัดกลุ่ม นำเข้ารายชื่อนักศึกษา
+              และสร้างการประเมินผลงานเปรียบเทียบคู่ (FR-CLASS-01)
             </Typography>
 
             <TextField
@@ -106,8 +114,12 @@ export function ClassroomEditorDialog({
               onChange={(e) => setTimezone(e.target.value)}
               helperText="กำหนดเวลา deadline และการคำนวณคะแนน interim ประจำวัน (§9.4)"
             >
-              <MenuItem value="Asia/Bangkok">Asia/Bangkok (UTC+07:00 — ประเทศไทย)</MenuItem>
-              <MenuItem value="Asia/Singapore">Asia/Singapore (UTC+08:00)</MenuItem>
+              <MenuItem value="Asia/Bangkok">
+                Asia/Bangkok (UTC+07:00 — ประเทศไทย)
+              </MenuItem>
+              <MenuItem value="Asia/Singapore">
+                Asia/Singapore (UTC+08:00)
+              </MenuItem>
               <MenuItem value="Asia/Tokyo">Asia/Tokyo (UTC+09:00)</MenuItem>
               <MenuItem value="UTC">UTC (เวลาสากล)</MenuItem>
             </TextField>

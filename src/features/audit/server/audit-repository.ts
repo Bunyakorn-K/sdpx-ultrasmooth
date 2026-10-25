@@ -3,8 +3,14 @@ import type { AuditLogEntry } from "../types";
 
 export interface AuditRepository {
   record(entry: AuditLogEntry): Promise<void>;
-  listByClassroom(classroomId: string, limit?: number): Promise<AuditLogEntry[]>;
-  listByAssignment(assignmentId: string, limit?: number): Promise<AuditLogEntry[]>;
+  listByClassroom(
+    classroomId: string,
+    limit?: number,
+  ): Promise<AuditLogEntry[]>;
+  listByAssignment(
+    assignmentId: string,
+    limit?: number,
+  ): Promise<AuditLogEntry[]>;
 }
 
 function toEntry(row: Record<string, unknown>): AuditLogEntry {
@@ -20,7 +26,10 @@ function toEntry(row: Record<string, unknown>): AuditLogEntry {
     after_state: (row.after_state as Record<string, unknown>) || null,
     reason: row.reason ? String(row.reason) : null,
     ip_address: row.ip_address ? String(row.ip_address) : null,
-    created_at: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
+    created_at:
+      row.created_at instanceof Date
+        ? row.created_at.toISOString()
+        : String(row.created_at),
   };
 }
 
@@ -49,7 +58,10 @@ export class PostgresAuditRepository implements AuditRepository {
     `;
   }
 
-  async listByClassroom(classroomId: string, limit = 100): Promise<AuditLogEntry[]> {
+  async listByClassroom(
+    classroomId: string,
+    limit = 100,
+  ): Promise<AuditLogEntry[]> {
     const sql = database();
     const rows = await sql`
       SELECT id, actor_id, action, resource_type, resource_id, classroom_id, assignment_id,
@@ -62,7 +74,10 @@ export class PostgresAuditRepository implements AuditRepository {
     return rows.map(toEntry);
   }
 
-  async listByAssignment(assignmentId: string, limit = 100): Promise<AuditLogEntry[]> {
+  async listByAssignment(
+    assignmentId: string,
+    limit = 100,
+  ): Promise<AuditLogEntry[]> {
     const sql = database();
     const rows = await sql`
       SELECT id, actor_id, action, resource_type, resource_id, classroom_id, assignment_id,

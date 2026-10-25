@@ -35,7 +35,8 @@ export class FakeAssignmentRepository implements AssignmentRepository {
         (assignment) =>
           assignment.ownerId === userId ||
           assignment.students.some((student) => student.id === userId) ||
-          (assignment.classroomId && userClassroomIds.has(assignment.classroomId)) ||
+          (assignment.classroomId &&
+            userClassroomIds.has(assignment.classroomId)) ||
           linkedAssignmentIds.has(assignment.id),
       );
   }

@@ -89,10 +89,7 @@ export function applyRosterImport(
   roster: ParseRosterResult,
 ): { classroom: Classroom; addedCount: number; updatedCount: number } {
   if (classroom.status === "ARCHIVED") {
-    throw new AppError(
-      "ไม่สามารถนำเข้ารายชื่อใน Classroom ที่ถูกเก็บถาวรแล้ว",
-      400,
-    );
+    throw new AppError("ไม่สามารถนำเข้ารายชื่อใน Classroom ที่ถูกเก็บถาวรแล้ว", 400);
   }
 
   const now = new Date().toISOString();
@@ -178,10 +175,7 @@ export function addStaffMember(
     !requesterMember ||
     (requesterMember.role !== "OWNER" && requesterMember.role !== "CO_TEACHER")
   ) {
-    throw new AppError(
-      "เฉพาะอาจารย์ผู้รับผิดชอบหรืออาจารย์ร่วมเท่านั้นที่เพิ่มผู้สอนได้",
-      403,
-    );
+    throw new AppError("เฉพาะอาจารย์ผู้รับผิดชอบหรืออาจารย์ร่วมเท่านั้นที่เพิ่มผู้สอนได้", 403);
   }
 
   const emailNorm = input.email.trim().toLowerCase();
@@ -228,10 +222,7 @@ export function removeMember(
       (m) => m.role === "OWNER",
     ).length;
     if (ownerCount <= 1) {
-      throw new AppError(
-        "ไม่สามารถลบเจ้าของห้องเรียนคนสุดท้ายได้ (FR-CLASS-06)",
-        400,
-      );
+      throw new AppError("ไม่สามารถลบเจ้าของห้องเรียนคนสุดท้ายได้ (FR-CLASS-06)", 400);
     }
   }
 

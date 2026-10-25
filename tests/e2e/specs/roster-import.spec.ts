@@ -38,9 +38,9 @@ test("teacher downloads KMITL roster, previews, imports and updates a student's 
     dialog.getByText("s12@kmitl.ac.th", { exact: true }),
   ).toBeVisible();
   await expect(dialog.getByText("67015012", { exact: true })).toBeVisible();
-  await expect(
-    dialog.getByText("เพิ่มนักศึกษาใหม่", { exact: true }),
-  ).toHaveCount(12);
+  await expect(dialog.getByText("เพิ่มนักศึกษาใหม่", { exact: true })).toHaveCount(
+    12,
+  );
   await dialog
     .getByRole("button", { name: "ยืนยันนำเข้าข้อมูล (12 คน)", exact: true })
     .click();
@@ -251,9 +251,7 @@ test("PostgreSQL CSV drives all assignments and a pending student can register a
     await expect(
       page.getByRole("button", { name: "เข้าร่วม assignment", exact: true }),
     ).toHaveCount(0);
-    await expect(
-      page.getByText(/กลุ่มถูกกำหนดโดยอาจารย์จาก CSV/),
-    ).toBeVisible();
+    await expect(page.getByText(/กลุ่มถูกกำหนดโดยอาจารย์จาก CSV/)).toBeVisible();
     await expect(
       page.getByRole("button", { name: "สร้างกลุ่ม", exact: true }),
     ).toHaveCount(0);

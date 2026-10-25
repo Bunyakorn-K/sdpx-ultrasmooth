@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
+
 const name = "peerly-production-guard-probe";
 const token = randomBytes(32).toString("hex");
 const started = spawnSync(

@@ -44,12 +44,17 @@ export function LandingPage(props: LandingPageProps) {
               </Button>
             ) : (
               <>
-                <Button variant="contained" onClick={() => openModal("register")}>
+                <Button
+                  variant="contained"
+                  onClick={() => openModal("register")}
+                >
                   เริ่มต้นใช้งานฟรี
                 </Button>
                 <Button
                   color="inherit"
-                  endIcon={<ArrowForward sx={{ color: "#55b8b6", fontSize: 19 }} />}
+                  endIcon={
+                    <ArrowForward sx={{ color: "#55b8b6", fontSize: 19 }} />
+                  }
                   onClick={() => openModal("login")}
                 >
                   เข้าสู่ระบบ
@@ -195,21 +200,13 @@ export function LandingPage(props: LandingPageProps) {
             <h2>จากไอเดีย สู่การเรียนรู้ร่วมกัน</h2>
             <div className="steps">
               {[
-                [
-                  "01",
-                  "สร้างพื้นที่การเรียนรู้",
-                  "ครูสร้างงาน เพิ่มคำถาม และกำหนดวันสิ้นสุด",
-                ],
+                ["01", "สร้างพื้นที่การเรียนรู้", "ครูสร้างงาน เพิ่มคำถาม และกำหนดวันสิ้นสุด"],
                 [
                   "02",
                   "รวมทีม แล้วลงมือทำ",
                   "นักศึกษาเข้าสู่ระบบเพื่อดู Assignment และกลุ่มที่อาจารย์กำหนด",
                 ],
-                [
-                  "03",
-                  "แบ่งปันมุมมองที่มีคุณค่า",
-                  "เปิดโหวต ให้คะแนน แล้วดูผลสรุปร่วมกัน",
-                ],
+                ["03", "แบ่งปันมุมมองที่มีคุณค่า", "เปิดโหวต ให้คะแนน แล้วดูผลสรุปร่วมกัน"],
               ].map((s) => (
                 <div key={s[0]}>
                   <span>{s[0]}</span>
@@ -222,10 +219,7 @@ export function LandingPage(props: LandingPageProps) {
           <section className="bottom-cta">
             <div>
               <h2>พร้อมเติบโตไปด้วยกันหรือยัง?</h2>
-              <p>
-                เริ่มต้น assignment แรก
-                แล้วให้ทุกเสียงเป็นส่วนหนึ่งของการเรียนรู้
-              </p>
+              <p>เริ่มต้น assignment แรก แล้วให้ทุกเสียงเป็นส่วนหนึ่งของการเรียนรู้</p>
             </div>
             <Button
               variant="contained"

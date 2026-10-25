@@ -115,7 +115,9 @@ export function AuthForm({
         </Button>
         {googleError && <Alert severity="error">{googleError}</Alert>}
 
-        <Divider sx={{ my: 0.5, typography: "caption", color: "text.secondary" }}>
+        <Divider
+          sx={{ my: 0.5, typography: "caption", color: "text.secondary" }}
+        >
           หรือเข้าสู่ระบบด้วยบัญชี
         </Divider>
 
@@ -157,10 +159,15 @@ export function AuthForm({
         />
         {registering && (
           <Alert severity="info" sx={{ mt: 1, borderRadius: "8px" }}>
-            <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
+            <Typography
+              variant="caption"
+              sx={{ fontWeight: 700, display: "block", mb: 0.5 }}
+            >
               ประกาศการคุ้มครองข้อมูลส่วนบุคคล (PDPA Notice — FR-PRIV-01)
             </Typography>
-            ระบบจัดเก็บข้อมูล (อีเมล, ชื่อ, ผลการประเมิน) 2 ปีการศึกษา เพื่อใช้ประเมินผลและตรวจสอบความสุจริตทางวิชาการ โดยตัวตนผู้ประเมินจะถูกปกปิดเป็นความลับ
+            ระบบจัดเก็บข้อมูล (อีเมล, ชื่อ, ผลการประเมิน) 2 ปีการศึกษา
+            เพื่อใช้ประเมินผลและตรวจสอบความสุจริตทางวิชาการ
+            โดยตัวตนผู้ประเมินจะถูกปกปิดเป็นความลับ
           </Alert>
         )}
         {error && <Alert severity="error">{error}</Alert>}
@@ -184,11 +191,15 @@ export function AuthForm({
           disabled={busy}
           onClick={() => onSwitch?.(registering ? "login" : "register")}
         >
-          {registering
-            ? "มีบัญชีแล้ว? เข้าสู่ระบบ"
-            : "ยังไม่มีบัญชี? สมัครสมาชิก"}
+          {registering ? "มีบัญชีแล้ว? เข้าสู่ระบบ" : "ยังไม่มีบัญชี? สมัครสมาชิก"}
         </Button>
-        <Button fullWidth type="button" color="secondary" disabled={busy} onClick={onDemo}>
+        <Button
+          fullWidth
+          type="button"
+          color="secondary"
+          disabled={busy}
+          onClick={onDemo}
+        >
           ทดลองใช้งานโดยไม่สมัครสมาชิก →
         </Button>
       </div>

@@ -1,6 +1,7 @@
 import { seedAssignmentStudent } from "../seed/assignment-student";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
+
 const { Workbook } = createRequire(import.meta.url)(
   "exceljs",
 ) as typeof import("exceljs");
@@ -45,16 +46,10 @@ for (const width of [1280, 390]) {
     await expect(
       dialog.getByRole("button", { name: "ยืนยันและเผยแพร่คู่ใหม่" }),
     ).toBeDisabled();
-    await dialog
-      .getByLabel("เหตุผลในการสร้างคู่ใหม่")
-      .fill("Test revised pairing");
-    await dialog
-      .getByRole("button", { name: "ตรวจสอบและดูตัวอย่างคู่ใหม่" })
-      .click();
+    await dialog.getByLabel("เหตุผลในการสร้างคู่ใหม่").fill("Test revised pairing");
+    await dialog.getByRole("button", { name: "ตรวจสอบและดูตัวอย่างคู่ใหม่" }).click();
     await expect(dialog.getByText(/Coverage ที่ทำได้จริง/)).toBeVisible();
-    await dialog
-      .getByRole("button", { name: "ยืนยันและเผยแพร่คู่ใหม่" })
-      .click();
+    await dialog.getByRole("button", { name: "ยืนยันและเผยแพร่คู่ใหม่" }).click();
     await expect(dialog.getByText(/เผยแพร่คู่ชุดใหม่แล้ว/)).toBeVisible();
     await dialog.getByRole("button", { name: "ปิด", exact: true }).click();
     await work.switchRole("student");
@@ -75,13 +70,9 @@ for (const width of [1280, 390]) {
     await expect(
       page.getByRole("button", { name: "ส่งผลประเมินคู่นี้" }),
     ).toHaveCount(0);
-    await page
-      .getByRole("button", { name: "ส่งผลประเมิน", exact: true })
-      .click();
+    await page.getByRole("button", { name: "ส่งผลประเมิน", exact: true }).click();
     await expect(
-      page
-        .getByRole("dialog")
-        .getByText("ยังไม่ได้ตอบ 2 คู่", { exact: false }),
+      page.getByRole("dialog").getByText("ยังไม่ได้ตอบ 2 คู่", { exact: false }),
     ).toBeVisible();
     await page
       .getByRole("button", { name: "ยืนยันส่งผลประเมิน", exact: true })
@@ -116,19 +107,13 @@ for (const width of [1280, 390]) {
     await dialog
       .getByLabel("เหตุผลในการสร้างคู่ใหม่")
       .fill("Refresh after roster review");
-    await dialog
-      .getByRole("button", { name: "ยืนยันนำกลับเป็น Draft" })
-      .click();
+    await dialog.getByRole("button", { name: "ยืนยันนำกลับเป็น Draft" }).click();
     await expect(
       dialog.getByRole("button", { name: "ตรวจสอบและดูตัวอย่างคู่ใหม่" }),
     ).toBeVisible();
-    await dialog
-      .getByRole("button", { name: "ตรวจสอบและดูตัวอย่างคู่ใหม่" })
-      .click();
+    await dialog.getByRole("button", { name: "ตรวจสอบและดูตัวอย่างคู่ใหม่" }).click();
     await expect(dialog.getByText(/คำตอบเดิม 1 รายการ/)).toBeVisible();
-    await dialog
-      .getByRole("button", { name: "ยืนยันและเผยแพร่คู่ใหม่" })
-      .click();
+    await dialog.getByRole("button", { name: "ยืนยันและเผยแพร่คู่ใหม่" }).click();
     await expect(dialog.getByText(/เผยแพร่คู่ชุดใหม่แล้ว/)).toBeVisible();
     await dialog.getByRole("button", { name: "ปิด", exact: true }).click();
     await work.switchRole("student");
@@ -140,9 +125,7 @@ for (const width of [1280, 390]) {
     await expect(
       page.getByRole("button", { name: "ส่งผลประเมินแล้ว" }),
     ).toHaveCount(0);
-    await expect(
-      page.getByText("ประวัติคำตอบเดิม (อ่านอย่างเดียว)"),
-    ).toBeVisible();
+    await expect(page.getByText("ประวัติคำตอบเดิม (อ่านอย่างเดียว)")).toBeVisible();
     await expect
       .poll(() =>
         page.evaluate(
@@ -274,9 +257,7 @@ test("real PostgreSQL atomically stores regeneration, history, notifications and
     try {
       const page = await browserContext.newPage();
       await page.goto(root.replace("/api/", "/"));
-      await page
-        .getByRole("tab", { name: "ประเมินผลงาน", exact: true })
-        .click();
+      await page.getByRole("tab", { name: "ประเมินผลงาน", exact: true }).click();
       const choice = page
         .getByTestId("pairwise-card")
         .first()

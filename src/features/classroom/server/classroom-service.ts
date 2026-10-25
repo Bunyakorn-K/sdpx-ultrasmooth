@@ -106,10 +106,7 @@ export class ClassroomService {
           (requesterMember.role !== "OWNER" &&
             requesterMember.role !== "CO_TEACHER"))
       ) {
-        throw new AppError(
-          "เฉพาะอาจารย์ผู้รับผิดชอบเท่านั้นที่สามารถนำเข้ารายชื่อได้",
-          403,
-        );
+        throw new AppError("เฉพาะอาจารย์ผู้รับผิดชอบเท่านั้นที่สามารถนำเข้ารายชื่อได้", 403);
       }
 
       const result = applyRosterImport(record.classroom, roster);
@@ -208,10 +205,7 @@ export class ClassroomService {
       const classroom = record.classroom;
 
       if (classroom.status === "ARCHIVED") {
-        throw new AppError(
-          "ห้องเรียนนี้ถูกเก็บถาวรแล้ว ไม่สามารถเข้าร่วมได้",
-          400,
-        );
+        throw new AppError("ห้องเรียนนี้ถูกเก็บถาวรแล้ว ไม่สามารถเข้าร่วมได้", 400);
       }
 
       if (

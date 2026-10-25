@@ -1,6 +1,7 @@
 import type { User } from "@/features/auth/types";
 import { AppError } from "@/shared/domain/app-error";
 import type { Assignment } from "../types";
+
 export function validateQuestions(value: unknown): string[] {
   if (
     !Array.isArray(value) ||
@@ -31,9 +32,7 @@ export function createAssignment(
     !Number.isFinite(deadline.getTime()) ||
     deadline.getTime() <= Date.now()
   )
-    throw new AppError(
-      "กรุณากรอกชื่องานไม่เกิน 200 ตัวอักษรและวันสิ้นสุดในอนาคต",
-    );
+    throw new AppError("กรุณากรอกชื่องานไม่เกิน 200 ตัวอักษรและวันสิ้นสุดในอนาคต");
   const groupMaxScore = input.groupMaxScore ? Number(input.groupMaxScore) : 15;
   const individualMaxScore = input.individualMaxScore
     ? Number(input.individualMaxScore)
