@@ -10,6 +10,7 @@ import type { ComparisonChoice } from "@/features/pairwise/types";
 import { validateQuestions } from "./create-assignment";
 import { saveEvaluation } from "@/features/pairwise/domain/evaluation-submission";
 import { submitAppeal, resolveAppeal } from "./appeals";
+import { generatedResult } from "@/features/pairwise/domain/generated-results";
 import {
   canEvaluateTarget,
   isIndividualEvaluation,
@@ -79,7 +80,10 @@ function startVoting(context: PolicyContext, input: CommandInput) {
       assignment.pairs ||
       assignment.pairingPaused
     )
-      throw new AppError("กรุณาใช้ Re-generate Pairs เพื่อเผยแพร่คู่ชุดใหม่", 409);
+      throw new AppError(
+        "กรุณาใช้ Re-generate Pairs เพื่อเผยแพร่คู่ชุดใหม่",
+        409,
+      );
     if (!canEditGroups) throw new AppError("ยังไม่สามารถเปิดประเมินได้");
     // Always recompute against current state, including on optimistic-lock retries.
     // The preview token prevents publishing a roster/configuration the owner did not review.
@@ -108,7 +112,9 @@ function startVoting(context: PolicyContext, input: CommandInput) {
     !assignment.questions.length ||
     populatedGroups.length < 2
   )
-    throw new AppError("ต้องมีคำถามและกลุ่มที่มีสมาชิกอย่างน้อย 2 กลุ่ม และยังไม่ถึงกำหนดส่ง");
+    throw new AppError(
+      "ต้องมีคำถามและกลุ่มที่มีสมาชิกอย่างน้อย 2 กลุ่ม และยังไม่ถึงกำหนดส่ง",
+    );
   assignment.status = "active";
 }
 function stopVoting({ assignment, isOwner }: PolicyContext) {
@@ -147,7 +153,9 @@ function castVote(
     !canEvaluateTarget(assignment, user.id, targetId)
   )
     throw new AppError(
-      individual ? "ไม่สามารถประเมินนักเรียนคนนี้ได้" : "ไม่สามารถโหวตกลุ่มนี้ได้",
+      individual
+        ? "ไม่สามารถประเมินนักเรียนคนนี้ได้"
+        : "ไม่สามารถโหวตกลุ่มนี้ได้",
     );
   const alreadyVoted = targetVotes(assignment, targetId).some(
     (vote) => vote.userId === user.id,
@@ -206,11 +214,35 @@ function overrideScore(
 function finalizeAssignment({ assignment, isOwner, user }: PolicyContext) {
   if (!isOwner) throw new AppError("เฉพาะครูเจ้าของงานเท่านั้น", 403);
   if (assignment.status !== "closed") {
-    throw new AppError("สามารถ Finalize ได้เฉพาะงานที่ปิดรับการประเมินแล้วเท่านั้น", 400);
+    throw new AppError(
+      "สามารถ Finalize ได้เฉพาะงานที่ปิดรับการประเมินแล้วเท่านั้น",
+      400,
+    );
   }
 
   // FR-SCORE-09: Snapshot inputs and outputs
   assignment.status = "finalized";
+  const snapshotScores: Record<
+    string,
+    {
+      groupScore: number;
+      individualScore: number | null;
+      finalScore: number | null;
+      participation: number;
+      multiplier: number;
+    }
+  > = {};
+  for (const student of assignment.students) {
+    const res = generatedResult(assignment, student.id);
+    snapshotScores[student.id] = {
+      groupScore: res.groupScore,
+      individualScore: res.individualScore,
+      finalScore: res.finalScore,
+      participation: res.participation,
+      multiplier: res.multiplier,
+    };
+  }
+
   assignment.finalizedSnapshot = {
     finalizedAt: new Date().toISOString(),
     finalizedBy: user.id,
@@ -223,6 +255,7 @@ function finalizeAssignment({ assignment, isOwner, user }: PolicyContext) {
       overrides: assignment.scoreOverrides
         ? [...assignment.scoreOverrides]
         : [],
+      scores: snapshotScores,
     },
   };
   if (assignment.pairs) {
@@ -240,11 +273,17 @@ function reopenAssignment(
 ) {
   if (!isOwner) throw new AppError("เฉพาะครูเจ้าของงานเท่านั้น", 403);
   if (assignment.status !== "finalized") {
-    throw new AppError("สามารถ Reopen ได้เฉพาะงานที่ Finalize แล้วเท่านั้น", 400);
+    throw new AppError(
+      "สามารถ Reopen ได้เฉพาะงานที่ Finalize แล้วเท่านั้น",
+      400,
+    );
   }
   const reason = String(input.reason || "").trim();
   if (!reason) {
-    throw new AppError("กรุณาระบุเหตุผลในการเปิดประเมินใหม่ (FR-ASSIGN-03)", 400);
+    throw new AppError(
+      "กรุณาระบุเหตุผลในการเปิดประเมินใหม่ (FR-ASSIGN-03)",
+      400,
+    );
   }
   assignment.status = "closed";
   assignment.reopenReason = reason;
@@ -441,7 +480,18 @@ function submitPair(context: PolicyContext, input: CommandInput) {
   if (index >= 0) throw new AppError("คุณส่งผลประเมินคู่นี้แล้ว", 409);
   a.comparisons.push(response);
 }
+function recomputeScores({ assignment, isOwner }: PolicyContext) {
+  if (!isOwner) throw new AppError("เฉพาะครูเจ้าของงานเท่านั้น", 403);
+  if (assignment.status === "draft") {
+    throw new AppError(
+      "สามารถคำนวณคะแนนได้เฉพาะงานที่เปิดหรือปิดรับการประเมินแล้ว",
+      400,
+    );
+  }
+  assignment.lastInterimAt = new Date().toISOString();
+}
 const commandHandlers: Record<string, CommandHandler> = {
+  recomputeScores,
   submitAppeal: ({ assignment, user }, input) =>
     submitAppeal(assignment, user, input),
   resolveAppeal: ({ assignment, user }, input) =>

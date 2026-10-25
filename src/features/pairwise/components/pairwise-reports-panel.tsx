@@ -47,6 +47,13 @@ export type PairwiseReportsPanelProps = {
   teacher: boolean;
   exportExcel: (assignment: Assignment) => Promise<void>;
   exportCsv: (assignment: Assignment, report: CsvReport) => Promise<void>;
+  onOverrideScore?: (
+    targetId: string,
+    targetType: "student" | "group",
+    score: number,
+    reason: string,
+  ) => Promise<void>;
+  onRecomputeScores?: () => Promise<void>;
 };
 
 export function PairwiseReportsPanel({
@@ -54,6 +61,8 @@ export function PairwiseReportsPanel({
   teacher,
   exportExcel,
   exportCsv,
+  onOverrideScore,
+  onRecomputeScores,
 }: PairwiseReportsPanelProps) {
   const [reportTab, setReportTab] = useState<number>(0);
   const [csvAnchor, setCsvAnchor] = useState<HTMLElement | null>(null);
@@ -63,6 +72,8 @@ export function PairwiseReportsPanel({
         active={active}
         exportExcel={exportExcel}
         exportCsv={exportCsv}
+        onOverrideScore={onOverrideScore}
+        onRecomputeScores={onRecomputeScores}
       />
     ) : null;
 
@@ -122,6 +133,11 @@ export function PairwiseReportsPanel({
     });
   });
 
+  const evaluatorRoles = active.ownerId
+    ? { [active.ownerId]: "OWNER" as const }
+    : {};
+  const instructorWeight = active.instructorWeight ?? 1.0;
+
   const groupScores = groups.map((g) => {
     return {
       group: g,
@@ -135,6 +151,8 @@ export function PairwiseReportsPanel({
         active.scoreFloor ?? 0.6,
         active.scoreCeiling ?? 1.0,
         active.minComparisons ?? 3,
+        evaluatorRoles,
+        instructorWeight,
       ),
     };
   });
@@ -206,11 +224,11 @@ export function PairwiseReportsPanel({
             <Chip
               size="small"
               label={
-                active.status === "closed"
-                  ? "ผลการประเมินสรุปแล้ว"
+                active.status === "finalized"
+                  ? "ยืนยันผลแล้ว"
                   : "ชั่วคราว — อาจเปลี่ยนแปลงได้"
               }
-              color={active.status === "closed" ? "default" : "warning"}
+              color={active.status === "finalized" ? "default" : "warning"}
               variant="outlined"
             />
             <Typography variant="body2" color="text.secondary">
@@ -222,6 +240,15 @@ export function PairwiseReportsPanel({
 
         {teacher && (
           <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
+            {onRecomputeScores && (
+              <Button
+                variant="outlined"
+                onClick={() => void onRecomputeScores()}
+                sx={{ flexShrink: 0 }}
+              >
+                คำนวณคะแนนใหม่
+              </Button>
+            )}
             <Button
               variant="outlined"
               color="primary"
@@ -338,7 +365,10 @@ export function PairwiseReportsPanel({
               </Stack>
 
               <TableContainer>
-                <Table size="small" aria-label={`เกณฑ์คะแนนกลุ่ม ${group.name}`}>
+                <Table
+                  size="small"
+                  aria-label={`เกณฑ์คะแนนกลุ่ม ${group.name}`}
+                >
                   <TableHead>
                     <TableRow sx={{ bgcolor: "action.hover" }}>
                       <TableCell sx={{ fontWeight: 600 }}>
@@ -479,8 +509,8 @@ export function PairwiseReportsPanel({
             การกระจายและความครอบคลุมของคู่เปรียบเทียบ (Pair Coverage)
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
-            รายงานความถี่ที่แต่ละคู่ได้รับการประเมินตามเกณฑ์ INV-1 ถึง INV-5 (เป้าหมาย
-            Coverage R = {active.targetCoverage ?? 5})
+            รายงานความถี่ที่แต่ละคู่ได้รับการประเมินตามเกณฑ์ INV-1 ถึง INV-5
+            (เป้าหมาย Coverage R = {active.targetCoverage ?? 5})
           </Typography>
 
           <TableContainer>
@@ -545,7 +575,8 @@ export function PairwiseReportsPanel({
           </Typography>
           <Typography variant="body2" color="text.secondary">
             ระบบตรวจสอบความผิดปกติทางสถิติอัตโนมัติ (§10)
-            เพื่อเป็นข้อมูลสนับสนุนการตัดสินใจของผู้สอน (ไม่ใช่การลงโทษอัตโนมัติ)
+            เพื่อเป็นข้อมูลสนับสนุนการตัดสินใจของผู้สอน
+            (ไม่ใช่การลงโทษอัตโนมัติ)
           </Typography>
 
           {signals.length === 0 ? (

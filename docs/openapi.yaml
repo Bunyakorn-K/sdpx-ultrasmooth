@@ -515,6 +515,72 @@ paths:
         "404": { description: Assignment not found. }
         "409": { description: Concurrent updates could not be resolved. }
         "503": { description: Database unavailable. }
+  /api/assignments/{id}/scores/override:
+    post:
+      operationId: overrideScore
+      summary: Owner overrides group or student score with mandatory reason
+      description: "Traceability: FR-SCORE-08. Allows instructor to override student or group score with mandatory reason and audit log recording."
+      tags: [Assignments]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetId, score, reason]
+              properties:
+                targetId: { type: string }
+                targetType:
+                  { type: string, enum: [student, group], default: student }
+                score: { type: number, minimum: 0 }
+                reason: { type: string, minLength: 1 }
+      responses:
+        "200": { description: Assignment with the recorded score override. }
+        "400":
+          { description: "Missing targetId, negative score, or empty reason." }
+        "401": { description: Sign-in required. }
+        "403":
+          {
+            description: Assignment owner teacher and same-origin request required.,
+          }
+        "404": { description: Assignment not found. }
+        "409": { description: Concurrent updates could not be resolved. }
+        "503": { description: Database unavailable. }
+  /api/assignments/{id}/recompute:
+    post:
+      operationId: recomputeInterimScores
+      summary: Owner triggers on-demand interim score recalculation
+      description: "Traceability: FR-SCORE-06. Recomputes assignment interim scores immediately on demand."
+      tags: [Assignments]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200":
+          {
+            description: Assignment with updated interim calculation timestamp.,
+          }
+        "400": { description: Assignment is draft or cannot be recomputed. }
+        "401": { description: Sign-in required. }
+        "403":
+          {
+            description: Assignment owner teacher and same-origin request required.,
+          }
+        "404": { description: Assignment not found. }
+        "409": { description: Concurrent updates could not be resolved. }
+        "503": { description: Database unavailable. }
   /api/health:
     get:
       operationId: health
@@ -1382,7 +1448,8 @@ components:
           description: All requests for the owner; only the caller's requests for students. Prior finalization requests remain read-only history.
           items:
             type: object
-            required: [id, studentId, message, submittedAt, finalizedAt, generation]
+            required:
+              [id, studentId, message, submittedAt, finalizedAt, generation]
             properties:
               id: { type: string, format: uuid }
               studentId: { type: string, format: uuid }
@@ -1397,7 +1464,11 @@ components:
                   outcome: { type: string, enum: [uphold, override] }
                   response: { type: string }
                   score: { type: number, minimum: 0 }
-                  decidedBy: { type: string, description: Teacher identity masked for students. }
+                  decidedBy:
+                    {
+                      type: string,
+                      description: Teacher identity masked for students.,
+                    }
                   decidedAt: { type: string, format: date-time }
         pairGeneration: { type: integer, minimum: 0 }
         pairwiseRequired:

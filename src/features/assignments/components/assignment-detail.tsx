@@ -45,6 +45,13 @@ type AssignmentDetailProps = {
   setQuestionText: (text: string) => void;
   setScores: (scores: number[]) => void;
   setVoteTarget: (id: string | null) => void;
+  overrideScore?: (
+    targetId: string,
+    targetType: "student" | "group",
+    score: number,
+    reason: string,
+  ) => Promise<void>;
+  recomputeScores?: () => Promise<void>;
 };
 export function AssignmentDetail(props: AssignmentDetailProps) {
   const [regenerateOpen, setRegenerateOpen] = useState(false);
@@ -190,8 +197,9 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
       </div>
       {teacher && !active.pairwiseRequired && !active.pairs && (
         <Alert severity="info" sx={{ mb: 3 }}>
-          งานนี้ใช้การประเมินรูปแบบเดิม หากต้องการเปลี่ยนเป็นประเมินแบบคู่ ให้ใช้ Re-generate
-          Pairs และยืนยันการเปลี่ยนระบบ คำตอบเดิมจะถูกเก็บเป็นประวัติ
+          งานนี้ใช้การประเมินรูปแบบเดิม หากต้องการเปลี่ยนเป็นประเมินแบบคู่
+          ให้ใช้ Re-generate Pairs และยืนยันการเปลี่ยนระบบ
+          คำตอบเดิมจะถูกเก็บเป็นประวัติ
         </Alert>
       )}
       {publishOpen &&
@@ -267,6 +275,8 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
             teacher={teacher}
             exportExcel={exportExcel}
             exportCsv={exportCsv}
+            onOverrideScore={props.overrideScore}
+            onRecomputeScores={props.recomputeScores}
           />
         ) : active.pairs ? (
           <GeneratedEvaluationPanel

@@ -9,16 +9,16 @@ Source instructions in `docs/labs/` are preserved. This document separates imple
 
 For requirement-by-requirement implementation mapping and explicit specifications, see [PairEval PRD](labs/pairwise_evaluation_prd.md). Business coverage measured >96% across domain rules, feasibility solver, scoring engine, quality signals, and roster parser.
 
-| Lab | Implemented artifacts | Verification | External work still pending |
-| --- | --- | --- | --- |
-| WS01 | AGENTS.md, tech-stack, `.env.example`, ignore rules, actual application | local build and HTTP readiness; configured commands | repository selection, commit/push review, live URL, actual commit-to-live measurement |
-| WS02 | 11 stories + AC/DoD, component/ER diagrams, OpenAPI, intent and 3 unit briefs | OpenAPI validates; API maps to local story IDs | create/assign GitHub Issues, labels and Project board |
-| WS03 | reusable typed fakes/factories, unit/security/Excel harness, TEST_PLAN, coverage report | passing suite under 10 s; duplicate-rule mutation makes existing test fail | team explanation/review of tests |
-| WS04 | page objects, auto fixture seed/cleanup, dynamic data, smoke + feature/API E2E, HTML/JUnit/video/trace config | real PostgreSQL scenarios and repeatability run; final counts below | GitHub issue links replace local US references |
-| WS05 | multi-stage Dockerfile, non-root runtime, health check, development/test Compose with tmpfs test DB | container unit/runtime probes; development startup/down/start with HTTP 200; intentional test failure returns nonzero | another team member's clean-clone proof |
-| WS06 | pinned-action CI/CD, coverage/JUnit summaries, conditional staging deployment, security workflow/Dependabot, setup guide | workflow/configuration prepared and local commands exercised | remote CI run URL, Vercel secrets/project, branch protection and blocked-merge screenshot, production reviewers |
-| WS07 | k6 real teacher journey, baseline JSON, failure-gate probe, request/business JSON logging, performance CI job | local 2-minute production-container benchmark + 1 ms threshold fails with exit 99 | repeat on the team's actual staging/Neon target; CI performance run |
-| WS08 | review/refactoring plan, scoped before/after record, security fixes/regression tests, ADRs | unchanged scoped-refactor tests, security probes/audits, redacted history/source scan | real human review and remote security-alert review |
+| Lab  | Implemented artifacts                                                                                                    | Verification                                                                                                          | External work still pending                                                                                     |
+| ---- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| WS01 | AGENTS.md, tech-stack, `.env.example`, ignore rules, actual application                                                  | local build and HTTP readiness; configured commands                                                                   | repository selection, commit/push review, live URL, actual commit-to-live measurement                           |
+| WS02 | 11 stories + AC/DoD, component/ER diagrams, OpenAPI, intent and 3 unit briefs                                            | OpenAPI validates; API maps to local story IDs                                                                        | create/assign GitHub Issues, labels and Project board                                                           |
+| WS03 | reusable typed fakes/factories, unit/security/Excel harness, TEST_PLAN, coverage report                                  | passing suite under 10 s; duplicate-rule mutation makes existing test fail                                            | team explanation/review of tests                                                                                |
+| WS04 | page objects, auto fixture seed/cleanup, dynamic data, smoke + feature/API E2E, HTML/JUnit/video/trace config            | real PostgreSQL scenarios and repeatability run; final counts below                                                   | GitHub issue links replace local US references                                                                  |
+| WS05 | multi-stage Dockerfile, non-root runtime, health check, development/test Compose with tmpfs test DB                      | container unit/runtime probes; development startup/down/start with HTTP 200; intentional test failure returns nonzero | another team member's clean-clone proof                                                                         |
+| WS06 | pinned-action CI/CD, coverage/JUnit summaries, conditional staging deployment, security workflow/Dependabot, setup guide | workflow/configuration prepared and local commands exercised                                                          | remote CI run URL, Vercel secrets/project, branch protection and blocked-merge screenshot, production reviewers |
+| WS07 | k6 real teacher journey, baseline JSON, failure-gate probe, request/business JSON logging, performance CI job            | local 2-minute production-container benchmark + 1 ms threshold fails with exit 99                                     | repeat on the team's actual staging/Neon target; CI performance run                                             |
+| WS08 | review/refactoring plan, scoped before/after record, security fixes/regression tests, ADRs                               | unchanged scoped-refactor tests, security probes/audits, redacted history/source scan                                 | real human review and remote security-alert review                                                              |
 
 ## Assignment enrollment codes removed (2026-10-25)
 
@@ -368,6 +368,43 @@ Not covered by this change, and still open:
   mapping against regressing to hardcoded constants. FR-EXPORT-03 and
   FR-EXPORT-04 remain unimplemented and stay as skipped tests with reasons.
 
+## Scoring Engine completion — FR-SCORE-01..10 (2026-10-25)
+
+The scoring engine and its reporting integration are completed and verified:
+
+- **FR-SCORE-03 (Instructor Weight):** comparisons submitted by the assignment
+  owner (`role: "OWNER"`) are weighted by `a.instructorWeight` (float $\ge 0$,
+  default 1.0) in `generatedResult`, `GeneratedReportsPanel`, `PairwiseReportsPanel`,
+  `StudentScorecard`, and `export-service.ts`.
+- **FR-SCORE-04 (Task-weighted Participation Multiplier):** PRD §9.4 single
+  task-weighted multiplier $M$ applies to total score:
+  `finalScore = (groupScore + individualScore) * M`. This resolves the
+  discrepancy where generated-results calculated split multipliers while export
+  used the combined formula.
+- **FR-SCORE-06 (Interim score recomputation):** On-demand recomputation is
+  available via `POST /api/assignments/:id/recompute` and the "คำนวณคะแนนใหม่"
+  button in `GeneratedReportsPanel` and `PairwiseReportsPanel`. Daily 02:00
+  classroom-timezone check is implemented in
+  `src/features/pairwise/domain/interim-scheduler.ts` (`isInterimRecomputationDue`),
+  and `scripts/daily-interim-scores.mjs` provides scheduled batch execution.
+- **FR-SCORE-07 (Provisional label):** Standardized warning label
+  "ชั่วคราว — อาจเปลี่ยนแปลงได้" on any unfinalized score in `GeneratedReportsPanel`,
+  `PairwiseReportsPanel`, and `StudentScorecard`.
+- **FR-SCORE-08 (Instructor score override):** Instructor can override group or
+  student score with mandatory non-empty reason via
+  `POST /api/assignments/:id/scores/override` and the "แก้ไขคะแนน" dialog in
+  `GeneratedReportsPanel`. All overrides are audited with `SCORE_OVERRIDE` and
+  applied in `generatedResult`.
+- **FR-SCORE-09 (Finalize snapshot):** Finalization captures calculated scores
+  in `finalizedSnapshot.outputs.scores`. When finalized, `generatedResult` serves
+  frozen immutable outputs from the snapshot.
+- **FR-SCORE-01, 02, 05, 10:** Golden tests in `tests/unit/scoring-engine.test.ts`
+  and new unit tests in `tests/unit/scoring-engine-completion.test.ts` pass 100%.
+
+Verified locally: 176 unit/integration tests pass, lint (Oxlint), typecheck,
+OpenAPI validation, production build, host Playwright E2E (24 passed / 12 skipped),
+and containerized E2E with disposable PostgreSQL (36 passed).
+
 ## Earlier verification
 
 Testing was paused at the user's request on 2026-10-20. Completed checks: lint, TypeScript, OpenAPI validation and production build; host E2E 27/27 (9 scenarios × 3); Docker E2E 9/9 after declaring a UTF-8 locale for Thai download filenames. Business coverage measured 97.52% lines, 90.34% branches and 97.14% functions. The Docker unit run exposed that the redaction probe inherited `LOG_LEVEL=silent`; the probe now explicitly enables its own logger. Further testing and final evidence consolidation are deferred.
@@ -391,6 +428,7 @@ Testing was paused at the user's request on 2026-10-20. Completed checks: lint, 
 No Git remote or staging URL has been selected for this checkout. The GitHub login being available does not identify the intended repository/visibility. No Issues, Project, deployment, ruleset or fabricated CI result were created on an arbitrary target. `docs/github-setup.md` gives the remaining configuration and proof steps.
 
 No student/team names, human code approvals, clean-clone observations from other machines, remote screenshots or unmeasured timings are invented. Current authentication is the implemented PostgreSQL cookie session, not Neon Auth as a hosted provider.
+
 # Student appeals (2026-10-25)
 
 - FR-APPEAL-01: Assignment detail now includes an Appeals tab after finalization (or for existing request history). Assignment students submit a required explanation within seven days of the server's finalization timestamp. One request per student/finalization/generation; server rejects expired, duplicate, stale and unauthorized requests.
