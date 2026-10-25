@@ -112,6 +112,7 @@ export type Assignment = {
   status: "draft" | "active" | "closed" | "finalized";
   scoreOverrides?: ScoreOverride[];
   finalizedSnapshot?: FinalizedSnapshot;
+  lastInterimAt?: string;
   reopenReason?: string;
   evaluationMode?: EvaluationMode;
   questions: string[];

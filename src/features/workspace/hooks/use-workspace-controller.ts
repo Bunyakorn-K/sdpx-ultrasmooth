@@ -20,12 +20,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 export type WorkspaceModal =
-  | "login"
-  | "register"
-  | "create"
-  | "group"
-  | "questions"
-  | null;
+  "login" | "register" | "create" | "group" | "questions" | null;
 const parseQuestions = (text: string) =>
   text
     .split("\n")
@@ -250,6 +245,27 @@ export function useWorkspaceController() {
       setToast("ส่งออกไฟล์ CSV เรียบร้อยแล้ว");
     });
   }
+  async function overrideScore(
+    targetId: string,
+    targetType: "student" | "group",
+    score: number,
+    reason: string,
+  ) {
+    if (!active) return;
+    await action("overrideScore", {
+      id: active.id,
+      targetId,
+      targetType,
+      score,
+      reason,
+    });
+    setToast("แก้ไขคะแนนเรียบร้อยแล้ว");
+  }
+  async function recomputeScores() {
+    if (!active) return;
+    await action("recomputeScores", { id: active.id });
+    setToast("คำนวณคะแนนใหม่เรียบร้อยแล้ว");
+  }
   return {
     view: currentView,
     setView,
@@ -301,6 +317,8 @@ export function useWorkspaceController() {
     importExcel,
     exportExcel,
     exportCsv,
+    overrideScore,
+    recomputeScores,
     filtered,
     signOut,
   };

@@ -39,6 +39,8 @@ const commandEndpoints: Record<
   saveEvaluationDrafts: { suffix: "pairs/drafts", method: "PUT" },
   submitEvaluation: { suffix: "submissions", method: "POST" },
   reopen: { suffix: "reopen", method: "POST" },
+  overrideScore: { suffix: "scores/override", method: "POST" },
+  recomputeScores: { suffix: "recompute", method: "POST" },
 };
 export async function sendAssignmentCommand(input: Record<string, unknown>) {
   const { action, id, ...payload } = input;

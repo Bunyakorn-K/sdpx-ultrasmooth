@@ -51,7 +51,9 @@ test.describe("Database-backed authenticated journeys", () => {
     await page
       .getByLabel("รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)")
       .fill(users.student.password);
-    await page.getByRole("button", { name: "เข้าสู่ระบบ", exact: true }).click();
+    await page
+      .getByRole("button", { name: "เข้าสู่ระบบ", exact: true })
+      .click();
     await expect(
       page.getByRole("heading", { name: "ห้องเรียนของฉัน (Classrooms)" }),
     ).toBeVisible();
@@ -177,6 +179,70 @@ test.describe("Database-backed authenticated journeys", () => {
         .assignment as Assignment;
       expect(result.votes).toHaveLength(1);
       expect(result.votes[0].scores).toEqual([6, 5]);
+
+      // FR-SCORE-06: on-demand recomputation endpoint
+      expect(
+        (await student.post(`${root}/recompute`, { data: {} })).status(),
+      ).toBe(403);
+      expect(
+        (await teacher.post(`${root}/recompute`, { data: {} })).status(),
+      ).toBe(200);
+      const recomputed = (await (await teacher.get(root)).json())
+        .assignment as Assignment;
+      expect(recomputed.lastInterimAt).toBeDefined();
+
+      // FR-SCORE-08: instructor score override via HTTP
+      expect(
+        (
+          await student.post(`${root}/scores/override`, {
+            data: {
+              targetId: target.id,
+              targetType: "group",
+              score: 14.5,
+              reason: "Valid reason",
+            },
+          })
+        ).status(),
+      ).toBe(403);
+      expect(
+        (
+          await teacher.post(`${root}/scores/override`, {
+            data: {
+              targetId: target.id,
+              targetType: "group",
+              score: 14.5,
+              reason: "   ",
+            },
+          })
+        ).status(),
+      ).toBe(400);
+      expect(
+        (
+          await teacher.post(`${root}/scores/override`, {
+            data: {
+              targetId: target.id,
+              targetType: "group",
+              score: 14.5,
+              reason: "Adjustment approved after review",
+            },
+          })
+        ).status(),
+      ).toBe(200);
+      const overridden = (await (await teacher.get(root)).json())
+        .assignment as Assignment;
+      expect(overridden.scoreOverrides).toHaveLength(1);
+      expect(overridden.scoreOverrides![0].overriddenScore).toBe(14.5);
+
+      // FR-SCORE-09: finalize snapshots inputs and outputs
+      expect(
+        (await teacher.post(`${root}/finalize`, { data: {} })).status(),
+      ).toBe(200);
+      const finalized = (await (await teacher.get(root)).json())
+        .assignment as Assignment;
+      expect(finalized.status).toBe("finalized");
+      expect(finalized.finalizedSnapshot?.inputs.votes).toHaveLength(1);
+      expect(finalized.finalizedSnapshot?.outputs.overrides).toHaveLength(1);
+      expect(finalized.finalizedSnapshot?.outputs.scores).toBeDefined();
     } finally {
       await Promise.all([
         teacher.dispose(),

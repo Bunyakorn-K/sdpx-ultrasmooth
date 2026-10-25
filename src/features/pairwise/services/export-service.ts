@@ -28,6 +28,11 @@ export async function buildPairEvalWorkbook(data: ExportData) {
   const wb = new ExcelJS.Workbook();
   const { classroom, assignment, groups, members, pairs, comparisons } = data;
 
+  const evaluatorRoles = assignment.created_by
+    ? { [assignment.created_by]: "OWNER" as const }
+    : {};
+  const instructorWeight = assignment.instructor_weight ?? 1.0;
+
   // 1. Sheet 1: Group Summary
   const groupSheet = wb.addWorksheet("Group Summary");
   groupSheet.addRow([
@@ -52,6 +57,8 @@ export async function buildPairEvalWorkbook(data: ExportData) {
       assignment.score_floor,
       assignment.score_ceiling,
       assignment.min_comparisons,
+      evaluatorRoles,
+      instructorWeight,
     );
     for (const c of scores.criterionScores) {
       groupSheet.addRow([
@@ -113,6 +120,8 @@ export async function buildPairEvalWorkbook(data: ExportData) {
           assignment.score_floor,
           assignment.score_ceiling,
           assignment.min_comparisons,
+          evaluatorRoles,
+          instructorWeight,
         ).totalScore
       : 0;
 
@@ -126,6 +135,8 @@ export async function buildPairEvalWorkbook(data: ExportData) {
       assignment.score_floor,
       assignment.score_ceiling,
       assignment.min_comparisons,
+      evaluatorRoles,
+      instructorWeight,
     );
 
     const personalFinal =

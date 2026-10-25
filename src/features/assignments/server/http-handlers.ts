@@ -33,6 +33,8 @@ const commands = new Set([
   "saveEvaluationDrafts",
   "submitEvaluation",
   "reopen",
+  "overrideScore",
+  "recomputeScores",
 ]);
 const events: Record<string, string> = {
   submitAppeal: "appeal_submitted",
@@ -45,13 +47,15 @@ const events: Record<string, string> = {
   stop: "voting_stopped",
   vote: "vote_submitted",
   finalize: "assignment_finalized",
-  unpublishPairs: "assignment_unpublished",
-  configurePairs: "pair_configuration_updated",
+  unpublishPairs: "pairs_unpublished",
+  configurePairs: "pairs_configured",
   regeneratePairs: "pairs_regenerated",
-  submitPair: "comparison_submitted",
-  saveEvaluationDrafts: "evaluation_draft_saved",
+  submitPair: "pair_submitted",
+  saveEvaluationDrafts: "evaluation_drafts_saved",
   submitEvaluation: "evaluation_submitted",
   reopen: "assignment_reopened",
+  overrideScore: "score_overridden",
+  recomputeScores: "interim_scores_recomputed",
 };
 export const listAssignmentsResponse = withApi(
   "/api/assignments",

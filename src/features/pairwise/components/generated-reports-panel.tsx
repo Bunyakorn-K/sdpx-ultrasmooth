@@ -9,6 +9,10 @@ import {
   Box,
   Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   LinearProgress,
   Menu,
   MenuItem,
@@ -22,6 +26,7 @@ import {
   TableHead,
   TableRow,
   Tabs,
+  TextField,
   Typography,
 } from "@mui/material";
 import { ExpandMore, FileDownloadOutlined } from "@mui/icons-material";
@@ -81,13 +86,38 @@ export function GeneratedReportsPanel({
   active,
   exportExcel,
   exportCsv,
+  onOverrideScore,
+  onRecomputeScores,
 }: {
   active: Assignment;
   exportExcel: (a: Assignment) => Promise<void>;
   exportCsv: (a: Assignment, r: CsvReport) => Promise<void>;
+  onOverrideScore?: (
+    targetId: string,
+    targetType: "student" | "group",
+    score: number,
+    reason: string,
+  ) => Promise<void>;
+  onRecomputeScores?: () => Promise<void>;
 }) {
   const [tab, setTab] = useState(0);
   const [csvAnchor, setCsvAnchor] = useState<HTMLElement | null>(null);
+  const [overrideTarget, setOverrideTarget] = useState<{
+    id: string;
+    name: string;
+    type: "student" | "group";
+    currentScore?: number | null;
+  } | null>(null);
+  const [overrideScoreVal, setOverrideScoreVal] = useState<string>("");
+  const [overrideReasonVal, setOverrideReasonVal] = useState<string>("");
+  const [overrideError, setOverrideError] = useState<string>("");
+  const [overrideSubmitting, setOverrideSubmitting] = useState<boolean>(false);
+
+  const evaluatorRoles = active.ownerId
+    ? { [active.ownerId]: "OWNER" as const }
+    : {};
+  const instructorWeight = active.instructorWeight ?? 1.0;
+
   const pairs = active.pairs ?? [];
   const comparisons = active.comparisons ?? [];
   const criteria = generatedCriteria(active);
@@ -188,13 +218,24 @@ export function GeneratedReportsPanel({
             />
             <Chip
               size="small"
-              label={provisional ? "ผลชั่วคราว" : "ยืนยันผลแล้ว"}
+              label={
+                provisional ? "ชั่วคราว — อาจเปลี่ยนแปลงได้" : "ยืนยันผลแล้ว"
+              }
               color={provisional ? "warning" : "secondary"}
               variant="outlined"
             />
           </Stack>
         </Box>
         <Stack direction="row" useFlexGap sx={{ gap: 1, flexWrap: "wrap" }}>
+          {onRecomputeScores && (
+            <Button
+              variant="outlined"
+              onClick={() => void onRecomputeScores()}
+              sx={{ flexShrink: 0 }}
+            >
+              คำนวณคะแนนใหม่
+            </Button>
+          )}
           <Button
             variant="contained"
             color="secondary"
@@ -246,7 +287,9 @@ export function GeneratedReportsPanel({
           sx={{ justifyContent: "space-between", gap: 2, alignItems: "center" }}
         >
           <Box>
-            <Typography sx={{ fontWeight: 700 }}>ความคืบหน้าการประเมิน</Typography>
+            <Typography sx={{ fontWeight: 700 }}>
+              ความคืบหน้าการประเมิน
+            </Typography>
             <Typography variant="body2" color="text.secondary">
               ส่งแล้ว {submittedCount} / {pairs.length} งานเปรียบเทียบ
             </Typography>
@@ -267,7 +310,8 @@ export function GeneratedReportsPanel({
           sx={{ height: 8, borderRadius: 4, my: 2, bgcolor: "#dfede5" }}
         />
         <Typography variant="caption" color="text.secondary">
-          คำนวณเฉพาะคำตอบที่ส่งแล้วในคู่ชุดปัจจุบัน · ไม่นับฉบับร่างและประวัติที่ถูกแทนที่
+          คำนวณเฉพาะคำตอบที่ส่งแล้วในคู่ชุดปัจจุบัน ·
+          ไม่นับฉบับร่างและประวัติที่ถูกแทนที่
         </Typography>
       </Paper>
 
@@ -303,7 +347,9 @@ export function GeneratedReportsPanel({
                 กดแต่ละกลุ่มเพื่อดูรายละเอียดรายเกณฑ์
               </Typography>
               {active.groups.length === 0 && (
-                <Alert severity="info">ยังไม่มีกลุ่มสำหรับแสดงผลการประเมิน</Alert>
+                <Alert severity="info">
+                  ยังไม่มีกลุ่มสำหรับแสดงผลการประเมิน
+                </Alert>
               )}
               {active.groups.map((g) => {
                 const s = calculateItemScores(
@@ -316,6 +362,8 @@ export function GeneratedReportsPanel({
                   active.scoreFloor ?? 0.6,
                   active.scoreCeiling ?? 1,
                   active.minComparisons ?? 3,
+                  evaluatorRoles,
+                  instructorWeight,
                 );
                 const low = s.criterionScores.some((c) => c.flags.length > 0);
                 return (
@@ -431,20 +479,36 @@ export function GeneratedReportsPanel({
                 คะแนนรวมคำนวณร่วมกับสัดส่วนการส่งประเมินของนักศึกษาแต่ละคน
               </Typography>
               {active.groups.every((g) => !g.members.length) ? (
-                <Alert severity="info">ยังไม่มีนักศึกษาในกลุ่มสำหรับแสดงคะแนน</Alert>
+                <Alert severity="info">
+                  ยังไม่มีนักศึกษาในกลุ่มสำหรับแสดงคะแนน
+                </Alert>
               ) : (
                 <ReportTable
                   label="สรุปคะแนนรายบุคคล"
-                  columns={[
-                    "นักศึกษา / กลุ่ม",
-                    "คะแนนกลุ่ม",
-                    "คะแนนรายบุคคล",
-                    "คะแนนรวม",
-                  ]}
+                  columns={
+                    onOverrideScore
+                      ? [
+                          "นักศึกษา / กลุ่ม",
+                          "คะแนนกลุ่ม",
+                          "คะแนนรายบุคคล",
+                          "คะแนนรวม",
+                          "การจัดการ",
+                        ]
+                      : [
+                          "นักศึกษา / กลุ่ม",
+                          "คะแนนกลุ่ม",
+                          "คะแนนรายบุคคล",
+                          "คะแนนรวม",
+                        ]
+                  }
                 >
                   {active.groups.flatMap((g) =>
                     g.members.map((m) => {
                       const r = generatedResult(active, m.id);
+                      const hasOverride = active.scoreOverrides?.some(
+                        (o) =>
+                          o.targetType === "student" && o.targetId === m.id,
+                      );
                       return (
                         <TableRow key={m.id} hover>
                           <TableCell>
@@ -465,8 +529,47 @@ export function GeneratedReportsPanel({
                           <TableCell
                             sx={{ color: "secondary.main", fontWeight: 700 }}
                           >
-                            {formatScore(r.finalScore)}
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              sx={{ alignItems: "center" }}
+                            >
+                              <span>{formatScore(r.finalScore)}</span>
+                              {hasOverride && (
+                                <Chip
+                                  size="small"
+                                  label="ปรับคะแนนแล้ว"
+                                  color="info"
+                                  variant="outlined"
+                                />
+                              )}
+                            </Stack>
                           </TableCell>
+                          {onOverrideScore && (
+                            <TableCell>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => {
+                                  setOverrideTarget({
+                                    id: m.id,
+                                    name: m.name,
+                                    type: "student",
+                                    currentScore: r.finalScore,
+                                  });
+                                  setOverrideScoreVal(
+                                    r.finalScore !== null
+                                      ? String(r.finalScore)
+                                      : "",
+                                  );
+                                  setOverrideReasonVal("");
+                                  setOverrideError("");
+                                }}
+                              >
+                                แก้ไขคะแนน
+                              </Button>
+                            </TableCell>
+                          )}
                         </TableRow>
                       );
                     }),
@@ -482,7 +585,12 @@ export function GeneratedReportsPanel({
             ) : (
               <ReportTable
                 label="ความครอบคลุมคู่"
-                columns={["คู่ประเมิน", "รูปแบบ", "เกณฑ์ประเมิน", "ส่งแล้ว / มอบหมาย"]}
+                columns={[
+                  "คู่ประเมิน",
+                  "รูปแบบ",
+                  "เกณฑ์ประเมิน",
+                  "ส่งแล้ว / มอบหมาย",
+                ]}
               >
                 {[...coverage.entries()].map(([key, row]) => (
                   <TableRow key={key} hover>
@@ -515,10 +623,13 @@ export function GeneratedReportsPanel({
           {tab === 3 && (
             <Stack spacing={2}>
               <Alert severity="info">
-                สัญญาณเหล่านี้ใช้ประกอบการทบทวน โดยไม่ลบคำตอบหรือลดคะแนนอัตโนมัติ
+                สัญญาณเหล่านี้ใช้ประกอบการทบทวน
+                โดยไม่ลบคำตอบหรือลดคะแนนอัตโนมัติ
               </Alert>
               {signals.length === 0 ? (
-                <Alert severity="success">ไม่พบสัญญาณที่ต้องทบทวนในข้อมูลปัจจุบัน</Alert>
+                <Alert severity="success">
+                  ไม่พบสัญญาณที่ต้องทบทวนในข้อมูลปัจจุบัน
+                </Alert>
               ) : (
                 signals.map((signal, index) => (
                   <Paper
@@ -554,7 +665,9 @@ export function GeneratedReportsPanel({
                 เพื่อให้เห็นภาพรวมของห้องเรียน
               </Typography>
               {distribution.every((entry) => entry.total === 0) ? (
-                <Alert severity="info">ยังไม่มีคำตอบที่ส่งแล้วให้แสดงการกระจายตัว</Alert>
+                <Alert severity="info">
+                  ยังไม่มีคำตอบที่ส่งแล้วให้แสดงการกระจายตัว
+                </Alert>
               ) : (
                 distribution.map((entry) => {
                   const peak = Math.max(
@@ -623,7 +736,8 @@ export function GeneratedReportsPanel({
           {tab === 4 && (
             <Stack spacing={2}>
               <Typography variant="body2" color="text.secondary">
-                ประวัติการสร้างคู่ (อ่านอย่างเดียว) · ไม่นำคำตอบชุดเก่ามารวมคะแนนปัจจุบัน
+                ประวัติการสร้างคู่ (อ่านอย่างเดียว) ·
+                ไม่นำคำตอบชุดเก่ามารวมคะแนนปัจจุบัน
               </Typography>
               {!active.pairHistory?.length && (
                 <Alert severity="info">ยังไม่มีประวัติการสร้างคู่ใหม่</Alert>
@@ -681,6 +795,100 @@ export function GeneratedReportsPanel({
           )}
         </Box>
       </Box>
+
+      {/* FR-SCORE-08: Score Override Dialog */}
+      <Dialog
+        open={overrideTarget !== null}
+        onClose={() => !overrideSubmitting && setOverrideTarget(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          แก้ไขคะแนน: {overrideTarget?.name}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            อาจารย์สามารถปรับคะแนนใหม่ได้
+            โดยระบบจะบังคับระบุเหตุผลและบันทึกประวัติลง Audit Log (FR-SCORE-08)
+          </Typography>
+          {overrideError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {overrideError}
+            </Alert>
+          )}
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label="คะแนนใหม่"
+              type="number"
+              fullWidth
+              value={overrideScoreVal}
+              onChange={(e) => setOverrideScoreVal(e.target.value)}
+              slotProps={{ htmlInput: { min: 0, step: "0.1" } }}
+            />
+            <TextField
+              label="เหตุผลในการแก้ไขคะแนน (จำเป็น)"
+              multiline
+              rows={3}
+              fullWidth
+              value={overrideReasonVal}
+              onChange={(e) => setOverrideReasonVal(e.target.value)}
+              placeholder="เช่น ปรับคะแนนตามผลการอุทธรณ์ หรือส่งงานเพิ่มเติม"
+              required
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button
+            onClick={() => setOverrideTarget(null)}
+            disabled={overrideSubmitting}
+            color="inherit"
+          >
+            ยกเลิก
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            disabled={overrideSubmitting}
+            onClick={async () => {
+              if (!overrideTarget || !onOverrideScore) return;
+              const score = Number(overrideScoreVal);
+              if (isNaN(score) || score < 0) {
+                setOverrideError("คะแนนต้องเป็นตัวเลขที่มากกว่าหรือเท่ากับ 0");
+                return;
+              }
+              if (!overrideReasonVal.trim()) {
+                setOverrideError(
+                  "กรุณาระบุเหตุผลในการแก้ไขคะแนน (FR-SCORE-08)",
+                );
+                return;
+              }
+              setOverrideSubmitting(true);
+              setOverrideError("");
+              try {
+                await onOverrideScore(
+                  overrideTarget.id,
+                  overrideTarget.type,
+                  score,
+                  overrideReasonVal.trim(),
+                );
+                setOverrideTarget(null);
+                setOverrideScoreVal("");
+                setOverrideReasonVal("");
+              } catch (err: unknown) {
+                const message =
+                  err instanceof Error
+                    ? err.message
+                    : "เกิดข้อผิดพลาดในการแก้ไขคะแนน";
+                setOverrideError(message);
+              } finally {
+                setOverrideSubmitting(false);
+              }
+            }}
+          >
+            {overrideSubmitting ? "กำลังบันทึก..." : "ยืนยันการแก้ไข"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 }
