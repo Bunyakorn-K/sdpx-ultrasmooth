@@ -9,16 +9,23 @@ export function pairingShape(a: Assignment) {
 
 export function generatedCriteria(a: Assignment): Criterion[] {
   const sides = [...new Set(a.pairs?.map((p) => p.side) ?? [])];
+  if (!sides.length) sides.push("GROUP", "INDIVIDUAL");
   return sides.flatMap((side) =>
-    a.questions.map((name, i) => ({
-      id: `${side}-${i}`,
-      assignment_id: a.id,
-      side,
-      name,
-      description: name,
-      weight_pct: 100 / a.questions.length,
-      display_order: i + 1,
-    })),
+    a.questions.map((name, i) => {
+      const customWeight =
+        a.criteriaWeights?.[`${side}-${i}`] ?? a.criteriaWeights?.[name];
+      const defaultWeight = a.questions.length ? 100 / a.questions.length : 100;
+      return {
+        id: `${side}-${i}`,
+        assignment_id: a.id,
+        side,
+        name,
+        description: name,
+        weight_pct:
+          customWeight !== undefined ? Number(customWeight) : defaultWeight,
+        display_order: i + 1,
+      };
+    }),
   );
 }
 
@@ -98,6 +105,30 @@ export function previewRegeneration(a: Assignment, scope: PairScope) {
     throw new AppError("กรุณากำหนดเกณฑ์การประเมินก่อน");
   if (new Date(a.deadline).getTime() <= Date.now())
     throw new AppError("กรุณาขยายกำหนดส่งให้เป็นเวลาในอนาคต");
+
+  // FR-ASSIGN-02: validate criteria weights sum to 100% (+- 0.01) before publishing pairs
+  const criteria = generatedCriteria(a);
+  const activeSides = new Set(
+    scope === "both"
+      ? ["GROUP", "INDIVIDUAL"]
+      : [scope === "group" ? "GROUP" : "INDIVIDUAL"],
+  );
+  for (const side of activeSides) {
+    if (side === "INDIVIDUAL" && (a.individualMaxScore ?? 0) === 0) continue;
+    if (side === "GROUP" && (a.groupMaxScore ?? 15) === 0) continue;
+    const sideCriteria = criteria.filter((c) => c.side === side);
+    if (!sideCriteria.length) continue;
+    const totalWeight = sideCriteria.reduce(
+      (sum, c) => sum + (c.weight_pct || 0),
+      0,
+    );
+    if (Math.abs(totalWeight - 100.0) > 0.01) {
+      throw new AppError(
+        `ผลรวมน้ำหนักของเกณฑ์การประเมินฝั่ง ${side} ต้องเท่ากับ 100% (ปัจจุบันได้ ${totalWeight.toFixed(2)}%) (FR-ASSIGN-02)`,
+        400,
+      );
+    }
+  }
   const ids = a.groups.flatMap((g) => g.members.map((m) => m.id));
   if (new Set(ids).size !== ids.length)
     throw new AppError("นักศึกษาต้องอยู่ได้เพียงกลุ่มเดียว");
@@ -114,7 +145,9 @@ export function previewRegeneration(a: Assignment, scope: PairScope) {
     maximum < 1 ||
     maximum > 100
   )
-    throw new AppError("Coverage ต้องอยู่ระหว่าง 1–50 และ workload ระหว่าง 1–100");
+    throw new AppError(
+      "Coverage ต้องอยู่ระหว่าง 1–50 และ workload ระหว่าง 1–100",
+    );
   const pairs: PairAssignment[] = [];
   let coverage = 0;
   const timestamp = a.createdAt;

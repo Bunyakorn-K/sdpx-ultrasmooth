@@ -35,11 +35,15 @@ const commands = new Set([
   "reopen",
   "overrideScore",
   "recomputeScores",
+  "clone",
+  "updateDeadline",
 ]);
 const events: Record<string, string> = {
   submitAppeal: "appeal_submitted",
   resolveAppeal: "appeal_resolved",
   create: "assignment_created",
+  clone: "assignment_cloned",
+  updateDeadline: "deadline_updated",
   group: "group_created",
   joinGroup: "group_joined",
   questions: "questions_updated",

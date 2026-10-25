@@ -1,7 +1,7 @@
 import type { User } from "@/features/auth/types";
 import { requestJson } from "@/shared/services/http-client";
 import { applyAssignmentCommand } from "../domain/assignment-policy";
-import { createAssignment } from "../domain/create-assignment";
+import { createAssignment, cloneAssignment } from "../domain/create-assignment";
 import type { Assignment } from "../types";
 import { loadDemoClassrooms } from "@/features/classroom/data/demo-classrooms";
 import { applyClassroomRoster } from "../domain/classroom-roster";
@@ -41,6 +41,8 @@ const commandEndpoints: Record<
   reopen: { suffix: "reopen", method: "POST" },
   overrideScore: { suffix: "scores/override", method: "POST" },
   recomputeScores: { suffix: "recompute", method: "POST" },
+  clone: { suffix: "clone", method: "POST" },
+  updateDeadline: { suffix: "deadline", method: "POST" },
 };
 export async function sendAssignmentCommand(input: Record<string, unknown>) {
   const { action, id, ...payload } = input;
@@ -74,6 +76,11 @@ export function executeDemoCommand(
 ) {
   if (input.action === "create") {
     return demoClassroomRoster(createAssignment(input, user));
+  }
+  if (input.action === "clone") {
+    const original = assignments.find((item) => item.id === input.id);
+    if (!original) throw new Error("ไม่พบ assignment ต้นฉบับ");
+    return demoClassroomRoster(cloneAssignment(original, user, input));
   }
   const original = assignments.find((item) => item.id === input.id);
   if (!original) throw new Error("ไม่พบ assignment");

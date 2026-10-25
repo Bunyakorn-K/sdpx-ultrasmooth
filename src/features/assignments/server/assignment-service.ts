@@ -4,7 +4,7 @@ import type { ClassroomRepository } from "@/features/classroom/server/classroom-
 import { AppError } from "@/shared/domain/app-error";
 import { applyAssignmentCommand } from "../domain/assignment-policy";
 import { visibleAssignment } from "../domain/assignment-visibility";
-import { createAssignment } from "../domain/create-assignment";
+import { createAssignment, cloneAssignment } from "../domain/create-assignment";
 import { applyClassroomRoster } from "../domain/classroom-roster";
 import type { Assignment } from "../types";
 import type { AssignmentRepository } from "./assignment-repository";
@@ -53,6 +53,7 @@ export class AssignmentService {
 
   async execute(user: User, input: Record<string, unknown>) {
     if (input.action === "create") return this.create(user, input);
+    if (input.action === "clone") return this.clone(user, input);
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       const record = await this.repository.findById(String(input.id || ""));
       if (!record) throw new AppError("ไม่พบ assignment", 404);
@@ -274,6 +275,24 @@ export class AssignmentService {
     }
     if (await this.repository.create(assignment)) return assignment;
     throw new AppError("กรุณาลองสร้างใหม่อีกครั้ง", 409);
+  }
+
+  private async clone(user: User, input: Record<string, unknown>) {
+    if (user.role !== "teacher") throw new AppError("เฉพาะครูเท่านั้น", 403);
+    const sourceId = String(input.id || input.sourceId || "");
+    const record = await this.repository.findById(sourceId);
+    if (!record) throw new AppError("ไม่พบ assignment ต้นฉบับ", 404);
+    let assignment = cloneAssignment(record.assignment, user, input);
+    if (assignment.classroomId) {
+      const classroom = (
+        await this.classroomRepository?.findById(assignment.classroomId)
+      )?.classroom;
+      if (classroom && classroom.status === "ACTIVE") {
+        assignment = applyClassroomRoster(assignment, classroom);
+      }
+    }
+    if (await this.repository.create(assignment)) return assignment;
+    throw new AppError("กรุณาลองคัดลอกใหม่อีกครั้ง", 409);
   }
 }
 

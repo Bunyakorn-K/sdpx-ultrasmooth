@@ -173,16 +173,12 @@ export function AssignmentEditorDialog({
           />
           <TextField name="description" label="รายละเอียด" multiline rows={2} />
           <TextField
-            select
-            name="evaluationMode"
-            label="รูปแบบการประเมิน"
-            defaultValue="group"
-            slotProps={{ inputLabel: { shrink: true } }}
-            helperText="ประเมินรายคน: ประเมินเพื่อนร่วมกลุ่มรายคน (FR-ANON-04: ในกลุ่มขนาด 3 คน ความเป็นนิรนามจะต่ำมาก สามารถปิดการประเมินรายคนได้โดยตั้งค่าคะแนนรายคนเป็น 0)"
-          >
-            <MenuItem value="group">ประเมินกลุ่ม</MenuItem>
-            <MenuItem value="individual">ประเมินรายคน</MenuItem>
-          </TextField>
+            name="artifactUrl"
+            label="ลิงก์ผลงาน / เอกสารประกอบ (Artifact URL)"
+            placeholder="https://..."
+            helperText="ลิงก์ไปยังไฟล์งาน เอกสาร หรือโฟลเดอร์ผลงานสำหรับให้นักเรียนเปิดดูขณะประเมิน (FR-ASSIGN-01)"
+          />
+          <input type="hidden" name="evaluationMode" value="group" />
           <DeadlineField />
 
           <Accordion
@@ -286,8 +282,8 @@ export function AssignmentEditorDialog({
             <span>อ่านคำถามจากคอลัมน์แรก · สูงสุด 100 ข้อ</span>
           </div>
           <Alert severity="info" icon={false}>
-            การประเมินแบบ Pairwise ใช้ระบบเปรียบเทียบคู่ 6 ระดับ (Forced Choice —
-            ไม่มีตัวเลือกเท่ากัน) และแก้ไขได้ก่อนเริ่มโหวต
+            การประเมินแบบ Pairwise ใช้ระบบเปรียบเทียบคู่ 6 ระดับ (Forced Choice
+            — ไม่มีตัวเลือกเท่ากัน) และแก้ไขได้ก่อนเริ่มโหวต
           </Alert>
         </>
       )}
