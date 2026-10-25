@@ -15,6 +15,7 @@ import {
 import type { Assignment, PairScope } from "@/features/assignments/types";
 import { previewRegeneration } from "../domain/regeneration";
 import { requestJson } from "@/shared/services/http-client";
+import { RegenerationPreview } from "./regeneration-preview";
 
 export function RegeneratePairsDialog({
   active,
@@ -218,56 +219,11 @@ export function RegeneratePairsDialog({
                     ตรวจสอบและดูตัวอย่างคู่ใหม่
                   </Button>
                   {preview && (
-                    <Stack spacing={1}>
-                      <Alert
-                        severity={
-                          preview.coverage < preview.targetCoverage &&
-                          scope !== "individual"
-                            ? "warning"
-                            : "info"
-                        }
-                      >
-                        Generation {preview.generation} ·{" "}
-                        {preview.totalComparisons} งานเปรียบเทียบ ·
-                        นักศึกษาที่ได้รับผลกระทบ{" "}
-                        {preview.affectedStudentIds.length} คน · คำตอบเดิม{" "}
-                        {preview.replacedAnswers} รายการ
-                        {scope !== "individual" && (
-                          <>
-                            {" "}
-                            · Coverage ที่ทำได้จริง {preview.coverage}/
-                            {preview.targetCoverage} ครั้งต่อคู่
-                          </>
-                        )}
-                      </Alert>
-                      {preview.workload.map((w) => (
-                        <Typography variant="body2" key={w.id}>
-                          {active.groups
-                            .flatMap((g) => g.members)
-                            .find((m) => m.id === w.id)?.name ?? w.id}
-                          : {w.count} งานเปรียบเทียบ
-                        </Typography>
-                      ))}
-                      {preview.disabledIndividualGroups.length > 0 && (
-                        <Typography variant="body2">
-                          ปิดรายบุคคลเพราะสมาชิกไม่เกิน 2 คน:{" "}
-                          {preview.disabledIndividualGroups.join(", ")}
-                        </Typography>
-                      )}
-                      <Typography variant="body2">
-                        คู่ตัวอย่าง:{" "}
-                        {preview.pairs
-                          .slice(0, 3)
-                          .map((p) => {
-                            const items =
-                              p.side === "GROUP"
-                                ? active.groups
-                                : active.groups.flatMap((g) => g.members);
-                            return `${items.find((i) => i.id === p.item_a_id)?.name} ↔ ${items.find((i) => i.id === p.item_b_id)?.name}`;
-                          })
-                          .join(" · ")}
-                      </Typography>
-                    </Stack>
+                    <RegenerationPreview
+                      active={active}
+                      preview={preview}
+                      scope={scope}
+                    />
                   )}
                 </>
               )}

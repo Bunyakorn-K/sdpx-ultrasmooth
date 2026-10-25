@@ -5,6 +5,7 @@ import { AppError } from "@/shared/domain/app-error";
 import { applyAssignmentCommand } from "../domain/assignment-policy";
 import { visibleAssignment } from "../domain/assignment-visibility";
 import { createAssignment } from "../domain/create-assignment";
+import { applyClassroomRoster } from "../domain/classroom-roster";
 import type { Assignment } from "../types";
 import type { AssignmentRepository } from "./assignment-repository";
 
@@ -17,21 +18,26 @@ const MAX_RETRIES = 5;
 export class AssignmentService {
   constructor(
     private readonly repository: AssignmentRepository,
-    private readonly generateCode: () => string,
     private readonly classroomRepository?: ClassroomRepository,
     private readonly auditService?: AuditService,
   ) {}
 
   async list(user: User) {
-    return (await this.repository.listForUser(user.id, user.email)).map(
-      (assignment) => visibleAssignment(assignment, user.id),
+    return Promise.all(
+      (await this.repository.listForUser(user.id, user.email)).map(
+        async (assignment) =>
+          visibleAssignment(
+            await this.withClassroomRoster(assignment, user),
+            user.id,
+          ),
+      ),
     );
   }
 
   async get(user: User, id: string) {
     const record = await this.repository.findById(id);
     if (!record) throw new AppError("ไม่พบ assignment", 404);
-    const assignment = record.assignment;
+    const assignment = await this.withClassroomRoster(record.assignment, user);
     const isOwner = assignment.ownerId === user.id;
     const isJoined = assignment.students.some(
       (student) => student.id === user.id,
@@ -48,10 +54,13 @@ export class AssignmentService {
   async execute(user: User, input: Record<string, unknown>) {
     if (input.action === "create") return this.create(user, input);
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      const record = await this.findForCommand(input);
+      const record = await this.repository.findById(String(input.id || ""));
       if (!record) throw new AppError("ไม่พบ assignment", 404);
+      record.assignment = await this.withClassroomRoster(
+        record.assignment,
+        user,
+      );
       if (
-        input.action !== "join" &&
         record.assignment.ownerId !== user.id &&
         !record.assignment.students.some((s) => s.id === user.id)
       ) {
@@ -99,6 +108,9 @@ export class AssignmentService {
                     generation: previousGeneration,
                   }
                 : assignmentEvent(previousStatus, updated, record.version)),
+          input.action === "submitEvaluation"
+            ? updated.evaluationSubmissions?.at(-1)
+            : undefined,
         )
       ) {
         if (input.action === "overrideScore") {
@@ -166,7 +178,25 @@ export class AssignmentService {
     if (!record) throw new AppError("ไม่พบ assignment", 404);
     if (user.role !== "teacher" || record.assignment.ownerId !== user.id)
       throw new AppError("เฉพาะครูเจ้าของงานเท่านั้น", 403);
-    return previewRegeneration(record.assignment, scope);
+    return previewRegeneration(
+      await this.withClassroomRoster(record.assignment, user),
+      scope,
+    );
+  }
+
+  private async withClassroomRoster(
+    assignment: Assignment,
+    user: User,
+  ): Promise<Assignment> {
+    if (!this.classroomRepository || assignment.status !== "draft")
+      return assignment;
+    const classroom = assignment.classroomId
+      ? (await this.classroomRepository.findById(assignment.classroomId))
+          ?.classroom
+      : (await this.classroomRepository.listForUser(user.id, user.email)).find(
+          (c) => c.assignment_ids?.includes(assignment.id),
+        );
+    return classroom ? applyClassroomRoster(assignment, classroom) : assignment;
   }
 
   private async checkClassroomAccess(
@@ -199,18 +229,22 @@ export class AssignmentService {
     );
   }
 
-  private findForCommand(input: Record<string, unknown>) {
-    return input.action === "join"
-      ? this.repository.findByCode(String(input.code || ""))
-      : this.repository.findById(String(input.id || ""));
-  }
-
   private async create(user: User, input: Record<string, unknown>) {
-    const assignment = createAssignment(input, user, this.generateCode());
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      if (await this.repository.create(assignment)) return assignment;
-      assignment.code = this.generateCode();
+    let assignment = createAssignment(input, user);
+    if (assignment.classroomId) {
+      const classroom = (
+        await this.classroomRepository?.findById(assignment.classroomId)
+      )?.classroom;
+      if (!classroom || classroom.created_by !== user.id)
+        throw new AppError(
+          "เฉพาะเจ้าของห้องเรียนเท่านั้นที่สร้าง Assignment ในห้องนี้ได้",
+          403,
+        );
+      if (classroom.status !== "ACTIVE")
+        throw new AppError("ห้องเรียนถูกเก็บถาวรแล้ว", 409);
+      assignment = applyClassroomRoster(assignment, classroom);
     }
+    if (await this.repository.create(assignment)) return assignment;
     throw new AppError("กรุณาลองสร้างใหม่อีกครั้ง", 409);
   }
 }

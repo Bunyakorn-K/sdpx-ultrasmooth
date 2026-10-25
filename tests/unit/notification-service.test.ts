@@ -94,7 +94,7 @@ test("assignment service passes lifecycle events with successful optimistic upda
     }
   }
   const repository = new Repository([assignment]);
-  const service = new AssignmentService(repository, () => "123456");
+  const service = new AssignmentService(repository);
   await service.execute(teacher, { action: "start", id: assignment.id });
   await assert.rejects(() =>
     service.execute(teacher, { action: "start", id: assignment.id }),

@@ -48,7 +48,7 @@ test("US06-US10: open voting, evaluate another group once, close and export", as
   });
 });
 // US02 AC1 + US03 AC1 + US04 AC2 + US09 AC1.
-test("US02-US04-US09: import questions, create work, join by code and select a group", async ({
+test("US02-US04-US09: import questions, create work and access it without an enrollment code", async ({
   page,
 }) => {
   const home = new HomePage(page);
@@ -91,10 +91,12 @@ test("US02-US04-US09: import questions, create work, join by code and select a g
     page.getByRole("tab", { name: "คำถาม (2)", exact: true }),
   ).toBeVisible();
   await assignment.selectTab("กลุ่ม (0)");
-  const code = (await assignment.joinCode.innerText()).trim();
+  await expect(page.getByText("รหัส Assignment", { exact: false })).toHaveCount(
+    0,
+  );
   await assignment.createGroup("กลุ่มทดสอบ");
   await assignment.switchRole("student");
-  await assignment.joinAssignment(code);
+  await assignment.openAssignment("งานทดสอบ Excel");
   await assignment.joinExistingGroup();
   await expect(page.getByText("กลุ่มของฉัน", { exact: true })).toBeVisible();
   await assignment.selectTab("คำถาม (2)");

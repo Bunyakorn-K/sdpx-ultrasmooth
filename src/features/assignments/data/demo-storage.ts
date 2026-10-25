@@ -15,6 +15,10 @@ export function loadDemoAssignments(): Assignment[] {
       )
     )
       return [];
+    if (parsed.some((item) => Object.hasOwn(item, "code"))) {
+      for (const item of parsed) delete item.code;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    }
     return parsed as Assignment[];
   } catch {
     return [];

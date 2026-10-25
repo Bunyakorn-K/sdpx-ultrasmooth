@@ -4,7 +4,21 @@ export function visibleAssignment(
   assignment: Assignment,
   userId: string,
 ): Assignment {
-  if (assignment.ownerId === userId) return assignment;
+  if (
+    assignment.ownerId === userId &&
+    !assignment.evaluationDrafts?.length &&
+    !assignment.pairHistory?.some((h) => h.evaluationDrafts?.length)
+  )
+    return assignment;
+  if (assignment.ownerId === userId)
+    return {
+      ...assignment,
+      evaluationDrafts: undefined,
+      pairHistory: assignment.pairHistory?.map((h) => ({
+        ...h,
+        evaluationDrafts: undefined,
+      })),
+    };
   const votes =
     assignment.status === "closed" || assignment.status === "finalized"
       ? assignment.votes.map((vote) => ({
@@ -19,6 +33,12 @@ export function visibleAssignment(
   delete visible.pairingShape;
   delete visible.pairingSnapshot;
   if (assignment.pairs) {
+    visible.evaluationDrafts = assignment.evaluationDrafts?.filter(
+      (c) => c.evaluator_user_id === userId,
+    );
+    visible.evaluationSubmissions = assignment.evaluationSubmissions?.filter(
+      (s) => s.evaluatorId === userId,
+    );
     if (assignment.status === "closed" || assignment.status === "finalized")
       visible.pairResult = generatedResult(assignment, userId);
     visible.pairs = assignment.pairs.filter(
@@ -36,6 +56,12 @@ export function visibleAssignment(
       votes: h.votes.filter((v) => v.userId === userId),
       pairs: h.pairs.filter((p) => p.evaluator_user_id === userId),
       comparisons: h.comparisons.filter((c) => c.evaluator_user_id === userId),
+      evaluationDrafts: h.evaluationDrafts?.filter(
+        (c) => c.evaluator_user_id === userId,
+      ),
+      evaluationSubmissions: h.evaluationSubmissions?.filter(
+        (s) => s.evaluatorId === userId,
+      ),
     }));
   }
   return visible;

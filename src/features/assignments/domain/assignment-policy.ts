@@ -8,6 +8,7 @@ import {
 } from "@/features/pairwise/domain/regeneration";
 import type { ComparisonChoice } from "@/features/pairwise/types";
 import { validateQuestions } from "./create-assignment";
+import { saveEvaluation } from "@/features/pairwise/domain/evaluation-submission";
 import {
   canEvaluateTarget,
   isIndividualEvaluation,
@@ -23,16 +24,6 @@ type PolicyContext = {
   hasGroup: boolean;
 };
 type CommandHandler = (context: PolicyContext, input: CommandInput) => void;
-function joinAssignment({
-  assignment,
-  user,
-  isMember,
-  canEditGroups,
-}: PolicyContext) {
-  if (user.role !== "student" || !canEditGroups)
-    throw new AppError("ไม่สามารถเข้าร่วม assignment นี้ได้แล้ว");
-  if (!isMember) assignment.students.push({ id: user.id, name: user.name });
-}
 function createGroup(
   {
     assignment,
@@ -44,6 +35,8 @@ function createGroup(
   }: PolicyContext,
   input: CommandInput,
 ) {
+  if (assignment.classroomRosterManaged)
+    throw new AppError("กรุณาจัดกลุ่มผ่าน CSV ของห้องเรียน", 403);
   if (!canEditGroups) throw new AppError("ไม่สามารถจัดกลุ่มได้", 403);
   if (!isOwner && user.role !== "student")
     throw new AppError("ไม่สามารถจัดกลุ่มได้", 403);
@@ -64,6 +57,8 @@ function joinGroup(
   { assignment, user, isMember, canEditGroups, hasGroup }: PolicyContext,
   input: CommandInput,
 ) {
+  if (assignment.classroomRosterManaged)
+    throw new AppError("อาจารย์จัดกลุ่มให้ผ่านรายชื่อห้องเรียนแล้ว", 403);
   if (!canEditGroups || hasGroup || (user.role !== "student" && !isMember))
     throw new AppError("ไม่สามารถเข้าร่วมกลุ่มได้");
   const group = assignment.groups.find((group) => group.id === input.groupId);
@@ -73,8 +68,37 @@ function joinGroup(
   }
   group.members.push({ id: user.id, name: user.name });
 }
-function startVoting({ assignment, isOwner, canEditGroups }: PolicyContext) {
+function startVoting(context: PolicyContext, input: CommandInput) {
+  const { assignment, isOwner, canEditGroups } = context;
   if (!isOwner) throw new AppError("เฉพาะครูเจ้าของงานเท่านั้น", 403);
+  if (assignment.pairwiseRequired) {
+    if (
+      assignment.status !== "draft" ||
+      assignment.pairs ||
+      assignment.pairingPaused
+    )
+      throw new AppError(
+        "กรุณาใช้ Re-generate Pairs เพื่อเผยแพร่คู่ชุดใหม่",
+        409,
+      );
+    if (!canEditGroups) throw new AppError("ยังไม่สามารถเปิดประเมินได้");
+    // Always recompute against current state, including on optimistic-lock retries.
+    // The preview token prevents publishing a roster/configuration the owner did not review.
+    regeneratePairs(context, {
+      ...input,
+      scope: "both",
+      reason: "เปิดประเมินครั้งแรก",
+    });
+    // Initial publication has no previous generation to archive.
+    const initial = assignment.pairHistory?.at(-1);
+    if (
+      initial?.generation === 0 &&
+      !initial.votes.length &&
+      !initial.pairs.length
+    )
+      assignment.pairHistory?.pop();
+    return;
+  }
   if (assignment.pairingPaused)
     throw new AppError("กรุณาสร้างและเผยแพร่คู่ใหม่ก่อนเปิดประเมิน", 409);
   const populatedGroups = assignment.groups.filter(
@@ -346,6 +370,12 @@ function regeneratePairs(context: PolicyContext, input: CommandInput) {
     comparisons: structuredClone(
       a.comparisons?.filter((c) => oldIds.has(c.pair_assignment_id)) ?? [],
     ),
+    evaluationDrafts: structuredClone(
+      a.evaluationDrafts?.filter((c) => oldIds.has(c.pair_assignment_id)) ?? [],
+    ),
+    evaluationSubmissions: structuredClone(
+      a.evaluationSubmissions?.filter((s) => selected(s.side)) ?? [],
+    ),
     votes: structuredClone(a.votes),
     groups: structuredClone(a.pairingSnapshot?.groups ?? a.groups),
     questions: [...(a.pairingSnapshot?.questions ?? a.questions)],
@@ -360,6 +390,10 @@ function regeneratePairs(context: PolicyContext, input: CommandInput) {
   ];
   a.comparisons =
     a.comparisons?.filter((c) => !oldIds.has(c.pair_assignment_id)) ?? [];
+  a.evaluationDrafts =
+    a.evaluationDrafts?.filter((c) => !oldIds.has(c.pair_assignment_id)) ?? [];
+  a.evaluationSubmissions =
+    a.evaluationSubmissions?.filter((s) => !selected(s.side)) ?? [];
   a.votes = [];
   a.scoreOverrides = [];
   delete a.finalizedSnapshot;
@@ -389,6 +423,12 @@ function submitPair(context: PolicyContext, input: CommandInput) {
   );
   if (!pair) throw new AppError("ไม่พบคู่ที่คุณมีสิทธิ์ประเมิน", 403);
   if (
+    a.evaluationSubmissions?.some(
+      (s) => s.evaluatorId === context.user.id && s.side === pair.side,
+    )
+  )
+    throw new AppError("กรุณาส่งผลประเมินรวมจากหน้าประเมินล่าสุด", 409);
+  if (
     !Number.isInteger(input.choice) ||
     Number(input.choice) < 1 ||
     Number(input.choice) > 6
@@ -416,11 +456,14 @@ function submitPair(context: PolicyContext, input: CommandInput) {
   a.comparisons.push(response);
 }
 const commandHandlers: Record<string, CommandHandler> = {
+  saveEvaluationDrafts: (context, input) =>
+    saveEvaluation(context.assignment, context.user, input, false),
+  submitEvaluation: (context, input) =>
+    saveEvaluation(context.assignment, context.user, input, true),
   configurePairs,
   unpublishPairs,
   regeneratePairs,
   submitPair,
-  join: joinAssignment,
   group: createGroup,
   joinGroup,
   start: startVoting,

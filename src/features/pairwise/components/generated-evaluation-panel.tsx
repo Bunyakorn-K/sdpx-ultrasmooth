@@ -1,41 +1,24 @@
 "use client";
 import { useState } from "react";
-import {
-  Alert,
-  Button,
-  Stack,
-  Tab,
-  Tabs,
-  Typography,
-  Paper,
-} from "@mui/material";
+import { Alert, Box, Stack, Tab, Tabs, Typography, Paper } from "@mui/material";
 import type { Assignment } from "@/features/assignments/types";
 import type { User } from "@/features/auth/types";
-import type { ComparisonChoice } from "../types";
-import { PairwiseCard } from "./pairwise-card";
-import { useDeadline } from "@/features/assignments/hooks/use-deadline";
+import { EvaluationSidePanel } from "./evaluation-side-panel";
+import type { EvaluationCommand } from "../hooks/use-evaluation-draft";
 import { generatedResult } from "../domain/generated-results";
 
 export function GeneratedEvaluationPanel({
   active,
   user,
   busy,
-  action,
+  command,
 }: {
   active: Assignment;
   user: User | null;
   busy: boolean;
-  action: (command: string, input?: Record<string, unknown>) => Promise<void>;
+  command: EvaluationCommand;
 }) {
   const [tab, setTab] = useState(0);
-  const [choices, setChoices] = useState<Record<string, ComparisonChoice>>({});
-  const [started] = useState(() => Date.now());
-  const expired = useDeadline(active.deadline);
-  const pairs =
-    active.pairs?.filter((p) => p.evaluator_user_id === user?.id) ?? [];
-  const selected = pairs.filter(
-    (p) => p.side === (tab === 0 ? "GROUP" : "INDIVIDUAL"),
-  );
   const ownGroup = active.groups.find((g) =>
     g.members.some((m) => m.id === user?.id),
   );
@@ -72,65 +55,28 @@ export function GeneratedEvaluationPanel({
           หรือคะแนนเต็มรายบุคคลเป็น 0
         </Alert>
       )}
-      <Typography>
-        ส่งแล้ว{" "}
-        {
-          selected.filter((p) =>
-            active.comparisons?.some((c) => c.pair_assignment_id === p.id),
-          ).length
-        }{" "}
-        / {selected.length} คู่
-      </Typography>
-      {(active.status !== "active" || expired) && (
-        <Alert severity="info">
-          ปิดรับคำตอบในขณะนี้ คำตอบที่ส่งแล้วเปิดดูได้อย่างเดียว
-        </Alert>
+      <Box hidden={showIndividual && tab !== 0}>
+        <EvaluationSidePanel
+          active={active}
+          userId={user?.id ?? ""}
+          side="GROUP"
+          visible={!showIndividual || tab === 0}
+          command={command}
+          busy={busy}
+        />
+      </Box>
+      {showIndividual && (
+        <Box hidden={tab !== 1}>
+          <EvaluationSidePanel
+            active={active}
+            userId={user?.id ?? ""}
+            side="INDIVIDUAL"
+            visible={tab === 1}
+            command={command}
+            busy={busy}
+          />
+        </Box>
       )}
-      {!selected.length && (
-        <Alert severity="info">ไม่มีคู่ที่ได้รับมอบหมายในส่วนนี้</Alert>
-      )}
-      {selected.map((p) => {
-        const response = active.comparisons?.find(
-          (c) => c.pair_assignment_id === p.id,
-        );
-        const left = p.display_left_item_id;
-        const right = left === p.item_a_id ? p.item_b_id : p.item_a_id;
-        const locked =
-          busy || !!response || expired || active.status !== "active";
-        return (
-          <Paper variant="outlined" sx={{ p: 2 }} key={p.id}>
-            <PairwiseCard
-              pairId={p.id}
-              criterionName={
-                active.questions[Number(p.criterion_id.split("-").at(-1))] ??
-                "เกณฑ์"
-              }
-              leftItemName={name(left)}
-              rightItemName={name(right)}
-              currentChoice={response?.choice ?? choices[p.id]}
-              busy={locked}
-              onChoiceChange={(choice) =>
-                setChoices((previous) => ({ ...previous, [p.id]: choice }))
-              }
-            />
-            <Button
-              sx={{ mt: 1 }}
-              variant="contained"
-              disabled={locked || !choices[p.id]}
-              onClick={() =>
-                action("submitPair", {
-                  pairId: p.id,
-                  choice: choices[p.id],
-                  expectedGeneration: active.pairGeneration,
-                  timeOnTaskMs: Date.now() - started,
-                })
-              }
-            >
-              {response ? "ส่งผลประเมินแล้ว" : "ส่งผลประเมินคู่นี้"}
-            </Button>
-          </Paper>
-        );
-      })}
       {!!active.pairHistory?.length && (
         <Stack spacing={1}>
           <Typography variant="h6">

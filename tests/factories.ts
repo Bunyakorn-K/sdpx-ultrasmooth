@@ -19,7 +19,6 @@ export function makeAssignment(
     title: "Peer review",
     description: "Fixture for peer evaluation",
     subject: "Technology",
-    code: "654321",
     deadline: new Date(Date.now() + 86400000).toISOString(),
     status: "draft",
     questions: ["Content", "Creativity"],

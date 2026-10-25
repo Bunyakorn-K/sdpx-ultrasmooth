@@ -13,6 +13,7 @@ import { createClient } from "@/shared/lib/supabase/server";
 import { database } from "@/shared/server/database";
 import { normalizeEmail } from "@/features/classroom/domain/roster-parser";
 import type { User } from "../types";
+import { ROSTER_PENDING_PASSWORD } from "../domain/pending-account";
 
 const service = new AuthService(new PostgresUserRepository());
 
@@ -130,11 +131,20 @@ export const completeProfileResponse = withApi(
     const sql = database();
 
     let rows =
-      await sql`SELECT id, name, email, role FROM users WHERE email = ${email}`;
+      await sql`SELECT id, name, email, role, password_hash FROM users WHERE email = ${email}`;
 
     if (rows.length > 0) {
+      if (
+        rows[0].password_hash === ROSTER_PENDING_PASSWORD &&
+        role !== "student"
+      )
+        throw new AppError(
+          "อีเมลนี้อยู่ในรายชื่อนักศึกษา กรุณาสมัครเป็นนักศึกษา",
+          403,
+        );
       rows = await sql`
-        UPDATE users SET name = ${name}, role = ${role}
+        UPDATE users SET name = ${name}, role = ${role},
+        password_hash = CASE WHEN password_hash=${ROSTER_PENDING_PASSWORD} THEN '!supabase-auth' ELSE password_hash END
         WHERE email = ${email}
         RETURNING id, name, email, role
       `;

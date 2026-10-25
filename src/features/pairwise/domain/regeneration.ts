@@ -128,7 +128,7 @@ export function previewRegeneration(a: Assignment, scope: PairScope) {
     }
     if (!distribution)
       throw new AppError(
-        "ไม่สามารถสร้างคู่กลุ่มได้ ต้องมีอย่างน้อย 3 กลุ่มและ workload เพียงพอ",
+        "ไม่สามารถสร้างคู่กลุ่มได้ ต้องมีกลุ่มอื่นอย่างน้อย 2 กลุ่ม (รวมอย่างน้อย 3 กลุ่ม) และ workload เพียงพอ",
       );
     a.questions.forEach((_, i) => {
       const rng = new SeededRng(generation * 101 + i);
@@ -205,6 +205,8 @@ export function previewRegeneration(a: Assignment, scope: PairScope) {
     a.groupMaxScore,
     a.individualMaxScore,
     a.comparisons,
+    a.evaluationDrafts,
+    a.evaluationSubmissions,
     a.votes,
     a.scoreOverrides,
   ]);

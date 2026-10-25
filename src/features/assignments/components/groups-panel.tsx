@@ -1,14 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { Add, FileUploadOutlined, GroupsOutlined } from "@mui/icons-material";
-import { Avatar, Button, Chip, Paper, Stack } from "@mui/material";
+import { Alert, Avatar, Button, Chip, Paper, Stack } from "@mui/material";
 
 import type { User } from "@/features/auth/types";
 import type { Assignment } from "../types";
-import { RosterImportDialog } from "@/features/classroom/components/roster-import-dialog";
-import type { ParseRosterResult } from "@/features/classroom/domain/roster-parser";
 
 export function GroupsPanel({
   active,
@@ -25,23 +22,14 @@ export function GroupsPanel({
   action: (command: string, input?: Record<string, unknown>) => Promise<void>;
   openModal: (mode: "group" | "questions") => void;
 }) {
-  const [rosterOpen, setRosterOpen] = useState(false);
-
-  async function handleRosterImport(roster: ParseRosterResult) {
-    // For each unique group in roster, invoke action to create group
-    for (const groupName of roster.groups) {
-      if (!active.groups.some((g) => g.name === groupName)) {
-        await action("group", { name: groupName });
-      }
-    }
-  }
-
   return (
     <>
       <div className="section-toolbar">
         <div>
           <h3>รายชื่อกลุ่มและสมาชิก (FR-CLASS-01)</h3>
-          <p>{active.students.length} นักเรียน · {active.groups.length} กลุ่ม</p>
+          <p>
+            {active.students.length} นักเรียน · {active.groups.length} กลุ่ม
+          </p>
         </div>
         {active.status === "draft" &&
           (teacher ||
@@ -52,22 +40,37 @@ export function GroupsPanel({
               {teacher && (
                 <Button
                   variant="outlined"
+                  component={Link}
+                  href={
+                    active.classroomId
+                      ? `/classrooms/${encodeURIComponent(active.classroomId)}`
+                      : "/classrooms"
+                  }
                   startIcon={<FileUploadOutlined />}
-                  onClick={() => setRosterOpen(true)}
                 >
                   นำเข้ารายชื่อ (CSV)
                 </Button>
               )}
-              <Button
-                variant="outlined"
-                startIcon={<Add />}
-                onClick={() => openModal("group")}
-              >
-                สร้างกลุ่ม
-              </Button>
+              {!active.classroomRosterManaged && (
+                <Button
+                  variant="outlined"
+                  startIcon={<Add />}
+                  onClick={() => openModal("group")}
+                >
+                  สร้างกลุ่ม
+                </Button>
+              )}
             </Stack>
           )}
       </div>
+      {active.classroomRosterManaged && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          กลุ่มถูกกำหนดโดยอาจารย์จาก CSV ของห้องเรียน
+          นักศึกษาไม่ต้องสร้างหรือเลือกกลุ่ม
+          {teacher &&
+            " · แก้ไขได้ที่ห้องเรียน งาน Draft จะใช้รายชื่อล่าสุด ส่วนงานที่เปิดประเมินแล้วต้องนำกลับเป็น Draft และสร้างคู่ใหม่"}
+        </Alert>
+      )}
 
       <div className="group-grid">
         {active.groups.map((g, i) => (
@@ -135,6 +138,7 @@ export function GroupsPanel({
               </Button>
             )}
             {!teacher &&
+              !active.classroomRosterManaged &&
               active.status === "draft" &&
               !active.groups.some((g) =>
                 g.members.some((m) => m.id === user?.id),
@@ -175,12 +179,6 @@ export function GroupsPanel({
           </p>
         </div>
       )}
-
-      <RosterImportDialog
-        open={rosterOpen}
-        onClose={() => setRosterOpen(false)}
-        onImportConfirm={handleRosterImport}
-      />
     </>
   );
 }

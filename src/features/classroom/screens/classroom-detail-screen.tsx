@@ -91,6 +91,7 @@ export function ClassroomDetailScreen() {
       teacher={teacher}
       onImportRoster={async (roster) => {
         await importRoster(classroom.id, roster);
+        await refreshAssignments();
       }}
       onAddStaff={async (input) => {
         await addStaff(classroom.id, input);

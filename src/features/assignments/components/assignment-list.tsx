@@ -26,7 +26,7 @@ type AssignmentListProps = {
   filter: string;
   search: string;
   setQuestionText: (text: string) => void;
-  openModal: (mode: "create" | "join") => void;
+  openModal: (mode: "create") => void;
   setFilter: (value: string) => void;
   setSearch: (value: string) => void;
   setSelected: (id: string | null) => void;
@@ -70,16 +70,18 @@ export function AssignmentList(props: AssignmentListProps) {
               : "ร่วมทีม แบ่งปันความคิดเห็น และเรียนรู้ไปด้วยกัน"}
           </Typography>
         </div>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => {
-            setQuestionText(baseQuestions.join("\n"));
-            openModal(teacher ? "create" : "join");
-          }}
-        >
-          {teacher ? "สร้าง assignment" : "เข้าร่วม assignment"}
-        </Button>
+        {teacher && (
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => {
+              setQuestionText(baseQuestions.join("\n"));
+              openModal("create");
+            }}
+          >
+            สร้าง assignment
+          </Button>
+        )}
       </div>
       <div className="stat-grid">
         {[
@@ -244,14 +246,13 @@ export function AssignmentList(props: AssignmentListProps) {
             <p>
               {teacher
                 ? "สร้างงานแรกเพื่อเริ่มต้นการเรียนรู้ร่วมกัน"
-                : "เข้าร่วม assignment ด้วยรหัสจากคุณครู"}
+                : "Assignment จะแสดงเมื่ออาจารย์เพิ่มรายชื่อของคุณในห้องเรียน"}
             </p>
-            <Button
-              variant="outlined"
-              onClick={() => openModal(teacher ? "create" : "join")}
-            >
-              {teacher ? "สร้าง assignment" : "กรอกรหัสเข้าร่วม"}
-            </Button>
+            {teacher && (
+              <Button variant="outlined" onClick={() => openModal("create")}>
+                สร้าง assignment
+              </Button>
+            )}
           </div>
         )}
       </div>

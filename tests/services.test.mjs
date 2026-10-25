@@ -19,7 +19,7 @@ function activeAssignment() {
   return {
     id: "a",
     ownerId: teacher.id,
-    code: "123456",
+
     status: "active",
     deadline: new Date(Date.now() + 86400000).toISOString(),
     questions: ["Content"],
@@ -48,7 +48,7 @@ test("service retries a conflicting update using the latest version", async () =
       return true;
     },
   };
-  const service = new AssignmentService(repository, () => "123456");
+  const service = new AssignmentService(repository);
   await service.execute(student, {
     id: "a",
     action: "vote",
@@ -67,7 +67,7 @@ test("concurrent duplicate submission is revalidated after a conflict", async ()
       return false;
     },
   };
-  const service = new AssignmentService(repository, () => "123456");
+  const service = new AssignmentService(repository);
   await assert.rejects(
     () =>
       service.execute(student, {

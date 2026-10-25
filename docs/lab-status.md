@@ -15,7 +15,173 @@ For requirement-by-requirement implementation mapping and explicit specification
 | WS07 | k6 real teacher journey, baseline JSON, failure-gate probe, request/business JSON logging, performance CI job | local 2-minute production-container benchmark + 1 ms threshold fails with exit 99 | repeat on the team's actual staging/Neon target; CI performance run |
 | WS08 | review/refactoring plan, scoped before/after record, security fixes/regression tests, ADRs | unchanged scoped-refactor tests, security probes/audits, redacted history/source scan | real human review and remote security-alert review |
 
+## Assignment enrollment codes removed (2026-10-25)
+
+Assignment enrollment codes, copy controls, join dialogs and the
+`POST /api/assignments/join` route are removed. Assignments retain internal UUIDs
+for navigation and authorized resource lookup. Classroom roster membership is
+the supported enrollment flow; Classroom slugs and OAuth authorization codes are
+separate concepts. Landing copy and the OpenAPI contract describe the current flow.
+
+Repositories no longer generate, search or insert assignment codes. Classroom join
+does not fall back to an assignment code. Existing demo storage and repository
+responses strip retired fields during rollout. `scripts/schema.sql` removes the
+legacy SQL column and JSONB field, increments versions only for changed aggregates,
+and preserves all other assignment content. Deployments with an existing database
+must run `npm run db:init` to apply this schema cleanup before creating assignments
+with the new server. No hosted database was changed during local verification.
+
+Verification on isolated PostgreSQL: a legacy assignment with stored ballots and
+version 7 migrated to identical content minus its enrollment field, at version 8;
+the SQL column was absent, and repeating the migration changed nothing. Legacy
+evaluation tests now enroll their fixtures explicitly behind the existing isolated
+test-database guard. Tests for removed enrollment behavior now check absence or
+rejection; the Classroom CSV end-to-end journey checks real supported enrollment.
+Unit tests (147), lint, typecheck, OpenAPI validation, production build, coverage
+(96.52% lines / 100% functions / 86.03% branches) and fidelity checks passed.
+The 18 targeted browser/database journeys were verified across final runs,
+including publication, regeneration, notification rollback and CSV enrollment.
+POST to the retired enrollment path is rejected with 405 by the remaining
+read-only resource route; it cannot enroll a student or change membership.
+An initial warm development cache repeatedly rebuilt during navigation; restarting
+with a fresh test cache restored browser navigation. No application assertion was
+relaxed to bypass that navigation failure.
+
+## Classroom CSV controls assignment groups (2026-10-25)
+
+For remaining PRD requirements and integration gaps, see the current
+[PRD gap audit](prd-gap-audit.md). Existing unit-test PASS labels in the backlog
+must not be read as evidence that every associated application flow is complete.
+
+Teachers import `email,group_name,student_id,display_name` in Classroom, review
+all rows and group moves, then confirm. The downloadable UTF-8 BOM template at
+`public/templates/student-roster.csv` contains s1–s12@kmitl.ac.th, student IDs
+67015001–67015012, and three groups of four. Names and group allocation are editable.
+Quoted commas, embedded quotes, multiline names and physical error row numbers
+are supported. Invalid or duplicate rows reject the entire file. Failed requests
+keep the import dialog open and allow retry.
+
+Import provisions stable student identities and the classroom update in one
+optimistically locked SQL statement. Pending identities have a non-password
+marker, cannot log in, and can only be claimed through student registration.
+Registration retains the identity used by already published pairs; repeat
+registration cannot overwrite an activated account. Authenticated classroom
+listing activates the matching pending membership. Hosted profile completion
+also clears the pending marker; hosted authentication itself was not verified.
+
+Every new classroom assignment uses classroom students and groups. Draft reads,
+previews and commands use the current roster; published generations retain their
+snapshot until unpublish and regeneration. Manually linked draft assignments are
+also projected from their classroom. Student group creation/selection is hidden
+and rejected by domain rules for managed assignments. Standalone assignments
+retain their existing grouping behavior. Old imported classrooms should re-import
+their CSV once to provision any pre-existing provisional identities.
+
+Verification: 147 unit/integration tests; browser CSV download/import/update/error
+journey; real PostgreSQL import permissions, atomic rejection and quoted-name
+upsert; CSV → two assignments → publish → pending student registration → current
+user's pairs → submit choice 6; registration role escalation and repeated account
+overwrite rejected; student controls hidden; draft group changes do not alter an
+open generation. Local lint, typecheck, OpenAPI validation, build, coverage and
+fidelity checks passed (coverage: 96.22% lines, 100% functions, 85.86% branches).
+The final six browser/database journeys, including existing notification lifecycle
+and rollback checks, passed. No hosted deployment was tested.
+The isolated test cleanup now removes owned classrooms and unused pending roster
+accounts before deleting run users.
+
+## First publication uses persisted pairs (2026-10-25)
+
+New assignments receive a server-set `pairwiseRequired` marker. The teacher's
+Start action opens a feasibility preview with coverage, per-student workload and
+sample pairs. Confirming publishes both evaluation sides atomically through the
+existing start endpoint. The server rechecks owner, deadline, generation and the
+preview token against current state on each optimistic retry; a bare start request
+cannot enable legacy voting for these assignments. Group evaluation requires three
+populated groups. No prior-generation history is fabricated for first publication.
+Re-generate Pairs remains the subsequent-generation flow.
+
+The same SQL update persists the pairs, emits assignment-opened notifications and
+writes ASSIGNMENT_PUBLISH audit. Existing unmarked assignments retain legacy results
+and lifecycle, with a teacher notice explaining the explicit regeneration migration
+and archival of old answers. Existing legacy API/notification test scenarios explicitly
+prepare pre-pairwise fixtures; their assertions remain intact.
+
+Verified: 139 unit/integration tests; lint, typecheck, OpenAPI and production build;
+coverage (96.45% lines, 100% functions, 85.09% branches) and test fidelity. Nine browser
+journeys passed at 390px/1280px, including first-preview cancellation/confirmation,
+student eligibility, legacy lifecycle, bulk submission and regeneration. A real
+PostgreSQL first-publication journey verifies concurrent 200/409, pair privacy,
+legacy-vote rejection, opened notification and exactly one publication audit; the
+legacy PostgreSQL voting journey also passed. Existing PostgreSQL notification
+lifecycle, rollback/pagination and regeneration journeys passed as well (five
+database journeys in total). Deployment has not been verified.
+
+## Teacher generated-pair report layout (2026-10-25)
+
+Generated-pair results now use the shared theme with a submitted-task progress
+summary, grouped export actions and separate tabs for group scores, individual
+scores, pair coverage, existing quality signals and read-only generation history.
+Group details expand into criterion tables; wider tables scroll within their own
+container on mobile. Scoring and export calculations remain unchanged.
+
+Verified locally at 390px and 1280px: progress excludes drafts, group details,
+all report tabs, individual/coverage row counts, CSV download and no page overflow.
+Both existing regeneration E2E journeys (including Excel export) passed, alongside
+135 unit/integration tests, lint, typecheck, OpenAPI validation and production build.
+Hosted deployment has not been verified.
+
+## Student bulk evaluation submission (2026-10-25)
+
+The comparison control follows the PRD wireframe: six circles in a single
+left-to-right row with a connecting line. Each enlarged circle has its number
+and level description directly beneath it; duplicate endpoint labels and the
+separate legend have been removed. The whole label is clickable. Native radio
+semantics preserve accessible names, arrow-key
+navigation and disabled states. Visually inspected at 320px, 390px and 1280px;
+all circles remain on one row without horizontal overflow. The four existing
+bulk-evaluation/regeneration browser journeys passed with the new control.
+
+For persisted generated pairs, students select six-point answers continuously,
+grouped by criterion with per-criterion and overall progress. Draft changes
+autosave after an 800 ms debounce with an accessible saved/saving status and
+an explicit retry after failure. A single submit action per side confirms the
+answered/unanswered counts, accepts partial submissions and supports resubmission
+before the deadline. Group and individual tabs retain independent drafts and
+submission histories; expiry makes both sides read-only.
+
+Confirming a submission shows a success or error snackbar. A failed submission
+keeps the confirmation dialog and answers available, with the snackbar inside
+the dialog's accessible tree. Browser checks at 390px and 1280px cover success,
+resubmission and a rejected submission without changing stored history.
+
+Drafts are stored separately from submitted comparisons and do not affect scores,
+participation, coverage, exports or deadline reminders. Only their evaluator can
+read them. Each bulk submission atomically replaces that evaluator's selected
+side, clears its drafts, retains an immutable revision snapshot and writes an
+EVALUATION_SUBMIT audit entry in the same optimistic SQL statement. Generation,
+revision, eligibility, ownership and deadline are revalidated on every retry.
+Regeneration archives the replaced side's drafts/revisions and preserves the
+other side. The legacy per-pair endpoint cannot bypass a bulk submission.
+
+Verified: 135 unit/integration tests; lint, typecheck, OpenAPI validation and
+production build; coverage (96.41% lines, 100% functions, 84.52% branches) and
+test fidelity. Browser checks at 1280px and 390px cover draft reload, partial
+confirmation, immediate submit after changes, versioned resubmission, separate
+sides and expiry. Isolated PostgreSQL checks cover failed autosave/retry in the
+browser, concurrent submission, draft privacy, three persisted revisions,
+regeneration/history, student audit actors and rollback when audit insertion
+fails. No hosted deployment has been verified. Legacy assignments retain their
+previous voting UI until generated pairs are published; independent deadlines,
+offline queueing and a full Evaluation UI PRD audit remain outside this change.
+
 ## Pair regeneration (2026-10-25)
+
+The regeneration preview uses theme-based summary cards, a coverage status,
+scrollable student workload rows and left/right sample-pair cards. The existing
+confirmation flow and preview validation remain unchanged. Verified with the
+unchanged regeneration browser journeys at 1280px and 390px; additional visual
+inspection covered nine student workload rows, reduced coverage and long group
+names without horizontal dialog overflow.
 
 The assignment owner can open **Re-generate Pairs** from assignment detail.
 Active/closed work must return to Draft with a reason; finalized work must first
@@ -56,8 +222,9 @@ notification tables need the expanded kind constraint. Local PostgreSQL migratio
 was tested and the configured development database schema was updated without
 logging connection details. Legacy assignments keep their original voting flow until an owner
 publishes generated pairs; this is not a blanket migration or a claim of complete
-Evaluation UI/Reporting PRD compliance. Autosaved drafts, versioned resubmission,
-independent group/individual deadlines and criteria editors, instructor extra/self
+Evaluation UI/Reporting PRD compliance. Autosaved drafts and versioned resubmission
+are now covered by the bulk evaluation change above. Independent group/individual
+deadlines and criteria editors, instructor extra/self
 evaluation, and full identity-export auditing remain separate work. No hosted
 deployment has been verified.
 

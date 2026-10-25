@@ -1,5 +1,14 @@
 import type { PairAssignment, Comparison } from "@/features/pairwise/types";
 export type PairScope = "group" | "individual" | "both";
+export type EvaluationSubmission = {
+  id: string;
+  evaluatorId: string;
+  side: "GROUP" | "INDIVIDUAL";
+  generation: number;
+  revision: number;
+  submittedAt: string;
+  comparisons: Comparison[];
+};
 export type PairHistory = {
   generation: number;
   reason: string;
@@ -7,6 +16,8 @@ export type PairHistory = {
   changedBy: string;
   pairs: PairAssignment[];
   comparisons: Comparison[];
+  evaluationDrafts?: Comparison[];
+  evaluationSubmissions?: EvaluationSubmission[];
   votes: Vote[];
   groups: Group[];
   questions: string[];
@@ -56,12 +67,16 @@ export type FinalizedSnapshot = {
 };
 
 export type Assignment = {
+  /** New assignments must publish persisted pairs before accepting evaluations. */
+  pairwiseRequired?: boolean;
   pairGeneration?: number;
   pairResult?: ReturnType<
     typeof import("@/features/pairwise/domain/generated-results").generatedResult
   >;
   pairs?: PairAssignment[];
   comparisons?: Comparison[];
+  evaluationDrafts?: Comparison[];
+  evaluationSubmissions?: EvaluationSubmission[];
   pairHistory?: PairHistory[];
   pairingShape?: string;
   pairingSnapshot?: { groups: Group[]; questions: string[] };
@@ -70,10 +85,10 @@ export type Assignment = {
   id: string;
   ownerId: string;
   classroomId?: string;
+  classroomRosterManaged?: boolean;
   title: string;
   description: string;
   subject: string;
-  code: string;
   deadline: string;
   status: "draft" | "active" | "closed" | "finalized";
   scoreOverrides?: ScoreOverride[];

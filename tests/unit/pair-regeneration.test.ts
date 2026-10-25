@@ -28,7 +28,7 @@ function fixture(sizes = [3, 3, 3]): Assignment {
   return {
     id: "a",
     ownerId: teacher.id,
-    code: "123456",
+
     title: "Test",
     description: "",
     subject: "",
@@ -426,7 +426,7 @@ test("service checks preview authorization and revalidates a generation conflict
     createdAt: a.createdAt,
   });
   await repo.update(a, 0);
-  const service = new AssignmentService(repo, () => "123456");
+  const service = new AssignmentService(repo);
   await assert.rejects(() => service.previewPairs(student(), a.id, "both"), {
     status: 403,
   });

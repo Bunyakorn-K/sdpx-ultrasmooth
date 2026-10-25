@@ -18,7 +18,6 @@ export function validateQuestions(value: unknown): string[] {
 export function createAssignment(
   input: Record<string, unknown>,
   user: User,
-  code: string,
 ): Assignment {
   if (user.role !== "teacher") throw new AppError("เฉพาะครูเท่านั้น", 403);
   const title = String(input.title || "").trim();
@@ -76,8 +75,8 @@ export function createAssignment(
     description: String(input.description || "").slice(0, 2000),
     subject: String(input.subject || "ทั่วไป").slice(0, 100),
     deadline: deadline.toISOString(),
-    code,
     status: "draft",
+    pairwiseRequired: true,
     evaluationMode,
     questions: validateQuestions(input.questions || []),
     groups: [],

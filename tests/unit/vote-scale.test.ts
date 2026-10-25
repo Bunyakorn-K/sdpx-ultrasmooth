@@ -14,7 +14,7 @@ for (const evaluationType of ["group", "individual"] as const) {
         assignment.groups.splice(1, 1);
       }
       const repository = new FakeAssignmentRepository([assignment]);
-      const service = new AssignmentService(repository, () => "123456");
+      const service = new AssignmentService(repository);
 
       await service.execute(student, {
         action: "vote",
@@ -50,7 +50,7 @@ for (const evaluationType of ["group", "individual"] as const) {
         assignment.groups.splice(1, 1);
       }
       const repository = new FakeAssignmentRepository([assignment]);
-      const service = new AssignmentService(repository, () => "123456");
+      const service = new AssignmentService(repository);
       await assert.rejects(
         service.execute(student, {
           action: "vote",

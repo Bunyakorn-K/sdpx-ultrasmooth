@@ -1,5 +1,7 @@
+import { seedAssignmentStudent } from "../seed/assignment-student";
 import type { APIRequestContext, PlaywrightWorkerArgs } from "@playwright/test";
 import type { Assignment } from "@/features/assignments/types";
+import { prepareLegacyAssignment } from "../seed/legacy-assignment";
 import { test, expect } from "../fixtures";
 import type { SeedAccount } from "../seed/test-data";
 async function actor(
@@ -110,6 +112,8 @@ test.describe("Database-backed authenticated journeys", () => {
     const other = await actor(playwright, baseURL!, users.other);
     try {
       const assignment = await createAssignment(teacher);
+      // This journey characterizes legacy absolute voting; new publication has its own suite.
+      await prepareLegacyAssignment(assignment.id);
       const root = `/api/assignments/${assignment.id}`;
       expect((await other.get(root)).status()).toBe(403);
       for (const [context, name] of [
@@ -117,11 +121,7 @@ test.describe("Database-backed authenticated journeys", () => {
         [other, "Two"],
       ] as const) {
         expect(
-          (
-            await context.post("/api/assignments/join", {
-              data: { code: assignment.code },
-            })
-          ).status(),
+          (await seedAssignmentStudent(assignment.id, context)).status(),
         ).toBe(200);
         expect(
           (await context.post(`${root}/groups`, { data: { name } })).status(),

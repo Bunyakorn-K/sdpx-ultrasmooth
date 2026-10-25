@@ -1,24 +1,30 @@
 import { database } from "@/shared/server/database";
-import type { Assignment } from "../types";
+import type { Assignment, EvaluationSubmission } from "../types";
 import type { NotificationEvent } from "@/features/notifications/types";
 export type AssignmentRecord = { assignment: Assignment; version: number };
 export interface AssignmentRepository {
   listForUser(userId: string, userEmail?: string): Promise<Assignment[]>;
   findById(id: string): Promise<AssignmentRecord | null>;
-  findByCode(code: string): Promise<AssignmentRecord | null>;
   create(assignment: Assignment): Promise<boolean>;
   update(
     assignment: Assignment,
     version: number,
     event?: NotificationEvent,
+    submissionAudit?: EvaluationSubmission,
   ): Promise<boolean>;
 }
 function toRecord(
   row: Record<string, unknown> | undefined,
 ): AssignmentRecord | null {
   return row
-    ? { assignment: row.data as Assignment, version: Number(row.version) }
+    ? { assignment: assignmentData(row.data), version: Number(row.version) }
     : null;
+}
+function assignmentData(value: unknown): Assignment {
+  const assignment = { ...(value as Assignment) };
+  // Old rows remain readable during rollout before the schema cleanup runs.
+  Reflect.deleteProperty(assignment, "code");
+  return assignment;
 }
 export class PostgresAssignmentRepository implements AssignmentRepository {
   async listForUser(userId: string, userEmail?: string) {
@@ -53,7 +59,7 @@ export class PostgresAssignmentRepository implements AssignmentRepository {
          )
       ORDER BY a.data->>'createdAt' DESC
     `;
-    return rows.map((row) => row.data as Assignment);
+    return rows.map((row) => assignmentData(row.data));
   }
   async findById(id: string) {
     const sql = database();
@@ -61,22 +67,17 @@ export class PostgresAssignmentRepository implements AssignmentRepository {
       (await sql`SELECT data,version FROM assignments WHERE id=${id}`)[0],
     );
   }
-  async findByCode(code: string) {
-    const sql = database();
-    return toRecord(
-      (await sql`SELECT data,version FROM assignments WHERE code=${code}`)[0],
-    );
-  }
   async create(assignment: Assignment) {
     const sql = database();
     const rows =
-      await sql`INSERT INTO assignments(id,owner_id,code,data) VALUES(${assignment.id},${assignment.ownerId},${assignment.code},${JSON.stringify(assignment)}::jsonb) ON CONFLICT(code) DO NOTHING RETURNING id`;
+      await sql`INSERT INTO assignments(id,owner_id,data) VALUES(${assignment.id},${assignment.ownerId},${JSON.stringify(assignment)}::jsonb) ON CONFLICT(id) DO NOTHING RETURNING id`;
     return rows.length > 0;
   }
   async update(
     assignment: Assignment,
     version: number,
     event?: NotificationEvent,
+    submissionAudit?: EvaluationSubmission,
   ) {
     const sql = database();
     const rows = await sql`WITH updated AS (
@@ -96,12 +97,17 @@ export class PostgresAssignmentRepository implements AssignmentRepository {
       ), audited AS (
         INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,assignment_id,before_state,after_state,reason)
         SELECT gen_random_uuid(),owner_id,
-          CASE ${event?.kind ?? null} WHEN 'pairs_regenerated' THEN 'PAIRS_REGENERATE' WHEN 'pairs_paused' THEN 'ASSIGNMENT_UNPUBLISH' WHEN 'pairs_reopened' THEN 'ASSIGNMENT_REOPEN' ELSE 'ASSIGNMENT_FINALIZE' END,
+          CASE ${event?.kind ?? null} WHEN 'assignment_opened' THEN 'ASSIGNMENT_PUBLISH' WHEN 'pairs_regenerated' THEN 'PAIRS_REGENERATE' WHEN 'pairs_paused' THEN 'ASSIGNMENT_UNPUBLISH' WHEN 'pairs_reopened' THEN 'ASSIGNMENT_REOPEN' ELSE 'ASSIGNMENT_FINALIZE' END,
           'assignment',id::text,id,
           ${JSON.stringify(event?.kind === "results_finalized" ? { status: "closed" } : { generation: event?.generation })}::jsonb,
           ${JSON.stringify(event?.kind === "results_finalized" ? { status: "finalized" } : { generation: assignment.pairGeneration ?? 0, scope: event?.scope, status: assignment.status })}::jsonb,
           ${event?.reason ?? null}
-        FROM updated WHERE ${event?.kind ?? null} IN ('results_finalized','pairs_regenerated','pairs_paused','pairs_reopened') RETURNING id
+        FROM updated WHERE ${event?.kind ?? null} IN ('assignment_opened','results_finalized','pairs_regenerated','pairs_paused','pairs_reopened') RETURNING id
+      ), submission_audited AS (
+        INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,assignment_id,after_state)
+        SELECT gen_random_uuid(),${submissionAudit?.evaluatorId ?? null}::uuid,'EVALUATION_SUBMIT','assignment',id::text,id,
+          ${JSON.stringify(submissionAudit ? { side: submissionAudit.side, generation: submissionAudit.generation, revision: submissionAudit.revision, answered: submissionAudit.comparisons.length } : {})}::jsonb
+        FROM updated WHERE ${submissionAudit !== undefined} RETURNING id
       ) SELECT id FROM updated`;
     return rows.length > 0;
   }

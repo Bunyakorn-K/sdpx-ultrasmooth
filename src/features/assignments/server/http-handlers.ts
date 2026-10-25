@@ -1,4 +1,3 @@
-import { randomInt } from "node:crypto";
 import { requireUser } from "@/features/auth/server/session-service";
 import { AppError } from "@/shared/domain/app-error";
 import {
@@ -13,12 +12,10 @@ import { PostgresAssignmentRepository } from "./assignment-repository";
 import { AssignmentService } from "./assignment-service";
 const assignments = new AssignmentService(
   new PostgresAssignmentRepository(),
-  () => String(randomInt(100000, 1000000)),
   new PostgresClassroomRepository(),
 );
 const commands = new Set([
   "create",
-  "join",
   "group",
   "joinGroup",
   "questions",
@@ -30,11 +27,12 @@ const commands = new Set([
   "configurePairs",
   "regeneratePairs",
   "submitPair",
+  "saveEvaluationDrafts",
+  "submitEvaluation",
   "reopen",
 ]);
 const events: Record<string, string> = {
   create: "assignment_created",
-  join: "assignment_joined",
   group: "group_created",
   joinGroup: "group_joined",
   questions: "questions_updated",
@@ -46,6 +44,8 @@ const events: Record<string, string> = {
   configurePairs: "pair_configuration_updated",
   regeneratePairs: "pairs_regenerated",
   submitPair: "comparison_submitted",
+  saveEvaluationDrafts: "evaluation_draft_saved",
+  submitEvaluation: "evaluation_submitted",
   reopen: "assignment_reopened",
 };
 export const listAssignmentsResponse = withApi(
@@ -71,9 +71,7 @@ export function assignmentCommandResponse(
     const action = command || String(input.action || "create");
     if (!commands.has(action)) throw new AppError("คำขอไม่ถูกต้อง");
     const id = resourceId || String(input.id || "");
-    if (!["create", "join"].includes(action)) requireResourceId(id);
-    if (action === "join" && !/^\d{6}$/.test(String(input.code || "")))
-      throw new AppError("รหัสเข้าร่วมต้องเป็นตัวเลข 6 หลัก");
+    if (action !== "create") requireResourceId(id);
     const assignment = await assignments.execute(user, {
       ...input,
       action,

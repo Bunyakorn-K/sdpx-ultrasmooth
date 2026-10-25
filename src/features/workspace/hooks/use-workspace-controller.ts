@@ -19,7 +19,7 @@ import { useClassrooms } from "@/features/classroom/hooks/use-classrooms";
 import { useEffect, useState, type FormEvent } from "react";
 import { usePathname, useRouter } from "next/navigation";
 export type WorkspaceModal =
-  "login" | "register" | "create" | "join" | "group" | "questions" | null;
+  "login" | "register" | "create" | "group" | "questions" | null;
 const parseQuestions = (text: string) =>
   text
     .split("\n")
@@ -152,14 +152,13 @@ export function useWorkspaceController() {
   }
   async function action(command: string, input: Record<string, unknown> = {}) {
     await runTask(async () => {
-      const assignment = await execute({
+      await execute({
         action: command,
         id: active?.id,
         ...input,
       });
       setModal(null);
       setVoteTarget(null);
-      if (command === "join") setSelected(assignment.id);
       const messages: Record<string, string> = {
         stop: "หยุดโหวตและรวมคะแนนแล้ว",
         vote: "บันทึกคะแนนเรียบร้อยแล้ว",
@@ -216,11 +215,10 @@ export function useWorkspaceController() {
         setTab(0);
         setModal(null);
         setModalContext(null);
-        setToast("สร้าง assignment แล้ว แชร์รหัสให้นักเรียนได้เลย");
+        setToast("สร้าง assignment เรียบร้อยแล้ว");
       });
       return;
     }
-    if (modal === "join") await action("join", { code: fields.code });
     if (modal === "group") await action("group", { name: fields.name });
     if (modal === "questions")
       await action("questions", { questions: parseQuestions(questionText) });
@@ -292,6 +290,7 @@ export function useWorkspaceController() {
     switchDemoStudent,
     openModal,
     action,
+    evaluationCommand: execute,
     submit,
     importExcel,
     exportExcel,
