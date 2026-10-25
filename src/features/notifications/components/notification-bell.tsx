@@ -23,6 +23,7 @@ import { requestJson } from "@/shared/services/http-client";
 import type { Notification, NotificationPage } from "../types";
 
 const titles: Record<Notification["kind"], string> = {
+  additional_evaluation: "คุณได้รับมอบหมายให้ประเมินเพิ่ม กรุณากลับมาประเมิน",
   assignment_opened: "An assignment is open for evaluation",
   deadline_reminder: "Evaluation is due within 48 hours",
   results_finalized: "Your teacher has finalized the results",

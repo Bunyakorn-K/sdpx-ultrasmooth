@@ -16,6 +16,8 @@ import {
   targetVotes,
 } from "./evaluation-targets";
 
+import { assignAdditionalEvaluations } from "@/features/pairwise/domain/additional-evaluations";
+
 type CommandInput = Record<string, unknown>;
 type PolicyContext = {
   assignment: Assignment;
@@ -442,6 +444,9 @@ function submitPair(context: PolicyContext, input: CommandInput) {
   a.comparisons.push(response);
 }
 const commandHandlers: Record<string, CommandHandler> = {
+  assignAdditional: ({ assignment, user }, input) => {
+    assignAdditionalEvaluations(assignment, user, input);
+  },
   submitAppeal: ({ assignment, user }, input) =>
     submitAppeal(assignment, user, input),
   resolveAppeal: ({ assignment, user }, input) =>

@@ -138,6 +138,7 @@ paths:
                                 deadline_reminder,
                                 results_finalized,
                                 pairs_regenerated,
+                                additional_evaluation,
                               ],
                           }
                         createdAt: { type: string, format: date-time }
@@ -297,6 +298,37 @@ paths:
           {
             description: "Stale preview or generation, invalid lifecycle state, or duplicate submission.",
           }
+        "503": { description: Database unavailable. }
+  /api/assignments/{id}/pairs/additional:
+    post:
+      operationId: assignAdditionalEvaluations
+      summary: Owner assigns additional eligible students to one pair and criterion
+      description: Appends pairs without replacing answers or changing generation. In-app notifications and audit commit atomically. Active assignment before deadline only; candidates exclude already assigned students and respect per-criterion workload.
+      tags: [Assignments]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pairId, count, expectedGeneration, expectedAssignedCount]
+              properties:
+                pairId: { type: string, minLength: 1 }
+                count: { type: integer, minimum: 1, maximum: 100 }
+                expectedGeneration: { type: integer, minimum: 1 }
+                expectedAssignedCount: { type: integer, minimum: 1 }
+      responses:
+        "200": { description: Updated assignment; selected students receive a notification with an assignment link and no scores. }
+        "400": { description: Invalid count or request. }
+        "401": { description: Sign-in required. }
+        "403": { description: Owner and same-origin request required. }
+        "404": { description: Assignment or pair missing. }
+        "409": { description: "Stale generation or count, invalid lifecycle, or insufficient eligible evaluators." }
         "503": { description: Database unavailable. }
   /api/assignments/{id}/pairs/regenerate:
     post:

@@ -24,6 +24,7 @@ const commandEndpoints: Record<
   string,
   { suffix: string; method: "POST" | "PUT" }
 > = {
+  assignAdditional: { suffix: "pairs/additional", method: "POST" },
   resolveAppeal: { suffix: "appeals", method: "PUT" },
   group: { suffix: "groups", method: "POST" },
   joinGroup: { suffix: "groups/join", method: "POST" },

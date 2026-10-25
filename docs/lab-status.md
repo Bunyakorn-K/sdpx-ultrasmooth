@@ -288,8 +288,8 @@ FR-NOTIF-04 (finalized results), and FR-NOTIF-06 (direct links without scores or
 evaluator identity) are implemented in code. Reminders are evaluated when the
 student opens/refreshes the inbox; there is no scheduled worker or cron.
 FR-NOTIF-03 (regenerated pairs) is implemented by the regeneration workflow above.
-FR-NOTIF-05 (additional evaluation tasks) and email delivery remain pending their
-supporting workflows and external setup.
+FR-NOTIF-05 (additional evaluation tasks) is implemented in the additional-task
+workflow below. Email delivery remains pending external setup.
 
 Run `npm run db:init` against the intended database before deploying this code;
 the additive notifications table and indexes are required by assignment writes.
@@ -365,3 +365,45 @@ No student/team names, human code approvals, clean-clone observations from other
 - Local verification: 3 appeals E2E journeys passed (1280px, 390px and guarded isolated PostgreSQL authorization/privacy/concurrency/audit). No production database was changed. Deployment and hosted authentication are not externally verified.
 - Required checks passed: 156 unit/integration tests, lint, typecheck, OpenAPI lint, production build, coverage (97.34% lines / 100% functions / 87.45% branches), and mutation fidelity. Excel/CSV regression verifies nonzero and zero personal-total overrides without changing another student's result.
 - Current limitations: no email/push delivery, attachments or multi-message conversation; users read requests/responses in the Assignment tab. Existing broader scoring/finalized-output snapshot gaps in `prd-gap-audit.md` remain separate work.
+
+
+## Additional pair assignments and inbox notification (2026-10-25)
+
+Branch `feat/additional-pair-evaluations` starts from fetched `origin/main`
+(`364959b`), after the previous feature was merged. FR-PAIR-10 and FR-NOTIF-05
+now have an integrated teacher flow under Assignment > evaluation results > pair
+coverage. The owner chooses a pair/criterion, enters a count, and confirms.
+The server randomly selects distinct eligible students who have not already been
+assigned that unordered pair for that criterion, excludes own-group/self targets,
+and respects the existing per-criterion workload limit. Individual complete
+enumeration often has no eligible students remaining; the dialog explains this.
+An insufficient count rejects the entire operation instead of partially assigning.
+
+Additional tasks append `INSTRUCTOR_EXTRA` pairs with randomized display positions
+without changing generation or replacing prior pairs, answers, drafts, or submission
+history. Assignments must be active and before their existing deadline. Stale
+generation/assigned-count checks are repeated on optimistic-lock retries, preventing
+concurrent duplicate requests from assigning twice. New browser requests also send
+their expected pair IDs so a stale batch cannot silently submit after tasks change.
+
+The same version-guarded SQL statement persists pairs, creates one score-free
+`additional_evaluation` inbox notification per selected student with an assignment
+link, and records `PAIRS_ASSIGN_EXTRA` audit with the source pair and recipients.
+Existing student visibility rules expose only their own tasks and responses.
+Teacher self-evaluation and pair-mean reporting (FR-REPORT-03) remain outstanding.
+
+Verification: 162 unit/integration tests pass, including six new additional-task
+cases covering authorization, lifecycle, boundaries, unordered duplicates, workload,
+individual eligibility, preservation, visibility, concurrent retry and stale batches.
+Oxlint, TypeScript, Oxfmt, OpenAPI validation and production build pass. Coverage is
+97.44% lines, 100% functions and 88.38% branches; fidelity detects the intentional
+mutant and restores source. An isolated local PostgreSQL check verified two tasks,
+exactly two selected-recipient notifications, one audit, concurrent duplicate
+rejection and atomic rollback on failed notification insertion; disposable rows
+were cleaned up. No E2E/browser tests were run during this request, following the
+owner's temporary pause. CI E2E remains disabled. UI browser verification and
+remote deployment remain unverified.
+
+Before using this on an existing database, run `npm run db:init` against the
+intended environment to allow the new notification kind. Only the isolated local
+test database was migrated during this request; hosted data was not changed.

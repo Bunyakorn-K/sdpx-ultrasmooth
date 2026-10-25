@@ -16,6 +16,7 @@ const assignments = new AssignmentService(
   new PostgresClassroomRepository(),
 );
 const commands = new Set([
+  "assignAdditional",
   "submitAppeal",
   "resolveAppeal",
   "create",
@@ -35,6 +36,7 @@ const commands = new Set([
   "reopen",
 ]);
 const events: Record<string, string> = {
+  assignAdditional: "additional_evaluations_assigned",
   submitAppeal: "appeal_submitted",
   resolveAppeal: "appeal_resolved",
   create: "assignment_created",

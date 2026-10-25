@@ -79,6 +79,9 @@ export function useEvaluationDraft(
           id: current.id,
           side,
           expectedGeneration: current.pairGeneration,
+          expectedPairIds: current.pairs
+            ?.filter((p) => p.evaluator_user_id === userId && p.side === side)
+            .map((p) => p.id),
           expectedRevision:
             editRevision.current ?? evaluationRevision(current, userId, side),
           answers: Object.values(snapshot).map(
@@ -171,6 +174,9 @@ export function useEvaluationDraft(
           id: current.id,
           side,
           expectedGeneration: current.pairGeneration,
+          expectedPairIds: current.pairs
+            ?.filter((p) => p.evaluator_user_id === userId && p.side === side)
+            .map((p) => p.id),
           expectedRevision:
             editRevision.current ?? evaluationRevision(current, userId, side),
           answers: Object.values(snapshot).map(

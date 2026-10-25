@@ -108,12 +108,12 @@ export class PostgresAssignmentRepository implements AssignmentRepository {
       ), audited AS (
         INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,assignment_id,before_state,after_state,reason)
         SELECT gen_random_uuid(),owner_id,
-          CASE ${event?.kind ?? null} WHEN 'assignment_opened' THEN 'ASSIGNMENT_PUBLISH' WHEN 'pairs_regenerated' THEN 'PAIRS_REGENERATE' WHEN 'pairs_paused' THEN 'ASSIGNMENT_UNPUBLISH' WHEN 'pairs_reopened' THEN 'ASSIGNMENT_REOPEN' ELSE 'ASSIGNMENT_FINALIZE' END,
+          CASE ${event?.kind ?? null} WHEN 'assignment_opened' THEN 'ASSIGNMENT_PUBLISH' WHEN 'pairs_regenerated' THEN 'PAIRS_REGENERATE' WHEN 'additional_evaluation' THEN 'PAIRS_ASSIGN_EXTRA' WHEN 'pairs_paused' THEN 'ASSIGNMENT_UNPUBLISH' WHEN 'pairs_reopened' THEN 'ASSIGNMENT_REOPEN' ELSE 'ASSIGNMENT_FINALIZE' END,
           'assignment',id::text,id,
           ${JSON.stringify(event?.kind === "results_finalized" ? { status: "closed" } : { generation: event?.generation })}::jsonb,
-          ${JSON.stringify(event?.kind === "results_finalized" ? { status: "finalized" } : { generation: assignment.pairGeneration ?? 0, scope: event?.scope, status: assignment.status })}::jsonb,
+          ${JSON.stringify(event?.kind === "results_finalized" ? { status: "finalized" } : { generation: assignment.pairGeneration ?? 0, scope: event?.scope, recipientIds: event?.recipientIds, status: assignment.status })}::jsonb,
           ${event?.reason ?? null}
-        FROM updated WHERE ${event?.kind ?? null} IN ('assignment_opened','results_finalized','pairs_regenerated','pairs_paused','pairs_reopened') RETURNING id
+        FROM updated WHERE ${event?.kind ?? null} IN ('assignment_opened','results_finalized','pairs_regenerated','pairs_paused','pairs_reopened','additional_evaluation') RETURNING id
       ), submission_audited AS (
         INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,assignment_id,after_state)
         SELECT gen_random_uuid(),${submissionAudit?.evaluatorId ?? null}::uuid,'EVALUATION_SUBMIT','assignment',id::text,id,

@@ -23,7 +23,7 @@ evidence of an integrated feature.
 | FR-ASSIGN-01, FR-ASSIGN-05 | Separate group/individual deadlines; actual classroom timezone in display; artifact data/input. The assignment aggregate currently has one deadline. |
 | FR-ASSIGN-02 | Separate criteria per side with editable weights and publish-time validation that each side totals 100%. Current flow shares question strings and derives equal weights. |
 | FR-EVAL-02 | Card supports artifact URLs and an empty state, but assignment/group artifact entry and data wiring are missing. |
-| FR-PAIR-10, FR-REPORT-03, FR-NOTIF-05 (Should) | Assign additional evaluators to a particular pair, teacher self-evaluation, and notification of additional assignments. Coverage UI currently shows assigned/submitted counts without pair mean or these actions. Regeneration is not the same feature. |
+| FR-REPORT-03 | Pair mean and teacher self-evaluation remain missing. The coverage report now includes "send additional evaluations": FR-PAIR-10 and FR-NOTIF-05 are implemented locally with eligible-student selection, workload limits, atomic inbox notifications and audit. Deployment/browser verification remains pending; this is separate from regeneration. |
 | FR-SCORE-03 | The scoring function supports instructor weights, but the current generated-result call does not pass evaluator roles/configured instructor weight; teacher evaluation is not wired end to end. |
 | FR-SCORE-06 | Daily 02:00 classroom-timezone recomputation and explicit teacher recompute operation. Current results are computed during reads/rendering/export. |
 | FR-SCORE-07 | Teacher report has an interim label, but interim labeling is not consistently applied to every student score display. |

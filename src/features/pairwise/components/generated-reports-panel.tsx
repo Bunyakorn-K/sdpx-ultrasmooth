@@ -31,6 +31,9 @@ import { generatedResult } from "../domain/generated-results";
 import { generatedCriteria } from "../domain/regeneration";
 import { calculateItemScores } from "../domain/scoring-engine";
 import { analyzeAssignmentSignals } from "../domain/quality-signals";
+import { AdditionalEvaluationsDialog } from "./additional-evaluations-dialog";
+import type { PairAssignment } from "../types";
+import { useDeadline } from "@/features/assignments/hooks/use-deadline";
 
 function ReportTable({
   label,
@@ -83,6 +86,12 @@ export function GeneratedReportsPanel({
   exportCsv: (a: Assignment, r: CsvReport) => Promise<void>;
 }) {
   const [tab, setTab] = useState(0);
+  const [additional, setAdditional] = useState<{
+    pair: PairAssignment;
+    assigned: number;
+    label: string;
+  } | null>(null);
+  const expired = useDeadline(active.deadline);
   const [csvAnchor, setCsvAnchor] = useState<HTMLElement | null>(null);
   const pairs = active.pairs ?? [];
   const comparisons = active.comparisons ?? [];
@@ -114,6 +123,7 @@ export function GeneratedReportsPanel({
       side: string;
       assigned: number;
       submitted: number;
+      pair: PairAssignment;
     }
   >();
   for (const p of pairs) {
@@ -128,6 +138,7 @@ export function GeneratedReportsPanel({
       side: p.side,
       assigned: 0,
       submitted: 0,
+      pair: p,
     };
     row.assigned++;
     if (submittedIds.has(p.id)) row.submitted++;
@@ -143,6 +154,15 @@ export function GeneratedReportsPanel({
   const provisional = active.status !== "finalized";
   return (
     <Stack spacing={3} sx={{ minWidth: 0 }}>
+      {additional && (
+        <AdditionalEvaluationsDialog
+          active={active}
+          pair={additional.pair}
+          assignedCount={additional.assigned}
+          label={additional.label}
+          onClose={() => setAdditional(null)}
+        />
+      )}
       <Stack
         direction={{ xs: "column", md: "row" }}
         sx={{
@@ -461,7 +481,13 @@ export function GeneratedReportsPanel({
             ) : (
               <ReportTable
                 label="ความครอบคลุมคู่"
-                columns={["คู่ประเมิน", "รูปแบบ", "เกณฑ์ประเมิน", "ส่งแล้ว / มอบหมาย"]}
+                columns={[
+                  "คู่ประเมิน",
+                  "รูปแบบ",
+                  "เกณฑ์ประเมิน",
+                  "ส่งแล้ว / มอบหมาย",
+                  "จัดการ",
+                ]}
               >
                 {[...coverage.entries()].map(([key, row]) => (
                   <TableRow key={key} hover>
@@ -485,6 +511,22 @@ export function GeneratedReportsPanel({
                             : "default"
                         }
                       />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        disabled={active.status !== "active" || expired}
+                        onClick={() =>
+                          setAdditional({
+                            pair: row.pair,
+                            assigned: row.assigned,
+                            label: `${names.get(row.a) ?? row.a} ↔ ${names.get(row.b) ?? row.b} · ${criteria.find((c) => c.id === row.criterion)?.name ?? row.criterion}`,
+                          })
+                        }
+                      >
+                        ส่งประเมินเพิ่ม
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
