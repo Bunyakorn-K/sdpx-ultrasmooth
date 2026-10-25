@@ -14,6 +14,73 @@ export type ParseRosterResult = {
   warnings: string[];
 };
 
+/** CSV records retain physical line numbers, including quoted multiline fields. */
+function csvRecords(text: string): { cols: string[]; rowNumber: number }[] {
+  const records: { cols: string[]; rowNumber: number }[] = [];
+  let cols: string[] = [];
+  let cell = "";
+  let quoted = false;
+  let closed = false;
+  let line = 1;
+  let rowNumber = 1;
+  const source = text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+  for (let i = 0; i <= source.length; i++) {
+    const char = source[i];
+    if (quoted) {
+      if (char === undefined)
+        throw new AppError(
+          `แถวที่ ${rowNumber}: เครื่องหมายคำพูดใน CSV ไม่ครบ`,
+        );
+      if (char === '"') {
+        if (source[i + 1] === '"') {
+          cell += '"';
+          i++;
+        } else {
+          quoted = false;
+          closed = true;
+        }
+      } else {
+        cell += char;
+        if (char === "\n") line++;
+      }
+    } else if (char === "," || char === "\n" || char === undefined) {
+      cols.push(cell.trim());
+      cell = "";
+      closed = false;
+      if (char !== ",") {
+        if (cols.some(Boolean)) records.push({ cols, rowNumber });
+        cols = [];
+        line++;
+        rowNumber = line;
+      }
+    } else if (char === '"' && !cell.trim() && !closed) {
+      cell = "";
+      quoted = true;
+    } else {
+      if (char === '"' || (closed && char.trim()))
+        throw new AppError(
+          `แถวที่ ${rowNumber}: รูปแบบเครื่องหมายคำพูดใน CSV ไม่ถูกต้อง`,
+        );
+      cell += char;
+    }
+  }
+  return records;
+}
+
+export function serializeRosterCsv(roster: ParseRosterResult): string {
+  const escape = (value: string) => `"${value.replace(/"/g, '""')}"`;
+  return (
+    "email,group_name,student_id,display_name\r\n" +
+    roster.members
+      .map((m) =>
+        [m.email, m.group_name, m.student_id || "", m.display_name]
+          .map(escape)
+          .join(","),
+      )
+      .join("\r\n")
+  );
+}
+
 export function normalizeEmail(email: string): string {
   const trimmed = email.trim().toLowerCase();
   const atIndex = trimmed.indexOf("@");
@@ -36,19 +103,16 @@ export function normalizeEmail(email: string): string {
 }
 
 export function parseRosterCsv(csvText: string): ParseRosterResult {
-  const lines = csvText
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
+  const lines = csvRecords(csvText);
 
   if (lines.length === 0) {
     throw new AppError("ไฟล์ CSV ว่างเปล่า");
   }
 
   // Header line
-  const headerCols = lines[0]
-    .split(",")
-    .map((c) => c.trim().toLowerCase().replace(/^["']|["']$/g, ""));
+  const headerCols = lines[0].cols.map((c) => c.toLowerCase());
+  if (new Set(headerCols).size !== headerCols.length)
+    throw new AppError("หัวตาราง CSV มีคอลัมน์ซ้ำ");
 
   const emailIdx = headerCols.indexOf("email");
   const groupIdx = headerCols.indexOf("group_name");
@@ -58,6 +122,8 @@ export function parseRosterCsv(csvText: string): ParseRosterResult {
   if (emailIdx === -1 || groupIdx === -1) {
     throw new AppError("หัวตาราง CSV ต้องมีคอลัมน์ email และ group_name");
   }
+  if (lines.length === 1)
+    throw new AppError("ไฟล์ CSV ต้องมีรายชื่อนักศึกษาอย่างน้อย 1 คน");
 
   const members: ParsedRosterMember[] = [];
   const seenEmails = new Map<string, number>();
@@ -65,10 +131,11 @@ export function parseRosterCsv(csvText: string): ParseRosterResult {
 
   // FR-CLASS-02: Atomic validation. If any row is invalid, reject whole file and report exact row!
   for (let i = 1; i < lines.length; i++) {
-    const rowNumber = i + 1; // 1-based index in file
-    const cols = lines[i]
-      .split(",")
-      .map((c) => c.trim().replace(/^["']|["']$/g, ""));
+    const { rowNumber, cols } = lines[i];
+    if (cols.length !== headerCols.length)
+      throw new AppError(
+        `แถวที่ ${rowNumber}: จำนวนคอลัมน์ไม่ตรงกับหัวตาราง CSV`,
+      );
 
     const rawEmail = cols[emailIdx] || "";
     const groupName = cols[groupIdx] || "";
@@ -81,7 +148,9 @@ export function parseRosterCsv(csvText: string): ParseRosterResult {
     }
 
     if (!rawEmail || !emailRegex.test(rawEmail)) {
-      throw new AppError(`แถวที่ ${rowNumber}: รูปแบบอีเมล "${rawEmail}" ไม่ถูกต้อง`);
+      throw new AppError(
+        `แถวที่ ${rowNumber}: รูปแบบอีเมล "${rawEmail}" ไม่ถูกต้อง`,
+      );
     }
 
     const normalized = normalizeEmail(rawEmail);
@@ -111,7 +180,9 @@ export function parseRosterCsv(csvText: string): ParseRosterResult {
   const warnings: string[] = [];
   for (const [group, count] of groupCounts.entries()) {
     if (count < 2) {
-      warnings.push(`กลุ่ม "${group}" มีสมาชิกเพียง ${count} คน (น้อยกว่า 2 คน)`);
+      warnings.push(
+        `กลุ่ม "${group}" มีสมาชิกเพียง ${count} คน (น้อยกว่า 2 คน)`,
+      );
     }
   }
 

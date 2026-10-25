@@ -43,16 +43,10 @@ export class FakeAssignmentRepository implements AssignmentRepository {
     const record = this.records.get(id);
     return record ? structuredClone(record) : null;
   }
-  async findByCode(code: string) {
-    const record = [...this.records.values()].find(
-      (record) => record.assignment.code === code,
-    );
-    return record ? structuredClone(record) : null;
-  }
   async create(assignment: Assignment) {
     if (
       [...this.records.values()].some(
-        (record) => record.assignment.code === assignment.code,
+        (record) => record.assignment.id === assignment.id,
       )
     )
       return false;

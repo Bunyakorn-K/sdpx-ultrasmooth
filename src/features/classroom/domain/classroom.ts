@@ -12,7 +12,10 @@ export function normalizeDomain(domain: string): string {
   return domain.trim().toLowerCase().replace(/^[@.]/, "");
 }
 
-export function isDomainAllowed(email: string, allowedDomains?: string[]): boolean {
+export function isDomainAllowed(
+  email: string,
+  allowedDomains?: string[],
+): boolean {
   if (!allowedDomains || allowedDomains.length === 0) return true;
   const userDomain = email.split("@")[1]?.trim().toLowerCase();
   if (!userDomain) return false;
@@ -20,7 +23,9 @@ export function isDomainAllowed(email: string, allowedDomains?: string[]): boole
   return allowedDomains.some((d) => {
     const cleanAllowed = normalizeDomain(d);
     if (!cleanAllowed) return false;
-    return userDomain === cleanAllowed || userDomain.endsWith("." + cleanAllowed);
+    return (
+      userDomain === cleanAllowed || userDomain.endsWith("." + cleanAllowed)
+    );
   });
 }
 
@@ -84,7 +89,10 @@ export function applyRosterImport(
   roster: ParseRosterResult,
 ): { classroom: Classroom; addedCount: number; updatedCount: number } {
   if (classroom.status === "ARCHIVED") {
-    throw new AppError("ไม่สามารถนำเข้ารายชื่อใน Classroom ที่ถูกเก็บถาวรแล้ว", 400);
+    throw new AppError(
+      "ไม่สามารถนำเข้ารายชื่อใน Classroom ที่ถูกเก็บถาวรแล้ว",
+      400,
+    );
   }
 
   const now = new Date().toISOString();
@@ -117,6 +125,10 @@ export function applyRosterImport(
     if (existingMemberIdx >= 0) {
       // Upsert: update group and info (FR-CLASS-05)
       const prev = nextMembers[existingMemberIdx];
+      if (prev.role !== "STUDENT")
+        throw new AppError(
+          `แถวที่ ${row.rowNumber}: ไม่สามารถเปลี่ยนผู้สอนเป็นนักศึกษาผ่าน CSV ได้`,
+        );
       nextMembers[existingMemberIdx] = {
         ...prev,
         group_id: groupId,
@@ -159,15 +171,28 @@ export function addStaffMember(
   input: { email: string; name: string; role: "CO_TEACHER" | "TA" },
   requester: User,
 ): Classroom {
-  const requesterMember = classroom.members.find((m) => m.user_id === requester.id);
-  if (!requesterMember || (requesterMember.role !== "OWNER" && requesterMember.role !== "CO_TEACHER")) {
-    throw new AppError("เฉพาะอาจารย์ผู้รับผิดชอบหรืออาจารย์ร่วมเท่านั้นที่เพิ่มผู้สอนได้", 403);
+  const requesterMember = classroom.members.find(
+    (m) => m.user_id === requester.id,
+  );
+  if (
+    !requesterMember ||
+    (requesterMember.role !== "OWNER" && requesterMember.role !== "CO_TEACHER")
+  ) {
+    throw new AppError(
+      "เฉพาะอาจารย์ผู้รับผิดชอบหรืออาจารย์ร่วมเท่านั้นที่เพิ่มผู้สอนได้",
+      403,
+    );
   }
 
   const emailNorm = input.email.trim().toLowerCase();
-  const existing = classroom.members.find((m) => m.email.toLowerCase() === emailNorm);
+  const existing = classroom.members.find(
+    (m) => m.email.toLowerCase() === emailNorm,
+  );
   if (existing) {
-    throw new AppError(`ผู้ใช้ที่มีอีเมล "${input.email}" เป็นสมาชิกของห้องเรียนนี้อยู่แล้ว`, 409);
+    throw new AppError(
+      `ผู้ใช้ที่มีอีเมล "${input.email}" เป็นสมาชิกของห้องเรียนนี้อยู่แล้ว`,
+      409,
+    );
   }
 
   const newStaff: ClassroomMember = {
@@ -199,14 +224,24 @@ export function removeMember(
 
   // FR-CLASS-06: Given เหลือ owner คนเดียว, When ลบตัวเอง, Then ปฏิเสธ
   if (target.role === "OWNER") {
-    const ownerCount = classroom.members.filter((m) => m.role === "OWNER").length;
+    const ownerCount = classroom.members.filter(
+      (m) => m.role === "OWNER",
+    ).length;
     if (ownerCount <= 1) {
-      throw new AppError("ไม่สามารถลบเจ้าของห้องเรียนคนสุดท้ายได้ (FR-CLASS-06)", 400);
+      throw new AppError(
+        "ไม่สามารถลบเจ้าของห้องเรียนคนสุดท้ายได้ (FR-CLASS-06)",
+        400,
+      );
     }
   }
 
-  const requesterMember = classroom.members.find((m) => m.user_id === requester.id);
-  if (!requesterMember || (requesterMember.role !== "OWNER" && requester.id !== target.user_id)) {
+  const requesterMember = classroom.members.find(
+    (m) => m.user_id === requester.id,
+  );
+  if (
+    !requesterMember ||
+    (requesterMember.role !== "OWNER" && requester.id !== target.user_id)
+  ) {
     throw new AppError("คุณไม่มีสิทธิ์ลบสมาชิกนี้", 403);
   }
 
@@ -216,10 +251,18 @@ export function removeMember(
   };
 }
 
-export function archiveClassroom(classroom: Classroom, requester: User): Classroom {
-  const requesterMember = classroom.members.find((m) => m.user_id === requester.id);
+export function archiveClassroom(
+  classroom: Classroom,
+  requester: User,
+): Classroom {
+  const requesterMember = classroom.members.find(
+    (m) => m.user_id === requester.id,
+  );
   if (!requesterMember || requesterMember.role !== "OWNER") {
-    throw new AppError("เฉพาะเจ้าของ Classroom เท่านั้นที่สามารถเก็บถาวรได้ (FR-CLASS-07)", 403);
+    throw new AppError(
+      "เฉพาะเจ้าของ Classroom เท่านั้นที่สามารถเก็บถาวรได้ (FR-CLASS-07)",
+      403,
+    );
   }
 
   return {

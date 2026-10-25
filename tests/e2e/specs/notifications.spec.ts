@@ -1,3 +1,4 @@
+import { seedAssignmentStudent } from "../seed/assignment-student";
 import type { APIRequestContext, PlaywrightWorkerArgs } from "@playwright/test";
 import { test, expect } from "../fixtures";
 import type { SeedAccount } from "../seed/test-data";
@@ -7,6 +8,7 @@ import type {
   NotificationPage,
 } from "@/features/notifications/types";
 import { database } from "@/shared/server/database";
+import { prepareLegacyAssignment } from "../seed/legacy-assignment";
 
 async function actor(
   playwright: PlaywrightWorkerArgs["playwright"],
@@ -35,7 +37,7 @@ async function create(api: APIRequestContext) {
     },
   });
   expect(response.status()).toBe(201);
-  return (await response.json()).assignment as { id: string; code: string };
+  return (await response.json()).assignment as { id: string };
 }
 
 test.describe("Persisted in-app notifications", () => {
@@ -67,14 +69,11 @@ test.describe("Persisted in-app notifications", () => {
         (await (await student.get("/api/notifications")).json()).items,
       ).toEqual([]);
       const assignment = await create(teacher);
+      await prepareLegacyAssignment(assignment.id);
       const root = `/api/assignments/${assignment.id}`;
       for (const account of [student, other])
         expect(
-          (
-            await account.post("/api/assignments/join", {
-              data: { code: assignment.code },
-            })
-          ).status(),
+          (await seedAssignmentStudent(assignment.id, account)).status(),
         ).toBe(200);
       expect(
         (
@@ -251,9 +250,7 @@ test.describe("Persisted in-app notifications", () => {
     const student = await actor(playwright, baseURL!, users.student);
     try {
       const assignment = await create(teacher);
-      await student.post("/api/assignments/join", {
-        data: { code: assignment.code },
-      });
+      await seedAssignmentStudent(assignment.id, student);
       const repository = new PostgresAssignmentRepository();
       const record = (await repository.findById(assignment.id))!;
       const badEvent = {

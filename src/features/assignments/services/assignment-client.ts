@@ -3,6 +3,17 @@ import { requestJson } from "@/shared/services/http-client";
 import { applyAssignmentCommand } from "../domain/assignment-policy";
 import { createAssignment } from "../domain/create-assignment";
 import type { Assignment } from "../types";
+import { loadDemoClassrooms } from "@/features/classroom/data/demo-classrooms";
+import { applyClassroomRoster } from "../domain/classroom-roster";
+
+export function demoClassroomRoster(assignment: Assignment): Assignment {
+  const classroom = loadDemoClassrooms().find(
+    (c) =>
+      c.id === assignment.classroomId ||
+      c.assignment_ids?.includes(assignment.id),
+  );
+  return classroom ? applyClassroomRoster(assignment, classroom) : assignment;
+}
 export async function listAssignments() {
   const response = await requestJson<{ assignments: Assignment[] }>(
     "/api/assignments",
@@ -24,6 +35,8 @@ const commandEndpoints: Record<
   configurePairs: { suffix: "pairs/configure", method: "POST" },
   regeneratePairs: { suffix: "pairs/regenerate", method: "POST" },
   submitPair: { suffix: "pairs/submit", method: "POST" },
+  saveEvaluationDrafts: { suffix: "pairs/drafts", method: "PUT" },
+  submitEvaluation: { suffix: "submissions", method: "POST" },
   reopen: { suffix: "reopen", method: "POST" },
 };
 export async function sendAssignmentCommand(input: Record<string, unknown>) {
@@ -32,7 +45,6 @@ export async function sendAssignmentCommand(input: Record<string, unknown>) {
   let path: string;
   let method: "POST" | "PUT" = "POST";
   if (command === "create") path = "/api/assignments";
-  else if (command === "join") path = "/api/assignments/join";
   else {
     const endpoint = Object.hasOwn(commandEndpoints, command)
       ? commandEndpoints[command]
@@ -55,19 +67,12 @@ export function executeDemoCommand(
   input: Record<string, unknown>,
 ) {
   if (input.action === "create") {
-    let code: string;
-    do {
-      code = String(Math.floor(100000 + Math.random() * 900000));
-    } while (assignments.some((item) => item.code === code));
-    return createAssignment(input, user, code);
+    return demoClassroomRoster(createAssignment(input, user));
   }
-  const original =
-    input.action === "join"
-      ? assignments.find((item) => item.code === input.code)
-      : assignments.find((item) => item.id === input.id);
+  const original = assignments.find((item) => item.id === input.id);
   if (!original) throw new Error("ไม่พบ assignment");
   return applyAssignmentCommand(
-    structuredClone(original),
+    demoClassroomRoster(structuredClone(original)),
     user,
     String(input.action),
     input,

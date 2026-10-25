@@ -6,10 +6,10 @@ import { createAssignment } from "@/features/assignments/domain/create-assignmen
 import { FakeAssignmentRepository } from "../fakes/fake-assignment-repository";
 import { FakeClassroomRepository } from "../fakes/fake-classroom-repository";
 import { makeAssignment, makeUser, makeVotingFixture } from "../factories";
-test("US02: teacher creates an assignment with a generated join code", async () => {
+test("US02: teacher creates an assignment identified only by its resource ID", async () => {
   const teacher = makeUser({ role: "teacher" });
   const repository = new FakeAssignmentRepository();
-  const service = new AssignmentService(repository, () => "123456");
+  const service = new AssignmentService(repository);
   const created = await service.execute(teacher, {
     action: "create",
     title: "Review",
@@ -17,7 +17,8 @@ test("US02: teacher creates an assignment with a generated join code", async () 
     questions: ["Content"],
   });
   assert.equal(created.ownerId, teacher.id);
-  assert.equal(created.code, "123456");
+  assert.match(created.id, /^[0-9a-f-]{36}$/);
+  assert.equal(Object.hasOwn(created, "code"), false);
   assert.equal((await repository.listForUser(teacher.id)).length, 1);
 });
 test("US02: students cannot create assignments", () =>
@@ -25,7 +26,6 @@ test("US02: students cannot create assignments", () =>
     createAssignment(
       { title: "X", deadline: new Date(Date.now() + 86400000).toISOString() },
       makeUser(),
-      "123456",
     ),
   ));
 test("US02: past deadlines and missing titles are rejected", () => {
@@ -34,13 +34,12 @@ test("US02: past deadlines and missing titles are rejected", () => {
     { title: "", deadline: "invalid" },
     { title: "X", deadline: new Date(Date.now() - 1).toISOString() },
   ])
-    assert.throws(() => createAssignment(input, teacher, "123456"));
+    assert.throws(() => createAssignment(input, teacher));
 });
 test("US03: outsider cannot read another assignment", async () => {
   const assignment = makeAssignment();
   const service = new AssignmentService(
     new FakeAssignmentRepository([assignment]),
-    () => "123456",
   );
   await assert.rejects(
     () => service.get(makeUser(), assignment.id),
@@ -51,7 +50,6 @@ test("US03: joined student can read assignment while missing IDs return 404", as
   const { student, assignment } = makeVotingFixture();
   const service = new AssignmentService(
     new FakeAssignmentRepository([assignment]),
-    () => "123456",
   );
   assert.equal((await service.get(student, assignment.id)).id, assignment.id);
   await assert.rejects(
@@ -95,8 +93,11 @@ test("US03: student in classroom can list and read assignment without prior join
     classroomId,
     students: [],
   });
-  const assignmentRepo = new FakeAssignmentRepository([assignment], classroomRepo);
-  const service = new AssignmentService(assignmentRepo, () => "123456", classroomRepo);
+  const assignmentRepo = new FakeAssignmentRepository(
+    [assignment],
+    classroomRepo,
+  );
+  const service = new AssignmentService(assignmentRepo, classroomRepo);
 
   const studentList = await service.list(student);
   assert.equal(studentList.length, 1);
@@ -115,12 +116,10 @@ test("US04: student can join a teacher-created group only once", () => {
   const student = makeUser();
   const assignment = makeAssignment({ ownerId: teacher.id });
   applyAssignmentCommand(assignment, teacher, "group", { name: "Team" });
-  applyAssignmentCommand(assignment, student, "join", {});
-  applyAssignmentCommand(assignment, student, "join", {});
-  assert.equal(assignment.students.length, 1);
   applyAssignmentCommand(assignment, student, "joinGroup", {
     groupId: assignment.groups[0].id,
   });
+  assert.equal(assignment.students.length, 1);
   assert.equal(assignment.groups[0].members[0].id, student.id);
   assert.throws(() =>
     applyAssignmentCommand(assignment, student, "group", { name: "Second" }),
@@ -143,11 +142,16 @@ test("US04: student can create a new group directly and becomes a member", () =>
   const teacher = makeUser({ role: "teacher" });
   const student = makeUser({ role: "student" });
   const assignment = makeAssignment({ ownerId: teacher.id });
-  applyAssignmentCommand(assignment, student, "group", { name: "Student Group" });
+  applyAssignmentCommand(assignment, student, "group", {
+    name: "Student Group",
+  });
   assert.equal(assignment.groups.length, 1);
   assert.equal(assignment.groups[0].name, "Student Group");
   assert.equal(assignment.groups[0].members[0].id, student.id);
-  assert.equal(assignment.students.some((s) => s.id === student.id), true);
+  assert.equal(
+    assignment.students.some((s) => s.id === student.id),
+    true,
+  );
 });
 test("US05: owner can update questions before voting, including clearing drafts", () => {
   const teacher = makeUser({ role: "teacher" });
@@ -179,8 +183,8 @@ test("US07: unknown commands and voting on empty groups are rejected", () => {
     }),
   );
 });
-test("US03: expired and already-active assignments reject new members", () => {
-  for (const status of ["active", "closed"] as const) {
+test("US03: retired assignment enrollment is rejected in every lifecycle state", () => {
+  for (const status of ["draft", "active", "closed", "finalized"] as const) {
     const assignment = makeAssignment({ status });
     assert.throws(() =>
       applyAssignmentCommand(assignment, makeUser(), "join", {}),
@@ -196,7 +200,6 @@ test("US01: service lists visible assignments for user", async () => {
   });
   const service = new AssignmentService(
     new FakeAssignmentRepository([assignment]),
-    () => "123456",
   );
   const teacherList = await service.list(teacher);
   assert.equal(teacherList.length, 1);
@@ -209,31 +212,34 @@ test("US01: service lists visible assignments for user", async () => {
   const outsiderList = await service.list(makeUser());
   assert.equal(outsiderList.length, 0);
 });
-test("US03: student joins assignment using 6-digit code via service execute", async () => {
-  const assignment = makeAssignment({ code: "654321", status: "draft" });
+test("US03: removed enrollment command cannot add students to an assignment", async () => {
+  const assignment = makeAssignment({ status: "draft" });
   const student = makeUser({ role: "student" });
-  const service = new AssignmentService(
-    new FakeAssignmentRepository([assignment]),
-    () => "123456",
+  const repo = new FakeAssignmentRepository([assignment]);
+  const service = new AssignmentService(repo);
+  await assert.rejects(
+    () => service.execute(student, { action: "join", id: assignment.id }),
+    { status: 403 },
   );
-  const joined = await service.execute(student, {
-    action: "join",
-    code: "654321",
-  });
-  assert.equal(joined.id, assignment.id);
-  assert.equal(joined.students.length, 1);
-  assert.equal(joined.students[0].id, student.id);
+  assert.deepEqual(
+    (await repo.findById(assignment.id))!.assignment.students,
+    [],
+  );
 });
-test("US02: service retries code generation on collision when creating assignment", async () => {
+
+test("US02: new assignments have independent IDs without generating enrollment codes", async () => {
   const teacher = makeUser({ role: "teacher" });
-  const existing = makeAssignment({ code: "111111" });
-  const repo = new FakeAssignmentRepository([existing]);
-  const codeAttempts = ["111111", "222222"];
-  const service = new AssignmentService(repo, () => codeAttempts.shift() || "999999");
-  const created = await service.execute(teacher, {
+  const repo = new FakeAssignmentRepository();
+  const service = new AssignmentService(repo);
+  const input = {
     action: "create",
-    title: "Retry Assignment",
+    title: "Independent Assignment",
     deadline: new Date(Date.now() + 86400000).toISOString(),
-  });
-  assert.equal(created.code, "222222");
+  };
+  const first = await service.execute(teacher, input);
+  const second = await service.execute(teacher, input);
+  assert.notEqual(first.id, second.id);
+  assert.equal(Object.hasOwn(first, "code"), false);
+  assert.equal(Object.hasOwn(second, "code"), false);
+  assert.equal((await repo.listForUser(teacher.id)).length, 2);
 });

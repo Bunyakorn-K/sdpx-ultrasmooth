@@ -8,6 +8,7 @@ import {
 } from "../data/demo-classrooms";
 import type { Classroom, CreateClassroomInput } from "../types";
 import type { ParseRosterResult } from "../domain/roster-parser";
+import { serializeRosterCsv } from "../domain/roster-parser";
 import {
   applyRosterImport,
   createClassroom as domainCreateClassroom,
@@ -43,9 +44,7 @@ export function useClassrooms(
       return list;
     } catch (err: unknown) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "เกิดข้อผิดพลาดในการโหลดห้องเรียน",
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการโหลดห้องเรียน",
       );
       return [];
     } finally {
@@ -64,7 +63,9 @@ export function useClassrooms(
     };
   }, [user, refresh]);
 
-  async function createClassroom(input: CreateClassroomInput): Promise<Classroom> {
+  async function createClassroom(
+    input: CreateClassroomInput,
+  ): Promise<Classroom> {
     if (demo && user) {
       const created = domainCreateClassroom(input, user);
       const next = [created, ...loadDemoClassrooms()];
@@ -81,7 +82,11 @@ export function useClassrooms(
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error?.message || errData.message || "ไม่สามารถสร้างห้องเรียนได้");
+      throw new Error(
+        errData.error?.message ||
+          errData.message ||
+          "ไม่สามารถสร้างห้องเรียนได้",
+      );
     }
 
     const data = await res.json();
@@ -90,7 +95,10 @@ export function useClassrooms(
     return created;
   }
 
-  async function importRoster(classroomId: string, roster: ParseRosterResult): Promise<void> {
+  async function importRoster(
+    classroomId: string,
+    roster: ParseRosterResult,
+  ): Promise<void> {
     const currentList = demo ? loadDemoClassrooms() : classrooms;
     const target = currentList.find((c) => c.id === classroomId);
     if (!target) throw new Error("ไม่พบห้องเรียน");
@@ -104,24 +112,24 @@ export function useClassrooms(
     }
 
     // Convert roster to CSV string to send to server atomic endpoint
-    const header = "email,group_name,student_id,display_name\n";
-    const rows = roster.members
-      .map(
-        (m) =>
-          `"${m.email}","${m.group_name}","${m.student_id || ""}","${m.display_name}"`,
-      )
-      .join("\n");
-    const csvText = header + rows;
+    const csvText = serializeRosterCsv(roster);
 
-    const res = await fetch(`/api/classrooms/${encodeURIComponent(classroomId)}/roster/import`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ csv: csvText }),
-    });
+    const res = await fetch(
+      `/api/classrooms/${encodeURIComponent(classroomId)}/roster/import`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csv: csvText }),
+      },
+    );
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error?.message || errData.message || "ไม่สามารถนำเข้ารายชื่อได้");
+      throw new Error(
+        errData.error?.message ||
+          errData.message ||
+          "ไม่สามารถนำเข้ารายชื่อได้",
+      );
     }
 
     const data = await res.json();
@@ -146,15 +154,20 @@ export function useClassrooms(
       return;
     }
 
-    const res = await fetch(`/api/classrooms/${encodeURIComponent(classroomId)}/members`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
-    });
+    const res = await fetch(
+      `/api/classrooms/${encodeURIComponent(classroomId)}/members`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      },
+    );
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error?.message || errData.message || "ไม่สามารถเพิ่มผู้สอนได้");
+      throw new Error(
+        errData.error?.message || errData.message || "ไม่สามารถเพิ่มผู้สอนได้",
+      );
     }
 
     const data = await res.json();
@@ -163,7 +176,10 @@ export function useClassrooms(
     );
   }
 
-  async function removeMember(classroomId: string, memberId: string): Promise<void> {
+  async function removeMember(
+    classroomId: string,
+    memberId: string,
+  ): Promise<void> {
     const currentList = demo ? loadDemoClassrooms() : classrooms;
     const target = currentList.find((c) => c.id === classroomId);
     if (!target) throw new Error("ไม่พบห้องเรียน");
@@ -176,15 +192,20 @@ export function useClassrooms(
       return;
     }
 
-    const res = await fetch(`/api/classrooms/${encodeURIComponent(classroomId)}/members`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ memberId }),
-    });
+    const res = await fetch(
+      `/api/classrooms/${encodeURIComponent(classroomId)}/members`,
+      {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId }),
+      },
+    );
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error?.message || errData.message || "ไม่สามารถลบสมาชิกได้");
+      throw new Error(
+        errData.error?.message || errData.message || "ไม่สามารถลบสมาชิกได้",
+      );
     }
 
     const data = await res.json();
@@ -206,14 +227,21 @@ export function useClassrooms(
       return;
     }
 
-    const res = await fetch(`/api/classrooms/${encodeURIComponent(classroomId)}/archive`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
+    const res = await fetch(
+      `/api/classrooms/${encodeURIComponent(classroomId)}/archive`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      },
+    );
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error?.message || errData.message || "ไม่สามารถเก็บห้องเรียนถาวรได้");
+      throw new Error(
+        errData.error?.message ||
+          errData.message ||
+          "ไม่สามารถเก็บห้องเรียนถาวรได้",
+      );
     }
 
     const data = await res.json();

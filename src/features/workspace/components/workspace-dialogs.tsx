@@ -20,8 +20,6 @@ export function WorkspaceDialogs({
     questionText,
     setQuestionText,
     importExcel,
-    demo,
-    assignments,
     error,
     voteTarget,
     setVoteTarget,
@@ -31,10 +29,7 @@ export function WorkspaceDialogs({
     action,
   } = controller;
   const editorMode =
-    modal === "create" ||
-    modal === "join" ||
-    modal === "group" ||
-    modal === "questions"
+    modal === "create" || modal === "group" || modal === "questions"
       ? modal
       : null;
   return (
@@ -45,9 +40,6 @@ export function WorkspaceDialogs({
         error={error}
         classrooms={controller.classrooms}
         modalContext={controller.modalContext}
-        demoCode={
-          demo ? assignments.find((a) => a.status === "draft")?.code : undefined
-        }
         questionText={questionText}
         onQuestionsChange={setQuestionText}
         onImport={importExcel}
@@ -69,11 +61,7 @@ export function WorkspaceDialogs({
             : "ผู้รับการประเมิน"
         }
         rightItemName="กลุ่มมาตรฐานเปรียบเทียบ"
-        currentChoice={
-          scores[0]
-            ? (scores[0] as ComparisonChoice)
-            : undefined
-        }
+        currentChoice={scores[0] ? (scores[0] as ComparisonChoice) : undefined}
         busy={busy}
         onChoiceChange={(choice) =>
           setScores(Array(active?.questions.length || 1).fill(choice))

@@ -3,7 +3,6 @@ export class AssignmentPage {
   readonly cards: Locator;
   readonly groups: Locator;
   readonly dialog: Locator;
-  readonly joinCode: Locator;
   readonly resultScores: Locator;
   readonly voteQuestions: Locator;
   readonly createButton: Locator;
@@ -16,7 +15,6 @@ export class AssignmentPage {
     this.cards = page.getByTestId("assignment-card");
     this.groups = page.getByTestId("group-card");
     this.dialog = page.getByRole("dialog");
-    this.joinCode = page.getByTestId("assignment-join-code");
     this.resultScores = page.getByTestId("result-score");
     this.voteQuestions = page.getByTestId("vote-question");
     this.createButton = page.getByRole("button", {
@@ -95,9 +93,7 @@ export class AssignmentPage {
   }
   async viewGroupVotes(groupName: string) {
     const card = this.groups.filter({ hasText: groupName });
-    await card
-      .getByRole("link", { name: "ดูการโหวตของสมาชิก" })
-      .click();
+    await card.getByRole("link", { name: "ดูการโหวตของสมาชิก" }).click();
   }
   async createWork(title: string, subject: string, deadline: string) {
     await this.gotoAssignments();
@@ -113,16 +109,6 @@ export class AssignmentPage {
     await this.page.getByLabel("ชื่อกลุ่ม").fill(name);
     await this.page
       .getByRole("button", { name: "บันทึก", exact: true })
-      .click();
-  }
-  async joinAssignment(code: string) {
-    await this.gotoAssignments();
-    await this.page
-      .getByRole("button", { name: "เข้าร่วม assignment", exact: true })
-      .click();
-    await this.page.getByLabel("รหัสเข้าร่วม").fill(code);
-    await this.page
-      .getByRole("button", { name: "เข้าร่วม", exact: true })
       .click();
   }
   async joinExistingGroup() {

@@ -1,3 +1,4 @@
+import { seedAssignmentStudent } from "../seed/assignment-student";
 import { randomBytes, randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 const { Workbook } = createRequire(import.meta.url)(
@@ -8,6 +9,7 @@ import { HomePage } from "../pages/HomePage";
 import { AssignmentPage } from "../pages/AssignmentPage";
 import { seed } from "@/features/assignments/data/demo-data";
 import { database } from "@/shared/server/database";
+import { PostgresAssignmentRepository } from "@/features/assignments/server/assignment-repository";
 import type { Assignment } from "@/features/assignments/types";
 
 for (const width of [1280, 390]) {
@@ -67,18 +69,27 @@ for (const width of [1280, 390]) {
     await expect(card).toContainText("Third Group");
     await expect(card).not.toContainText("Creative Minds");
     await card.getByRole("radio").last().check();
+    await expect(
+      page.getByRole("status").filter({ hasText: "บันทึกแล้ว เมื่อ" }),
+    ).toHaveCount(1);
+    await expect(
+      page.getByRole("button", { name: "ส่งผลประเมินคู่นี้" }),
+    ).toHaveCount(0);
     await page
-      .getByRole("button", { name: "ส่งผลประเมินคู่นี้" })
-      .first()
+      .getByRole("button", { name: "ส่งผลประเมิน", exact: true })
       .click();
     await expect(
-      page.getByRole("button", { name: "ส่งผลประเมินแล้ว" }),
-    ).toHaveCount(1);
+      page
+        .getByRole("dialog")
+        .getByText("ยังไม่ได้ตอบ 2 คู่", { exact: false }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "ยืนยันส่งผลประเมิน", exact: true })
+      .click();
+    await expect(page.getByText(/^ส่งผลประเมินแล้ว 1 \/ 3 คู่/)).toHaveCount(1);
     await page.reload();
     await work.selectTab("ประเมินผลงาน");
-    await expect(
-      page.getByRole("button", { name: "ส่งผลประเมินแล้ว" }),
-    ).toHaveCount(1);
+    await expect(page.getByText(/^ส่งผลประเมินแล้ว 1 \/ 3 คู่/)).toHaveCount(1);
     await work.switchRole("teacher");
     await work.openAssignment(data[0].title);
     await work.selectTab("ผลการประเมิน");
@@ -150,6 +161,7 @@ test("real PostgreSQL atomically stores regeneration, history, notifications and
   playwright,
   baseURL,
   users,
+  browser,
 }) => {
   test.skip(
     process.env.E2E_DATABASE_ENABLED !== "1",
@@ -199,11 +211,7 @@ test("real PostgreSQL atomically stores regeneration, history, notifications and
     let a = (await created.json()).assignment as Assignment;
     const root = `/api/assignments/${a.id}`;
     for (const [i, api] of [student, other, third].entries()) {
-      expect(
-        (
-          await api.post("/api/assignments/join", { data: { code: a.code } })
-        ).status(),
-      ).toBe(200);
+      expect((await seedAssignmentStudent(a.id, api)).status()).toBe(200);
       expect(
         (
           await api.post(`${root}/groups`, { data: { name: `Group ${i}` } })
@@ -243,6 +251,124 @@ test("real PostgreSQL atomically stores regeneration, history, notifications and
     expect(
       (await student.post(`${root}/pairs/submit`, { data: ballot })).status(),
     ).toBe(200);
+    const batch = {
+      side: "GROUP",
+      expectedGeneration: 1,
+      expectedRevision: 0,
+      answers: [{ pairId, choice: 6, timeOnTaskMs: 4000 }],
+    };
+    expect(
+      (
+        await student.put(`${root}/pairs/drafts`, {
+          data: { ...batch, answers: [{ pairId, choice: 1 }] },
+        })
+      ).status(),
+    ).toBe(200);
+    const withDraft = (await (await student.get(root)).json())
+      .assignment as Assignment;
+    expect(withDraft.evaluationDrafts![0].choice).toBe(1);
+    expect(withDraft.comparisons![0].choice).toBe(6);
+    const browserContext = await browser.newContext({
+      storageState: await student.storageState(),
+    });
+    try {
+      const page = await browserContext.newPage();
+      await page.goto(root.replace("/api/", "/"));
+      await page
+        .getByRole("tab", { name: "ประเมินผลงาน", exact: true })
+        .click();
+      const choice = page
+        .getByTestId("pairwise-card")
+        .first()
+        .getByRole("radio")
+        .nth(1);
+      let failNextSave = true;
+      await page.route("**/pairs/drafts", async (route) => {
+        if (failNextSave) {
+          failNextSave = false;
+          await route.abort();
+        } else await route.continue();
+      });
+      await choice.check();
+      await expect(
+        page.getByRole("button", { name: "ลองบันทึกอีกครั้ง" }),
+      ).toBeVisible();
+      await expect(choice).toBeChecked();
+      expect(
+        (await (await student.get(root)).json()).assignment.evaluationDrafts[0]
+          .choice,
+      ).toBe(1);
+      await page.getByRole("button", { name: "ลองบันทึกอีกครั้ง" }).click();
+      await expect
+        .poll(
+          async () =>
+            (await (await student.get(root)).json()).assignment
+              .evaluationDrafts[0].choice,
+        )
+        .toBe(2);
+      expect(
+        (await (await student.get(root)).json()).assignment.comparisons[0]
+          .choice,
+      ).toBe(6);
+    } finally {
+      await browserContext.close();
+    }
+    expect(
+      (await (await teacher.get(root)).json()).assignment.evaluationDrafts,
+    ).toBeUndefined();
+    expect(
+      (await other.post(`${root}/submissions`, { data: batch })).status(),
+    ).toBe(403);
+    const submits = await Promise.all([
+      student.post(`${root}/submissions`, { data: batch }),
+      student.post(`${root}/submissions`, { data: batch }),
+    ]);
+    expect(submits.map((r) => r.status()).sort()).toEqual([200, 409]);
+    expect(
+      (await student.put(`${root}/pairs/drafts`, { data: batch })).status(),
+    ).toBe(409);
+    for (const revision of [1, 2]) {
+      expect(
+        (
+          await student.post(`${root}/submissions`, {
+            data: {
+              ...batch,
+              expectedRevision: revision,
+              answers: [{ pairId, choice: revision === 1 ? 1 : 6 }],
+            },
+          })
+        ).status(),
+      ).toBe(200);
+    }
+    const submitted = (await (await student.get(root)).json())
+      .assignment as Assignment;
+    expect(
+      submitted.evaluationSubmissions!.map((s) => s.comparisons[0].choice),
+    ).toEqual([6, 1, 6]);
+    expect(submitted.comparisons).toHaveLength(1);
+    expect(submitted.comparisons![0].choice).toBe(6);
+    expect(submitted.evaluationDrafts).toHaveLength(0);
+    const repository = new PostgresAssignmentRepository();
+    const beforeAuditFailure = (await repository.findById(a.id))!;
+    await expect(
+      repository.update(
+        { ...beforeAuditFailure.assignment, comparisons: [] },
+        beforeAuditFailure.version,
+        undefined,
+        {
+          ...submitted.evaluationSubmissions!.at(-1)!,
+          evaluatorId: randomUUID(),
+        },
+      ),
+    ).rejects.toMatchObject({ code: "23503" });
+    const afterAuditFailure = (await repository.findById(a.id))!;
+    expect(afterAuditFailure.version).toBe(beforeAuditFailure.version);
+    expect(afterAuditFailure.assignment.comparisons).toEqual(
+      beforeAuditFailure.assignment.comparisons,
+    );
+    expect(
+      (await (await other.get(root)).json()).assignment.evaluationSubmissions,
+    ).toHaveLength(0);
     const inbox = (await (await student.get("/api/notifications")).json())
       .items;
     expect(
@@ -279,6 +405,14 @@ test("real PostgreSQL atomically stores regeneration, history, notifications and
     expect(a.pairGeneration).toBe(2);
     expect(a.comparisons).toHaveLength(0);
     expect(a.pairHistory!.at(-1)!.comparisons[0].choice).toBe(6);
+    expect(a.pairHistory!.at(-1)!.evaluationSubmissions).toHaveLength(3);
+    expect(
+      (
+        await student.post(`${root}/submissions`, {
+          data: { ...batch, expectedRevision: 3 },
+        })
+      ).status(),
+    ).toBe(409);
     const sql = database();
     const audit =
       await sql`SELECT action,reason FROM audit_logs WHERE assignment_id=${a.id} AND action='PAIRS_REGENERATE'`;
@@ -287,6 +421,17 @@ test("real PostgreSQL atomically stores regeneration, history, notifications and
       "Integration generation",
       "Second generation",
     ]);
+    const submissionAudit =
+      await sql`SELECT actor_id,after_state FROM audit_logs WHERE assignment_id=${a.id} AND action='EVALUATION_SUBMIT' ORDER BY (after_state->>'revision')::int`;
+    expect(submissionAudit).toHaveLength(3);
+    expect(
+      submissionAudit.every((row) => row.actor_id === users.student.id),
+    ).toBe(true);
+    expect(
+      submissionAudit.map(
+        (row) => (row.after_state as { revision: number }).revision,
+      ),
+    ).toEqual([1, 2, 3]);
     const notifications =
       await sql`SELECT event_key,count(*)::int AS count FROM notifications WHERE assignment_id=${a.id} AND kind='pairs_regenerated' GROUP BY event_key`;
     expect(notifications).toHaveLength(2);

@@ -9,9 +9,12 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires_at);
 CREATE TABLE IF NOT EXISTS assignments (
-  id uuid PRIMARY KEY, owner_id uuid NOT NULL REFERENCES users(id), code text NOT NULL UNIQUE,
+  id uuid PRIMARY KEY, owner_id uuid NOT NULL REFERENCES users(id),
   data jsonb NOT NULL, version integer NOT NULL DEFAULT 0
 );
+-- Retire assignment join codes while preserving assignments and evaluation data.
+ALTER TABLE assignments DROP COLUMN IF EXISTS code;
+UPDATE assignments SET data=data-'code',version=version+1 WHERE data ? 'code';
 CREATE INDEX IF NOT EXISTS assignments_owner ON assignments(owner_id);
 CREATE INDEX IF NOT EXISTS assignments_students ON assignments USING gin ((data->'students'));
 

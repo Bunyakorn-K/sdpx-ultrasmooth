@@ -32,7 +32,6 @@ export function seed(): Assignment[] {
       "วิทยาศาสตร์",
       "ทักษะชีวิตและการทำงาน",
     ][i],
-    code: ["482619", "735204", "196832", "518294"][i],
     deadline: new Date(Date.now() + (7 + i) * 86400000).toISOString(),
     status: (["draft", "active", "closed", "draft"] as const)[i],
     evaluationMode: (i === 3 ? "individual" : "group") as "individual" | "group",

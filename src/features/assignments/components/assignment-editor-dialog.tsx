@@ -50,12 +50,11 @@ function DeadlineField() {
     />
   );
 }
-export type EditorMode = "create" | "join" | "group" | "questions";
+export type EditorMode = "create" | "group" | "questions";
 type EditorProps = {
   mode: EditorMode | null;
   busy: boolean;
   error: string;
-  demoCode?: string;
   questionText: string;
   classrooms?: Array<{ id: string; name: string; slug: string }>;
   modalContext?: { classroomId?: string; classroomName?: string } | null;
@@ -66,7 +65,6 @@ type EditorProps = {
 };
 const titles: Record<EditorMode, string> = {
   create: "สร้าง assignment ใหม่",
-  join: "เข้าร่วม assignment",
   group: "สร้างกลุ่มใหม่",
   questions: "คำถามสำหรับการประเมิน",
 };
@@ -74,7 +72,6 @@ export function AssignmentEditorDialog({
   mode,
   busy,
   error,
-  demoCode,
   questionText,
   classrooms,
   modalContext,
@@ -111,9 +108,7 @@ export function AssignmentEditorDialog({
               ? "กำลังบันทึก..."
               : mode === "create"
                 ? "สร้าง assignment"
-                : mode === "join"
-                  ? "เข้าร่วม"
-                  : "บันทึก"}
+                : "บันทึก"}
           </Button>
         </>
       }
@@ -294,26 +289,6 @@ export function AssignmentEditorDialog({
             การประเมินแบบ Pairwise ใช้ระบบเปรียบเทียบคู่ 6 ระดับ (Forced Choice
             — ไม่มีตัวเลือกเท่ากัน) และแก้ไขได้ก่อนเริ่มโหวต
           </Alert>
-        </>
-      )}
-      {mode === "join" && (
-        <>
-          <p className="form-description">กรอกรหัส 6 หลักที่ได้รับจากคุณครู</p>
-          <TextField
-            name="code"
-            label="รหัสเข้าร่วม"
-            required
-            slotProps={{
-              htmlInput: {
-                pattern: "[0-9]{6}",
-                maxLength: 6,
-                inputMode: "numeric",
-              },
-            }}
-          />
-          {demoCode && (
-            <Alert severity="info">รหัสตัวอย่างที่ยังเปิดรับ: {demoCode}</Alert>
-          )}
         </>
       )}
       {mode === "group" && (

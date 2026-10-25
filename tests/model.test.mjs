@@ -132,7 +132,6 @@ test("student can only join one group", () =>
 test("new student can join and create a group", () => {
   const a = assignment();
   const newcomer = { ...student, id: "new" };
-  applyAssignmentCommand(a, newcomer, "join", {});
   applyAssignmentCommand(a, newcomer, "group", { name: "Three" });
   assert.equal(a.students.length, 3);
   assert.equal(a.groups[2].members[0].id, "new");

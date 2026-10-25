@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { AssignmentService } from "@/features/assignments/server/assignment-service";
-import type { AssignmentRepository, AssignmentRecord } from "@/features/assignments/server/assignment-repository";
+import type {
+  AssignmentRepository,
+  AssignmentRecord,
+} from "@/features/assignments/server/assignment-repository";
 import type { Assignment } from "@/features/assignments/types";
 import type { User } from "@/features/auth/types";
 
@@ -18,10 +21,6 @@ class FakeAssignmentRepository implements AssignmentRepository {
     return this.store.get(id) || null;
   }
 
-  async findByCode(code: string): Promise<AssignmentRecord | null> {
-    return Array.from(this.store.values()).find((r) => r.assignment.code === code) || null;
-  }
-
   async create(assignment: Assignment): Promise<boolean> {
     this.store.set(assignment.id, { assignment, version: 1 });
     return true;
@@ -36,9 +35,14 @@ class FakeAssignmentRepository implements AssignmentRepository {
 }
 
 test("FR-ASSIGN-04: Extends deadline anytime, including after original deadline has passed", async () => {
-  const teacher: User = { id: "t-1", name: "Teacher", email: "t@uni.ac.th", role: "teacher" };
+  const teacher: User = {
+    id: "t-1",
+    name: "Teacher",
+    email: "t@uni.ac.th",
+    role: "teacher",
+  };
   const repo = new FakeAssignmentRepository();
-  const service = new AssignmentService(repo, () => "111222");
+  const service = new AssignmentService(repo);
 
   // Assignment whose original deadline passed 1 hour ago
   const pastDeadline = new Date(Date.now() - 3600000).toISOString();
@@ -48,7 +52,7 @@ test("FR-ASSIGN-04: Extends deadline anytime, including after original deadline 
     title: "Test Extension",
     description: "Extending deadline",
     subject: "SE",
-    code: "EXT001",
+
     deadline: pastDeadline,
     status: "closed",
     questions: ["Q1"],
@@ -75,9 +79,14 @@ test("FR-ASSIGN-04: Extends deadline anytime, including after original deadline 
 });
 
 test("FR-ASSIGN-04: Shortening deadline allowed only before original deadline arrives", async () => {
-  const teacher: User = { id: "t-1", name: "Teacher", email: "t@uni.ac.th", role: "teacher" };
+  const teacher: User = {
+    id: "t-1",
+    name: "Teacher",
+    email: "t@uni.ac.th",
+    role: "teacher",
+  };
   const repo = new FakeAssignmentRepository();
-  const service = new AssignmentService(repo, () => "111222");
+  const service = new AssignmentService(repo);
 
   // Case 1: Original deadline is 7 days in future. Shorten to 3 days in future -> Allowed
   const originalFuture = new Date(Date.now() + 7 * 86400000).toISOString();
@@ -87,7 +96,7 @@ test("FR-ASSIGN-04: Shortening deadline allowed only before original deadline ar
     title: "Test Shortening Allowed",
     description: "Shorten future",
     subject: "SE",
-    code: "SHT001",
+
     deadline: originalFuture,
     status: "active",
     questions: ["Q1"],
@@ -117,7 +126,7 @@ test("FR-ASSIGN-04: Shortening deadline allowed only before original deadline ar
     title: "Test Shortening Failed",
     description: "Shorten past",
     subject: "SE",
-    code: "SHT002",
+
     deadline: pastDeadline,
     status: "closed",
     questions: ["Q1"],

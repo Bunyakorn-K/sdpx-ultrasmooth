@@ -1,4 +1,5 @@
 export type AuditAction =
+  | "EVALUATION_SUBMIT"
   | "ASSIGNMENT_PUBLISH"
   | "ASSIGNMENT_UNPUBLISH"
   | "PAIRS_REGENERATE"

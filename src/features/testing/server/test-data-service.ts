@@ -57,8 +57,14 @@ export async function cleanupTestRun(
   }
   const users =
     await sql`SELECT email FROM users WHERE id IN (SELECT jsonb_array_elements_text(user_ids)::uuid FROM e2e_test_runs WHERE run_id=${runId})`;
+  const pending =
+    await sql`SELECT DISTINCT u.id FROM users u JOIN classrooms c ON c.data->'members' @> jsonb_build_array(jsonb_build_object('user_id',u.id::text)) WHERE u.password_hash='!roster-pending' AND c.owner_id IN (SELECT jsonb_array_elements_text(user_ids)::uuid FROM e2e_test_runs WHERE run_id=${runId})`;
   await sql`DELETE FROM audit_logs WHERE actor_id IN (SELECT jsonb_array_elements_text(user_ids)::uuid FROM e2e_test_runs WHERE run_id=${runId})`;
   await sql`DELETE FROM assignments WHERE owner_id IN (SELECT jsonb_array_elements_text(user_ids)::uuid FROM e2e_test_runs WHERE run_id=${runId})`;
+  await sql`DELETE FROM classrooms WHERE owner_id IN (SELECT jsonb_array_elements_text(user_ids)::uuid FROM e2e_test_runs WHERE run_id=${runId})`;
+  for (const account of pending) {
+    await sql`DELETE FROM users WHERE id=${String(account.id)} AND password_hash='!roster-pending' AND NOT EXISTS (SELECT 1 FROM classrooms WHERE data->'members' @> jsonb_build_array(jsonb_build_object('user_id',users.id::text))) AND NOT EXISTS (SELECT 1 FROM assignments WHERE data->'students' @> jsonb_build_array(jsonb_build_object('id',users.id::text)))`;
+  }
   await sql`DELETE FROM users WHERE id IN (SELECT jsonb_array_elements_text(user_ids)::uuid FROM e2e_test_runs WHERE run_id=${runId})`;
   for (const user of users) {
     const bucket = createHash("sha256")

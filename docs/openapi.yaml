@@ -267,9 +267,78 @@ paths:
             description: "Stale preview or generation, invalid lifecycle state, or duplicate submission.",
           }
         "503": { description: Database unavailable. }
+  /api/assignments/{id}/pairs/drafts:
+    put:
+      operationId: saveEvaluationDrafts
+      summary: Autosave assigned comparison drafts without changing submitted scores
+      tags: [Assignments]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EvaluationBatchInput" }
+      responses:
+        "200":
+          {
+            description: Drafts persisted atomically; returns assignment with only this student's drafts and revision history.,
+          }
+        "400":
+          {
+            description: Invalid choices or duplicate pair IDs; entire batch rejected.,
+          }
+        "401": { description: Sign-in required. }
+        "403":
+          {
+            description: Assigned student and same origin required; evaluation must be open and before deadline.,
+          }
+        "404": { description: Assignment missing. }
+        "409": { description: Stale generation or submission revision. }
+        "503": { description: Database unavailable. }
+  /api/assignments/{id}/submissions:
+    post:
+      operationId: submitEvaluation
+      summary: Atomically submit or resubmit one evaluation side with an immutable revision and audit entry
+      description: Answers are a complete snapshot of the student's selected side, including partial or empty submissions. Replaces only that side's submitted comparisons, clears its drafts and retains previous revisions. Other sides and evaluators are unchanged.
+      tags: [Assignments]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EvaluationBatchInput" }
+      responses:
+        "200":
+          {
+            description: Latest submitted comparisons and revision persisted atomically; returns assignment.,
+          }
+        "400":
+          {
+            description: Invalid choices or duplicate pair IDs; entire batch rejected.,
+          }
+        "401": { description: Sign-in required. }
+        "403":
+          {
+            description: Assigned student and same origin required; evaluation must be open and before deadline.,
+          }
+        "404": { description: Assignment missing. }
+        "409":
+          {
+            description: Stale generation or submission revision; concurrent duplicate rejected.,
+          }
+        "503": { description: Database unavailable. }
   /api/assignments/{id}/pairs/submit:
     post:
       operationId: submitPair
+      deprecated: true
       summary: Student submits a comparison assigned in the current generation
       tags: [Assignments]
       parameters:
@@ -717,7 +786,7 @@ paths:
         "503": *a9
     post:
       operationId: createAssignment
-      summary: Teacher creates assignment directly with a join code
+      summary: Teacher creates an assignment with access through classroom membership
       description: "Traceability: US02 in docs/backlog.md."
       tags:
         - Assignments
@@ -736,50 +805,6 @@ paths:
       responses:
         "201":
           description: Created
-          headers:
-            x-request-id:
-              description: Correlation ID for this request
-              schema: *a1
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AssignmentResponse"
-        "400": *a2
-        "401": *a3
-        "403": *a4
-        "404": *a5
-        "409": *a6
-        "413": *a7
-        "429": *a8
-        "503": *a9
-  /api/assignments/join:
-    post:
-      operationId: joinAssignment
-      summary: Student joins a draft assignment by code
-      description: "Traceability: US03 in docs/backlog.md."
-      tags:
-        - Assignments
-      x-user-stories:
-        - US03
-      security:
-        - cookieAuth: []
-      parameters:
-        - *a10
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - code
-              properties:
-                code:
-                  type: string
-                  pattern: ^[0-9]{6}$
-      responses:
-        "200":
-          description: Success
           headers:
             x-request-id:
               description: Correlation ID for this request
@@ -979,8 +1004,8 @@ paths:
       - *a11
     post:
       operationId: startVoting
-      summary: Owner opens voting with questions and two populated groups
-      description: "Traceability: US06 in docs/backlog.md."
+      summary: Owner confirms a preview and publishes persisted evaluation pairs
+      description: "New assignments require the current both-sides preview token and expected generation. Feasibility is rechecked before opening. Group comparisons require at least three populated groups. Existing legacy assignments retain their original voting lifecycle until explicitly migrated through regeneration. Traceability: US06, FR-PAIR-01 to FR-PAIR-09."
       tags:
         - Assignments
       x-user-stories:
@@ -995,6 +1020,13 @@ paths:
           application/json:
             schema:
               type: object
+              properties:
+                expectedGeneration:
+                  type: integer
+                  minimum: 0
+                previewToken:
+                  type: string
+                  description: Token from a both-sides preview; required for new assignments.
       responses:
         "200":
           description: Success
@@ -1119,6 +1151,27 @@ components:
       name: pair_session
       description: Opaque HttpOnly session; Secure over HTTPS and SameSite=Lax. Login/Register issue the cookie.
   schemas:
+    EvaluationBatchInput:
+      type: object
+      required: [side, expectedGeneration, expectedRevision, answers]
+      properties:
+        side: { type: string, enum: [GROUP, INDIVIDUAL] }
+        expectedGeneration: { type: integer, minimum: 1 }
+        expectedRevision:
+          {
+            type: integer,
+            minimum: 0,
+            description: Number of existing submissions for this evaluator and side; use 0 before first submission.,
+          }
+        answers:
+          type: array
+          items:
+            type: object
+            required: [pairId, choice]
+            properties:
+              pairId: { type: string }
+              choice: { type: integer, minimum: 1, maximum: 6 }
+              timeOnTaskMs: { type: number, minimum: 0 }
     Error:
       type: object
       required:
@@ -1235,7 +1288,6 @@ components:
         - title
         - description
         - subject
-        - code
         - deadline
         - status
         - questions
@@ -1246,6 +1298,22 @@ components:
         - color
       properties:
         pairGeneration: { type: integer, minimum: 0 }
+        pairwiseRequired:
+          type: boolean
+          readOnly: true
+          description: Server-set on new assignments. Opening requires a confirmed persisted-pair preview; cannot be disabled through input.
+        classroomRosterManaged:
+          type: boolean
+          readOnly: true
+          description: Classroom CSV supplies membership and groups for every draft. Published generations retain their roster until unpublish and regeneration. Students cannot create or select assignment groups.
+        evaluationDrafts:
+          type: array
+          description: Private drafts visible only to their evaluator; excluded from all scoring, coverage and participation calculations.
+          items: { type: object }
+        evaluationSubmissions:
+          type: array
+          description: Immutable submission revisions by evaluator and side. Students receive only their own revisions; latest submitted snapshot is used for scoring.
+          items: { type: object }
         pairs:
           type: array
           description: Persisted assigned pairs. Students receive only their own assignments.
@@ -1304,9 +1372,6 @@ components:
           type: string
         subject:
           type: string
-        code:
-          type: string
-          pattern: ^[0-9]{6}$
         deadline: *a13
         status:
           type: string

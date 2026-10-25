@@ -10,7 +10,11 @@ import {
   isDomainAllowed,
 } from "../domain/classroom";
 import { parseRosterCsv } from "../domain/roster-parser";
-import type { Classroom, ClassroomMember, CreateClassroomInput } from "../types";
+import type {
+  Classroom,
+  ClassroomMember,
+  CreateClassroomInput,
+} from "../types";
 import type { ClassroomRepository } from "./classroom-repository";
 
 const MAX_RETRIES = 5;
@@ -22,7 +26,34 @@ export class ClassroomService {
   ) {}
 
   async list(user: User): Promise<Classroom[]> {
-    return this.repository.listForUser(user.id, user.email);
+    const classrooms = await this.repository.listForUser(user.id, user.email);
+    return Promise.all(
+      classrooms.map(async (classroom) => {
+        if (
+          !classroom.members.some(
+            (m) =>
+              m.email.toLowerCase() === user.email.toLowerCase() &&
+              m.status === "PENDING",
+          )
+        )
+          return classroom;
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+          const record = await this.repository.findById(classroom.id);
+          if (!record) return classroom;
+          const updated = {
+            ...record.classroom,
+            members: record.classroom.members.map((m) =>
+              m.email.toLowerCase() === user.email.toLowerCase()
+                ? { ...m, user_id: user.id, status: "ACTIVE" as const }
+                : m,
+            ),
+          };
+          if (await this.repository.update(updated, record.version))
+            return updated;
+        }
+        throw new AppError("มีการเปลี่ยนแปลงรายชื่อ กรุณาลองใหม่", 409);
+      }),
+    );
   }
 
   async get(user: User, id: string): Promise<Classroom> {
@@ -31,7 +62,9 @@ export class ClassroomService {
     const classroom = record.classroom;
 
     const isMember = classroom.members.some(
-      (m) => m.user_id === user.id || m.email.toLowerCase() === user.email.toLowerCase(),
+      (m) =>
+        m.user_id === user.id ||
+        m.email.toLowerCase() === user.email.toLowerCase(),
     );
     if (classroom.created_by !== user.id && !isMember) {
       throw new AppError("คุณไม่มีสิทธิ์เข้าถึงห้องเรียนนี้", 403);
@@ -53,23 +86,36 @@ export class ClassroomService {
     user: User,
     id: string,
     csvText: string,
-  ): Promise<{ classroom: Classroom; addedCount: number; updatedCount: number }> {
+  ): Promise<{
+    classroom: Classroom;
+    addedCount: number;
+    updatedCount: number;
+  }> {
     const roster = parseRosterCsv(csvText); // Throws AppError on atomic validation failure (FR-CLASS-02)
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       const record = await this.repository.findById(id);
       if (!record) throw new AppError("ไม่พบห้องเรียน", 404);
 
-      const requesterMember = record.classroom.members.find((m) => m.user_id === user.id);
+      const requesterMember = record.classroom.members.find(
+        (m) => m.user_id === user.id,
+      );
       if (
         record.classroom.created_by !== user.id &&
-        (!requesterMember || (requesterMember.role !== "OWNER" && requesterMember.role !== "CO_TEACHER"))
+        (!requesterMember ||
+          (requesterMember.role !== "OWNER" &&
+            requesterMember.role !== "CO_TEACHER"))
       ) {
-        throw new AppError("เฉพาะอาจารย์ผู้รับผิดชอบเท่านั้นที่สามารถนำเข้ารายชื่อได้", 403);
+        throw new AppError(
+          "เฉพาะอาจารย์ผู้รับผิดชอบเท่านั้นที่สามารถนำเข้ารายชื่อได้",
+          403,
+        );
       }
 
       const result = applyRosterImport(record.classroom, roster);
-      if (await this.repository.update(result.classroom, record.version)) {
+      if (
+        await this.repository.update(result.classroom, record.version, true)
+      ) {
         return result;
       }
     }
@@ -87,35 +133,43 @@ export class ClassroomService {
 
       const updated = addStaffMember(record.classroom, input, user);
       if (await this.repository.update(updated, record.version)) {
-        await this.auditService?.record({
-          actor_id: user.id,
-          action: "ROLE_CHANGE",
-          resource_type: "classroom_member",
-          resource_id: updated.members[updated.members.length - 1].id,
-          classroom_id: updated.id,
-          after_state: { email: input.email, role: input.role },
-        }).catch(() => {});
+        await this.auditService
+          ?.record({
+            actor_id: user.id,
+            action: "ROLE_CHANGE",
+            resource_type: "classroom_member",
+            resource_id: updated.members[updated.members.length - 1].id,
+            classroom_id: updated.id,
+            after_state: { email: input.email, role: input.role },
+          })
+          .catch(() => {});
         return updated;
       }
     }
     throw new AppError("มีการเปลี่ยนแปลงข้อมูล กรุณาลองอีกครั้ง", 409);
   }
 
-  async removeMember(user: User, id: string, memberId: string): Promise<Classroom> {
+  async removeMember(
+    user: User,
+    id: string,
+    memberId: string,
+  ): Promise<Classroom> {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       const record = await this.repository.findById(id);
       if (!record) throw new AppError("ไม่พบห้องเรียน", 404);
 
       const updated = removeMember(record.classroom, memberId, user);
       if (await this.repository.update(updated, record.version)) {
-        await this.auditService?.record({
-          actor_id: user.id,
-          action: "ROLE_CHANGE",
-          resource_type: "classroom_member",
-          resource_id: memberId,
-          classroom_id: updated.id,
-          before_state: { memberId },
-        }).catch(() => {});
+        await this.auditService
+          ?.record({
+            actor_id: user.id,
+            action: "ROLE_CHANGE",
+            resource_type: "classroom_member",
+            resource_id: memberId,
+            classroom_id: updated.id,
+            before_state: { memberId },
+          })
+          .catch(() => {});
         return updated;
       }
     }
@@ -139,25 +193,36 @@ export class ClassroomService {
     const trimmed = code.trim();
     if (!trimmed) throw new AppError("กรุณากรอกรหัสเข้าร่วมห้องเรียน", 400);
 
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed);
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        trimmed,
+      );
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       const record =
         (await this.repository.findBySlug(trimmed.toLowerCase())) ||
         (await this.repository.findBySlug(trimmed)) ||
-        (isUuid ? await this.repository.findById(trimmed) : null) ||
-        (this.repository.findByAssignmentCode ? await this.repository.findByAssignmentCode(trimmed) : null);
+        (isUuid ? await this.repository.findById(trimmed) : null);
 
       if (!record) throw new AppError("ไม่พบห้องเรียนจากรหัสที่ระบุ", 404);
       const classroom = record.classroom;
 
       if (classroom.status === "ARCHIVED") {
-        throw new AppError("ห้องเรียนนี้ถูกเก็บถาวรแล้ว ไม่สามารถเข้าร่วมได้", 400);
+        throw new AppError(
+          "ห้องเรียนนี้ถูกเก็บถาวรแล้ว ไม่สามารถเข้าร่วมได้",
+          400,
+        );
       }
 
-      if (classroom.allowed_email_domains && classroom.allowed_email_domains.length > 0) {
+      if (
+        classroom.allowed_email_domains &&
+        classroom.allowed_email_domains.length > 0
+      ) {
         if (!isDomainAllowed(user.email, classroom.allowed_email_domains)) {
-          throw new AppError("อีเมลของคุณไม่อยู่ในโดเมนที่ได้รับอนุญาตสำหรับห้องเรียนนี้", 403);
+          throw new AppError(
+            "อีเมลของคุณไม่อยู่ในโดเมนที่ได้รับอนุญาตสำหรับห้องเรียนนี้",
+            403,
+          );
         }
       }
 
@@ -180,7 +245,10 @@ export class ClassroomService {
           display_name: user.name || existing.display_name,
           status: "ACTIVE",
         };
-        const updatedClassroom: Classroom = { ...classroom, members: updatedMembers };
+        const updatedClassroom: Classroom = {
+          ...classroom,
+          members: updatedMembers,
+        };
         if (await this.repository.update(updatedClassroom, record.version)) {
           return updatedClassroom;
         }

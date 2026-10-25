@@ -537,15 +537,12 @@ export function ClassroomDetail({
 
       {/* Roster Import Dialog */}
       <RosterImportDialog
+        classroom={classroom}
         open={teacher && rosterOpen}
         onClose={() => setRosterOpen(false)}
         onImportConfirm={async (roster) => {
-          try {
-            await onImportRoster(roster);
-            setToast(`นำเข้ารายชื่อสำเร็จ: ${roster.members.length} คน ใน ${roster.groups.length} กลุ่ม`);
-          } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการนำเข้า");
-          }
+          await onImportRoster(roster);
+          setToast(`นำเข้ารายชื่อสำเร็จ: ${roster.members.length} คน ใน ${roster.groups.length} กลุ่ม`);
         }}
       />
 
