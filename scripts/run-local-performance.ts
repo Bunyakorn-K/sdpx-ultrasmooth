@@ -5,6 +5,7 @@ import {
   seedTestRun,
   cleanupTestRun,
 } from "@/features/testing/server/test-data-service";
+
 async function main() {
   const url = new URL(process.env.DATABASE_URL || "");
   if (

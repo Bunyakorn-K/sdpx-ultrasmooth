@@ -18,6 +18,7 @@ import { PersonArt } from "@/shared/components/person-art";
 
 import type { Assignment } from "../types";
 import { isIndividualEvaluation } from "../domain/evaluation-targets";
+
 type AssignmentListProps = {
   nav: string;
   teacher: boolean;
@@ -258,9 +259,7 @@ export function AssignmentList(props: AssignmentListProps) {
       </div>
       <div className="dashboard-bottom">
         <span>✳</span>
-        <p>
-          ความคิดเห็นเล็ก ๆ วันนี้ อาจเป็นการเรียนรู้ที่ยิ่งใหญ่ในวันพรุ่งนี้
-        </p>
+        <p>ความคิดเห็นเล็ก ๆ วันนี้ อาจเป็นการเรียนรู้ที่ยิ่งใหญ่ในวันพรุ่งนี้</p>
       </div>
     </>
   );

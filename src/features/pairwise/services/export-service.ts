@@ -13,6 +13,7 @@ import {
 } from "../domain/scoring-engine";
 
 export type ExportData = {
+  finalScoreOverrides?: Record<string, number>;
   generation?: number;
   classroom: Classroom;
   assignment: Assignment;
@@ -127,9 +128,9 @@ export async function buildPairEvalWorkbook(data: ExportData) {
       assignment.min_comparisons,
     );
 
-    const personalFinal = Number(
-      ((groupScores + indivScores.totalScore) * M).toFixed(2),
-    );
+    const personalFinal =
+      data.finalScoreOverrides?.[student.user_id] ??
+      Number(((groupScores + indivScores.totalScore) * M).toFixed(2));
 
     for (const c of indivScores.criterionScores) {
       indivSheet.addRow([

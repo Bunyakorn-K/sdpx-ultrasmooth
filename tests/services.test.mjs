@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { AuthService } from "../src/features/auth/server/auth-service.ts";
 import { AssignmentService } from "../src/features/assignments/server/assignment-service.ts";
 import { visibleAssignment } from "../src/features/assignments/domain/assignment-visibility.ts";
+
 const teacher = {
   id: "teacher",
   name: "Teacher",

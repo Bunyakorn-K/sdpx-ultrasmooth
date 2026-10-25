@@ -100,8 +100,7 @@ export function RegeneratePairsDialog({
         <Stack spacing={2} sx={{ pt: 1 }}>
           {changed ? (
             <Alert severity="success">
-              เผยแพร่คู่ชุดใหม่แล้ว
-              นักศึกษาที่ได้รับผลกระทบจะได้รับการแจ้งเตือนในเว็บ
+              เผยแพร่คู่ชุดใหม่แล้ว นักศึกษาที่ได้รับผลกระทบจะได้รับการแจ้งเตือนในเว็บ
             </Alert>
           ) : (
             <>
@@ -125,8 +124,7 @@ export function RegeneratePairsDialog({
               />
               {active.status === "finalized" ? (
                 <Alert severity="info">
-                  งานนี้ Finalized แล้ว ต้องเปิดผลใหม่ก่อน จากนั้นจึงนำกลับเป็น
-                  Draft
+                  งานนี้ Finalized แล้ว ต้องเปิดผลใหม่ก่อน จากนั้นจึงนำกลับเป็น Draft
                 </Alert>
               ) : !draft ? (
                 <Alert severity="info">
@@ -207,9 +205,9 @@ export function RegeneratePairsDialog({
                     </Button>
                   )}
                   <Typography variant="body2">
-                    เป้าหมาย {active.targetCoverage ?? 5} ครั้งต่อคู่ ·
-                    ภาระสูงสุด {active.maxWorkload ?? 8} คู่ต่อคนต่อเกณฑ์ ·
-                    กำหนดส่ง {new Date(active.deadline).toLocaleString("th-TH")}
+                    เป้าหมาย {active.targetCoverage ?? 5} ครั้งต่อคู่ · ภาระสูงสุด{" "}
+                    {active.maxWorkload ?? 8} คู่ต่อคนต่อเกณฑ์ · กำหนดส่ง{" "}
+                    {new Date(active.deadline).toLocaleString("th-TH")}
                   </Typography>
                   <Button
                     variant="outlined"

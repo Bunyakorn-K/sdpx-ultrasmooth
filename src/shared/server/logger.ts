@@ -1,4 +1,5 @@
 import pino, { type DestinationStream } from "pino";
+
 export function createLogger(destination?: DestinationStream) {
   const options = {
     level: process.env.LOG_LEVEL || "info",

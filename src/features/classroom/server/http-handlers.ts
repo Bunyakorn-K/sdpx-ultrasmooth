@@ -96,7 +96,11 @@ export function manageMembersResponse(request: Request, id: string) {
     if (request.method === "DELETE") {
       const body = await readJsonObject(request);
       const memberId = String(body.memberId || "");
-      const classroom = await classrooms.removeMember(user, resourceId, memberId);
+      const classroom = await classrooms.removeMember(
+        user,
+        resourceId,
+        memberId,
+      );
       logBusinessEvent(
         "member_removed",
         context,

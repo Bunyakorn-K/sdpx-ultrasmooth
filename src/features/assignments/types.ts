@@ -1,4 +1,20 @@
 import type { PairAssignment, Comparison } from "@/features/pairwise/types";
+
+export type Appeal = {
+  id: string;
+  studentId: string;
+  message: string;
+  submittedAt: string;
+  finalizedAt: string;
+  generation: number;
+  decision?: {
+    outcome: "uphold" | "override";
+    response: string;
+    score?: number;
+    decidedBy: string;
+    decidedAt: string;
+  };
+};
 export type PairScope = "group" | "individual" | "both";
 export type EvaluationSubmission = {
   id: string;
@@ -67,6 +83,9 @@ export type FinalizedSnapshot = {
 };
 
 export type Assignment = {
+  appeals?: Appeal[];
+  /** Public timestamp only; raw finalized inputs remain owner-only. */
+  finalizedAt?: string;
   /** New assignments must publish persisted pairs before accepting evaluations. */
   pairwiseRequired?: boolean;
   pairGeneration?: number;

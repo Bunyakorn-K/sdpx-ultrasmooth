@@ -1,5 +1,6 @@
 import { test as base, expect } from "@playwright/test";
 import { makeTestUsers, type TestUsers } from "../seed/test-data";
+
 type TestFixtures = { users: TestUsers; cleanDb: void };
 export const test = base.extend<TestFixtures>({
   users: async ({}, use) => {

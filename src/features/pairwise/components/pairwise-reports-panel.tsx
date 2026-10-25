@@ -1,4 +1,5 @@
 "use client";
+import { appealScore } from "@/features/assignments/domain/appeals";
 
 import { useState } from "react";
 import { GeneratedReportsPanel } from "./generated-reports-panel";
@@ -160,9 +161,11 @@ export function PairwiseReportsPanel({
       groupScores.find((gs) => gs.group.id === studentGroup?.id)?.scores
         .totalScore ?? 0;
     const individualComponent = 0; // Or from individual criteria if enabled
-    const finalScore = Number(
-      ((groupComponent + individualComponent) * M).toFixed(2),
-    );
+    const finalScore = appealScore(
+      active,
+      student.id,
+      Number(((groupComponent + individualComponent) * M).toFixed(2)),
+    )!;
 
     return {
       student,
@@ -335,10 +338,7 @@ export function PairwiseReportsPanel({
               </Stack>
 
               <TableContainer>
-                <Table
-                  size="small"
-                  aria-label={`เกณฑ์คะแนนกลุ่ม ${group.name}`}
-                >
+                <Table size="small" aria-label={`เกณฑ์คะแนนกลุ่ม ${group.name}`}>
                   <TableHead>
                     <TableRow sx={{ bgcolor: "action.hover" }}>
                       <TableCell sx={{ fontWeight: 600 }}>
@@ -479,8 +479,8 @@ export function PairwiseReportsPanel({
             การกระจายและความครอบคลุมของคู่เปรียบเทียบ (Pair Coverage)
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
-            รายงานความถี่ที่แต่ละคู่ได้รับการประเมินตามเกณฑ์ INV-1 ถึง INV-5
-            (เป้าหมาย Coverage R = {active.targetCoverage ?? 5})
+            รายงานความถี่ที่แต่ละคู่ได้รับการประเมินตามเกณฑ์ INV-1 ถึง INV-5 (เป้าหมาย
+            Coverage R = {active.targetCoverage ?? 5})
           </Typography>
 
           <TableContainer>
@@ -545,8 +545,7 @@ export function PairwiseReportsPanel({
           </Typography>
           <Typography variant="body2" color="text.secondary">
             ระบบตรวจสอบความผิดปกติทางสถิติอัตโนมัติ (§10)
-            เพื่อเป็นข้อมูลสนับสนุนการตัดสินใจของผู้สอน
-            (ไม่ใช่การลงโทษอัตโนมัติ)
+            เพื่อเป็นข้อมูลสนับสนุนการตัดสินใจของผู้สอน (ไม่ใช่การลงโทษอัตโนมัติ)
           </Typography>
 
           {signals.length === 0 ? (

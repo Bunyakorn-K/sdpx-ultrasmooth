@@ -10,7 +10,11 @@ import { LoadingState } from "@/shared/components/loading-state";
 export function ClassroomListScreen() {
   const workspace = useWorkspace();
   const { user, demo, teacher, setToast, setError } = workspace;
-  const { classrooms, loading, createClassroom, joinClassroom } = useClassrooms(user, demo, setError);
+  const { classrooms, loading, createClassroom, joinClassroom } = useClassrooms(
+    user,
+    demo,
+    setError,
+  );
   const [createOpen, setCreateOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -31,7 +35,9 @@ export function ClassroomListScreen() {
             await workspace.refreshAssignments?.();
             setToast(`เข้าร่วมห้องเรียน "${joined.name}" เรียบร้อยแล้ว`);
           } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "ไม่สามารถเข้าร่วมห้องเรียนได้");
+            setError(
+              err instanceof Error ? err.message : "ไม่สามารถเข้าร่วมห้องเรียนได้",
+            );
             throw err;
           }
         }}

@@ -44,8 +44,7 @@ export function saveEvaluation(
     a.pairs?.filter(
       (p) => p.side === side && p.evaluator_user_id === user.id,
     ) ?? [];
-  if (!pairs.length)
-    throw new AppError("ไม่มีคู่ที่คุณมีสิทธิ์ประเมินในส่วนนี้", 403);
+  if (!pairs.length) throw new AppError("ไม่มีคู่ที่คุณมีสิทธิ์ประเมินในส่วนนี้", 403);
   if (!Array.isArray(input.answers) || input.answers.length > pairs.length)
     throw new AppError("รายการคำตอบไม่ถูกต้อง");
   const ids = new Set(pairs.map((p) => p.id));
@@ -56,8 +55,7 @@ export function saveEvaluation(
       throw new AppError("รายการคำตอบไม่ถูกต้อง");
     const answer = value as Record<string, unknown>;
     const pairId = String(answer.pairId ?? "");
-    if (!ids.has(pairId))
-      throw new AppError("ไม่พบคู่ที่คุณมีสิทธิ์ประเมิน", 403);
+    if (!ids.has(pairId)) throw new AppError("ไม่พบคู่ที่คุณมีสิทธิ์ประเมิน", 403);
     if (seen.has(pairId)) throw new AppError("รายการคำตอบมีคู่ซ้ำ");
     seen.add(pairId);
     if (

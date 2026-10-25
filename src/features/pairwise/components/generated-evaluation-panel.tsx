@@ -6,6 +6,7 @@ import type { User } from "@/features/auth/types";
 import { EvaluationSidePanel } from "./evaluation-side-panel";
 import type { EvaluationCommand } from "../hooks/use-evaluation-draft";
 import { generatedResult } from "../domain/generated-results";
+import { appealScore } from "@/features/assignments/domain/appeals";
 
 export function GeneratedEvaluationPanel({
   active,
@@ -37,8 +38,10 @@ export function GeneratedEvaluationPanel({
       {(active.status === "closed" || active.status === "finalized") && (
         <Alert severity="info">
           คะแนนกลุ่มของคุณ: {result.groupScore} · คะแนนรายบุคคล:{" "}
-          {result.individualScore ?? "ยังมีข้อมูลไม่พอ"} · คะแนนรวมหลัง
-          participation: {result.finalScore ?? "ยังมีข้อมูลไม่พอ"}
+          {result.individualScore ?? "ยังมีข้อมูลไม่พอ"} · คะแนนรวมหลัง participation:{" "}
+          {result.finalScore ?? "ยังมีข้อมูลไม่พอ"}
+          {appealScore(active, user?.id ?? "", null) !== null &&
+            " (ปรับตามผลอุทธรณ์)"}
         </Alert>
       )}
       <Tabs
@@ -51,8 +54,7 @@ export function GeneratedEvaluationPanel({
       </Tabs>
       {!showIndividual && (
         <Alert severity="info">
-          ไม่มีการประเมินรายบุคคลเมื่อสมาชิกไม่เกิน 2 คน
-          หรือคะแนนเต็มรายบุคคลเป็น 0
+          ไม่มีการประเมินรายบุคคลเมื่อสมาชิกไม่เกิน 2 คน หรือคะแนนเต็มรายบุคคลเป็น 0
         </Alert>
       )}
       <Box hidden={showIndividual && tab !== 0}>
@@ -79,9 +81,7 @@ export function GeneratedEvaluationPanel({
       )}
       {!!active.pairHistory?.length && (
         <Stack spacing={1}>
-          <Typography variant="h6">
-            ประวัติคำตอบเดิม (อ่านอย่างเดียว)
-          </Typography>
+          <Typography variant="h6">ประวัติคำตอบเดิม (อ่านอย่างเดียว)</Typography>
           {active.pairHistory.map((h, i) => (
             <Paper variant="outlined" sx={{ p: 2 }} key={i}>
               <Typography>

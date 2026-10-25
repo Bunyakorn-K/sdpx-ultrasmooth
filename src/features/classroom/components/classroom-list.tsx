@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Add, GroupAddOutlined, SchoolOutlined, Search } from "@mui/icons-material";
+import {
+  Add,
+  GroupAddOutlined,
+  SchoolOutlined,
+  Search,
+} from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -119,13 +124,19 @@ export function ClassroomList({
             bgcolor: "background.paper",
           }}
         >
-          <SchoolOutlined sx={{ fontSize: 56, color: "secondary.main", mb: 1.5 }} />
+          <SchoolOutlined
+            sx={{ fontSize: 56, color: "secondary.main", mb: 1.5 }}
+          />
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
             {query || filter !== "all"
               ? "ไม่พบห้องเรียนที่ตรงกับเงื่อนไขการค้นหา"
               : "ยังไม่มี Classroom ในระบบ"}
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 450, mx: "auto" }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mb: 3, maxWidth: 450, mx: "auto" }}
+          >
             {teacher
               ? "เริ่มต้นด้วยการสร้าง Classroom เพื่อจัดกลุ่มนักศึกษา และมอบหมายภารกิจการประเมินผลงานแบบเปรียบเทียบคู่"
               : "คุณยังไม่ได้เข้าร่วมห้องเรียนใด ๆ รอคุณครูนำเข้ารายชื่อหรือส่งรหัสห้องเรียน"}
@@ -153,7 +164,11 @@ export function ClassroomList({
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" },
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, 1fr)",
+              md: "repeat(3, 1fr)",
+            },
             gap: 2.5,
           }}
         >
@@ -202,10 +217,13 @@ export function ClassroomList({
             }
           }}
         >
-          <DialogTitle sx={{ fontWeight: 700 }}>เข้าร่วมห้องเรียน (Classroom)</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 700 }}>
+            เข้าร่วมห้องเรียน (Classroom)
+          </DialogTitle>
           <DialogContent dividers>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              กรอกรหัสเข้าร่วมห้องเรียนที่คุณครูให้มา (เช่น CS101-2026) เพื่อเข้าสู่ห้องเรียนและทำภารกิจการประเมิน
+              กรอกรหัสเข้าร่วมห้องเรียนที่คุณครูให้มา (เช่น CS101-2026)
+              เพื่อเข้าสู่ห้องเรียนและทำภารกิจการประเมิน
             </Typography>
             <TextField
               autoFocus
@@ -219,10 +237,18 @@ export function ClassroomList({
             />
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
-            <Button onClick={() => setJoinOpen(false)} disabled={joining} color="inherit">
+            <Button
+              onClick={() => setJoinOpen(false)}
+              disabled={joining}
+              color="inherit"
+            >
               ยกเลิก
             </Button>
-            <Button type="submit" variant="contained" disabled={joining || !joinCode.trim()}>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={joining || !joinCode.trim()}
+            >
               {joining ? "กำลังเข้าร่วม..." : "เข้าร่วม"}
             </Button>
           </DialogActions>

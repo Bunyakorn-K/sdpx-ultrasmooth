@@ -63,9 +63,7 @@ export function PublishPairsDialog({
       } catch (cause) {
         if (!cancelled)
           setError(
-            cause instanceof Error
-              ? cause.message
-              : "ตรวจสอบคู่ประเมินไม่สำเร็จ",
+            cause instanceof Error ? cause.message : "ตรวจสอบคู่ประเมินไม่สำเร็จ",
           );
       } finally {
         if (!cancelled) setLoading(false);
@@ -104,9 +102,7 @@ export function PublishPairsDialog({
       maxWidth="sm"
       aria-labelledby="publish-pairs-title"
     >
-      <DialogTitle id="publish-pairs-title">
-        ตรวจสอบคู่ก่อนเริ่มประเมิน
-      </DialogTitle>
+      <DialogTitle id="publish-pairs-title">ตรวจสอบคู่ก่อนเริ่มประเมิน</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
           <Alert severity="info">
@@ -125,9 +121,7 @@ export function PublishPairsDialog({
               role="status"
             >
               <CircularProgress size={20} />
-              <Typography variant="body2">
-                กำลังตรวจสอบความเป็นไปได้…
-              </Typography>
+              <Typography variant="body2">กำลังตรวจสอบความเป็นไปได้…</Typography>
             </Stack>
           )}
           {error && <Alert severity="error">{error}</Alert>}

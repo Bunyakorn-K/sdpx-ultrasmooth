@@ -14,10 +14,7 @@ let localConnection: ReturnType<typeof postgres> | undefined;
 export function database(): DatabaseQuery {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString)
-    throw new AppError(
-      "ยังไม่ได้เชื่อมต่อฐานข้อมูล กรุณาตั้งค่า DATABASE_URL",
-      503,
-    );
+    throw new AppError("ยังไม่ได้เชื่อมต่อฐานข้อมูล กรุณาตั้งค่า DATABASE_URL", 503);
   if (
     process.env.DATABASE_DRIVER &&
     process.env.DATABASE_DRIVER !== "postgres" &&

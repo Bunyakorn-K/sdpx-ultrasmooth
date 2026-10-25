@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { applyAssignmentCommand } from "../src/features/assignments/domain/assignment-policy.ts";
 import { average } from "../src/features/assignments/domain/scoring.ts";
+
 const teacher = { id: "t", name: "Teacher", role: "teacher" };
 const student = { id: "s1", name: "Student", role: "student" };
 function assignment() {

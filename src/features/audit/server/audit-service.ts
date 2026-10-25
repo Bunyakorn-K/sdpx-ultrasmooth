@@ -1,9 +1,14 @@
 import { AppError } from "@/shared/domain/app-error";
 import type { AuditLogEntry, CreateAuditEntryInput } from "../types";
-import { type AuditRepository, PostgresAuditRepository } from "./audit-repository";
+import {
+  type AuditRepository,
+  PostgresAuditRepository,
+} from "./audit-repository";
 
 export class AuditService {
-  constructor(private readonly repository: AuditRepository = new PostgresAuditRepository()) {}
+  constructor(
+    private readonly repository: AuditRepository = new PostgresAuditRepository(),
+  ) {}
 
   async record(input: CreateAuditEntryInput): Promise<AuditLogEntry> {
     if (!input.actor_id) {
@@ -13,12 +18,16 @@ export class AuditService {
       throw new AppError("ต้องระบุ action ในการบันทึก audit log", 400);
     }
     if (!input.resource_type || !input.resource_id) {
-      throw new AppError("ต้องระบุ resource_type และ resource_id ในการบันทึก audit log", 400);
+      throw new AppError(
+        "ต้องระบุ resource_type และ resource_id ในการบันทึก audit log",
+        400,
+      );
     }
 
     // FR-AUDIT-02 / FR-ASSIGN-03 / FR-SCORE-08: บังคับกรอกเหตุผลสำหรับการ override คะแนน หรือ reopen
     if (
-      (input.action === "SCORE_OVERRIDE" || input.action === "ASSIGNMENT_REOPEN") &&
+      (input.action === "SCORE_OVERRIDE" ||
+        input.action === "ASSIGNMENT_REOPEN") &&
       (!input.reason || !input.reason.trim())
     ) {
       throw new AppError("กรุณาระบุเหตุผลในการดำเนินการ (FR-AUDIT-02)", 400);
@@ -43,12 +52,18 @@ export class AuditService {
     return entry;
   }
 
-  async listByClassroom(classroomId: string, limit = 100): Promise<AuditLogEntry[]> {
+  async listByClassroom(
+    classroomId: string,
+    limit = 100,
+  ): Promise<AuditLogEntry[]> {
     if (!classroomId) throw new AppError("ต้องระบุ classroomId", 400);
     return this.repository.listByClassroom(classroomId, limit);
   }
 
-  async listByAssignment(assignmentId: string, limit = 100): Promise<AuditLogEntry[]> {
+  async listByAssignment(
+    assignmentId: string,
+    limit = 100,
+  ): Promise<AuditLogEntry[]> {
     if (!assignmentId) throw new AppError("ต้องระบุ assignmentId", 400);
     return this.repository.listByAssignment(assignmentId, limit);
   }

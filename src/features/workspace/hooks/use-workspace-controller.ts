@@ -18,8 +18,14 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useClassrooms } from "@/features/classroom/hooks/use-classrooms";
 import { useEffect, useState, type FormEvent } from "react";
 import { usePathname, useRouter } from "next/navigation";
+
 export type WorkspaceModal =
-  "login" | "register" | "create" | "group" | "questions" | null;
+  | "login"
+  | "register"
+  | "create"
+  | "group"
+  | "questions"
+  | null;
 const parseQuestions = (text: string) =>
   text
     .split("\n")

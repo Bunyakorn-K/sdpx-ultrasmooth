@@ -1,6 +1,7 @@
 import { database } from "@/shared/server/database";
 import type { User } from "../types";
 import { ROSTER_PENDING_PASSWORD } from "../domain/pending-account";
+
 export type UserWithPassword = User & { password_hash: string };
 export interface UserRepository {
   findByEmail(email: string): Promise<UserWithPassword | null>;
@@ -20,4 +21,7 @@ export class PostgresUserRepository implements UserRepository {
     return (rows[0] as User) || null;
   }
 }
-export { PostgresUserRepository as NeonUserRepository, PostgresUserRepository as SupabaseUserRepository };
+export {
+  PostgresUserRepository as NeonUserRepository,
+  PostgresUserRepository as SupabaseUserRepository,
+};

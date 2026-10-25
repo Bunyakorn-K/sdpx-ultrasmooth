@@ -351,8 +351,7 @@ export function RegenerationPreview({
           </Stack>
         </Box>
         <Typography variant="caption" color="text.secondary">
-          คู่ชุดนี้ยังไม่เผยแพร่ กด “ยืนยันและเผยแพร่คู่ใหม่”
-          เมื่อตรวจสอบเรียบร้อย
+          คู่ชุดนี้ยังไม่เผยแพร่ กด “ยืนยันและเผยแพร่คู่ใหม่” เมื่อตรวจสอบเรียบร้อย
         </Typography>
       </Stack>
     </Paper>

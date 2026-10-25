@@ -1,5 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 import { randomBytes } from "node:crypto";
+
 const baseURL = process.env.BASE_URL || "http://127.0.0.1:3100";
 process.env.E2E_SEED_TOKEN ||= randomBytes(32).toString("hex");
 export default defineConfig({

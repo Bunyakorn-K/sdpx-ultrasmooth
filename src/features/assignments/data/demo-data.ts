@@ -4,6 +4,7 @@ import {
   demoOtherStudent,
 } from "@/features/auth/data/demo-users";
 import type { Assignment } from "../types";
+
 export { demoTeacher, demoStudent } from "@/features/auth/data/demo-users";
 const baseQuestions = [
   "ความถูกต้องและครบถ้วนของเนื้อหา",
@@ -34,7 +35,9 @@ export function seed(): Assignment[] {
     ][i],
     deadline: new Date(Date.now() + (7 + i) * 86400000).toISOString(),
     status: (["draft", "active", "closed", "draft"] as const)[i],
-    evaluationMode: (i === 3 ? "individual" : "group") as "individual" | "group",
+    evaluationMode: (i === 3 ? "individual" : "group") as
+      | "individual"
+      | "group",
     questions: [...baseQuestions],
     students: [
       { id: demoStudent.id, name: demoStudent.name },

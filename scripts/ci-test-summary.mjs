@@ -1,4 +1,5 @@
 import { appendFile, readFile } from "node:fs/promises";
+
 if (process.env.GITHUB_STEP_SUMMARY) {
   let text = "## Unit tests and coverage\n\n";
   try {

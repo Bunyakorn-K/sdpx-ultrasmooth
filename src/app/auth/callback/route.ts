@@ -137,9 +137,7 @@ export async function GET(request: Request) {
           sessionToken = token;
         }
 
-        const response = NextResponse.redirect(
-          new URL(targetUrl, origin),
-        );
+        const response = NextResponse.redirect(new URL(targetUrl, origin));
 
         // Crucial: Transfer Supabase auth cookies onto the response object
         cookiesToSet.forEach(({ name, value, options }) => {

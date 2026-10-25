@@ -1,5 +1,6 @@
 import type { Assignment } from "../types";
 import { generatedResult } from "@/features/pairwise/domain/generated-results";
+
 export function visibleAssignment(
   assignment: Assignment,
   userId: string,
@@ -26,7 +27,19 @@ export function visibleAssignment(
           userId: vote.userId === userId ? userId : "anonymous",
         }))
       : assignment.votes.filter((vote) => vote.userId === userId);
-  const visible = { ...assignment, votes };
+  const visible = {
+    ...assignment,
+    votes,
+    finalizedAt: assignment.finalizedSnapshot?.finalizedAt,
+    appeals: assignment.appeals
+      ?.filter((r) => r.studentId === userId)
+      .map((r) => ({
+        ...r,
+        decision: r.decision
+          ? { ...r.decision, decidedBy: "teacher" }
+          : undefined,
+      })),
+  };
   // Finalization snapshots contain raw ballots and must remain owner-only.
   delete visible.finalizedSnapshot;
   delete visible.pairingReason;

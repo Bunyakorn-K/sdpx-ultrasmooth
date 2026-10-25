@@ -9,18 +9,39 @@ import {
   CHOICE_POINTS,
   getComparisonPoints,
 } from "@/features/pairwise/domain/scoring-engine";
-import type {
-  Comparison,
-  PairAssignment,
-} from "@/features/pairwise/types";
+import type { Comparison, PairAssignment } from "@/features/pairwise/types";
 
 test("§9.1: 6-point forced choice point conversion table", () => {
-  assert.deepEqual(CHOICE_POINTS[1], { s_left: 1.0, s_right: 0.0, label: "ซ้ายดีกว่ามาก" });
-  assert.deepEqual(CHOICE_POINTS[2], { s_left: 0.8, s_right: 0.2, label: "ซ้ายดีกว่า" });
-  assert.deepEqual(CHOICE_POINTS[3], { s_left: 0.6, s_right: 0.4, label: "ซ้ายดีกว่าเล็กน้อย" });
-  assert.deepEqual(CHOICE_POINTS[4], { s_left: 0.4, s_right: 0.6, label: "ขวาดีกว่าเล็กน้อย" });
-  assert.deepEqual(CHOICE_POINTS[5], { s_left: 0.2, s_right: 0.8, label: "ขวาดีกว่า" });
-  assert.deepEqual(CHOICE_POINTS[6], { s_left: 0.0, s_right: 1.0, label: "ขวาดีกว่ามาก" });
+  assert.deepEqual(CHOICE_POINTS[1], {
+    s_left: 1.0,
+    s_right: 0.0,
+    label: "ซ้ายดีกว่ามาก",
+  });
+  assert.deepEqual(CHOICE_POINTS[2], {
+    s_left: 0.8,
+    s_right: 0.2,
+    label: "ซ้ายดีกว่า",
+  });
+  assert.deepEqual(CHOICE_POINTS[3], {
+    s_left: 0.6,
+    s_right: 0.4,
+    label: "ซ้ายดีกว่าเล็กน้อย",
+  });
+  assert.deepEqual(CHOICE_POINTS[4], {
+    s_left: 0.4,
+    s_right: 0.6,
+    label: "ขวาดีกว่าเล็กน้อย",
+  });
+  assert.deepEqual(CHOICE_POINTS[5], {
+    s_left: 0.2,
+    s_right: 0.8,
+    label: "ขวาดีกว่า",
+  });
+  assert.deepEqual(CHOICE_POINTS[6], {
+    s_left: 0.0,
+    s_right: 1.0,
+    label: "ขวาดีกว่ามาก",
+  });
 });
 
 test("§9.1: getComparisonPoints accounts for randomized display_left_item_id", () => {
@@ -85,13 +106,21 @@ test("§9.5 GOLDEN TEST: PRD Worked Example (Aurora group, Nok, and Ton)", () =>
   // Teamwork q = 0.68
   const nokTeamRatio = calculateScoreRatio(0.68, scoreFloor, scoreCeiling);
   assert.equal(nokTeamRatio, 0.872);
-  const nokTeamScore = calculateWeightedScore(nokTeamRatio, 50, individualMaxScore);
+  const nokTeamScore = calculateWeightedScore(
+    nokTeamRatio,
+    50,
+    individualMaxScore,
+  );
   assert.equal(nokTeamScore, 2.18);
 
   // Management q = 0.45
   const nokMgmtRatio = calculateScoreRatio(0.45, scoreFloor, scoreCeiling);
   assert.equal(nokMgmtRatio, 0.78);
-  const nokMgmtScore = calculateWeightedScore(nokMgmtRatio, 50, individualMaxScore);
+  const nokMgmtScore = calculateWeightedScore(
+    nokMgmtRatio,
+    50,
+    individualMaxScore,
+  );
   assert.equal(nokMgmtScore, 1.95);
 
   const nokIndivTotal = Number((nokTeamScore + nokMgmtScore).toFixed(3));
@@ -102,20 +131,30 @@ test("§9.5 GOLDEN TEST: PRD Worked Example (Aurora group, Nok, and Ton)", () =>
   const nokM = calculateParticipationMultiplier(nokP, completionThreshold);
   assert.equal(nokM, 1.0);
 
-  const nokFinalScore = Number(((auroraGroupTotal + nokIndivTotal) * nokM).toFixed(2));
+  const nokFinalScore = Number(
+    ((auroraGroupTotal + nokIndivTotal) * nokM).toFixed(2),
+  );
   assert.equal(nokFinalScore, 16.93);
 
   // 3. Ton (Aurora member) — partial participation (submitted 6/12 group, 3/3 individual -> 9/15)
   // Teamwork q = 0.31
   const tonTeamRatio = calculateScoreRatio(0.31, scoreFloor, scoreCeiling);
   assert.equal(tonTeamRatio, 0.724);
-  const tonTeamScore = calculateWeightedScore(tonTeamRatio, 50, individualMaxScore);
+  const tonTeamScore = calculateWeightedScore(
+    tonTeamRatio,
+    50,
+    individualMaxScore,
+  );
   assert.equal(tonTeamScore, 1.81);
 
   // Management q = 0.35
   const tonMgmtRatio = calculateScoreRatio(0.35, scoreFloor, scoreCeiling);
   assert.equal(tonMgmtRatio, 0.74);
-  const tonMgmtScore = calculateWeightedScore(tonMgmtRatio, 50, individualMaxScore);
+  const tonMgmtScore = calculateWeightedScore(
+    tonMgmtRatio,
+    50,
+    individualMaxScore,
+  );
   assert.equal(tonMgmtScore, 1.85);
 
   const tonIndivTotal = Number((tonTeamScore + tonMgmtScore).toFixed(3));
@@ -126,7 +165,9 @@ test("§9.5 GOLDEN TEST: PRD Worked Example (Aurora group, Nok, and Ton)", () =>
   const tonM = calculateParticipationMultiplier(tonP, completionThreshold);
   assert.equal(Number(tonM.toFixed(3)), 0.667);
 
-  const tonFinalScore = Number(((auroraGroupTotal + tonIndivTotal) * tonM).toFixed(2));
+  const tonFinalScore = Number(
+    ((auroraGroupTotal + tonIndivTotal) * tonM).toFixed(2),
+  );
   assert.equal(tonFinalScore, 10.97);
 
   // 4. Teammate integrity check (§9.4 / FR-SCORE-11)

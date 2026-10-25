@@ -6,6 +6,7 @@ import { createAssignment } from "@/features/assignments/domain/create-assignmen
 import { FakeAssignmentRepository } from "../fakes/fake-assignment-repository";
 import { FakeClassroomRepository } from "../fakes/fake-classroom-repository";
 import { makeAssignment, makeUser, makeVotingFixture } from "../factories";
+
 test("US02: teacher creates an assignment identified only by its resource ID", async () => {
   const teacher = makeUser({ role: "teacher" });
   const repository = new FakeAssignmentRepository();
@@ -41,10 +42,7 @@ test("US03: outsider cannot read another assignment", async () => {
   const service = new AssignmentService(
     new FakeAssignmentRepository([assignment]),
   );
-  await assert.rejects(
-    () => service.get(makeUser(), assignment.id),
-    /ไม่มีสิทธิ์/,
-  );
+  await assert.rejects(() => service.get(makeUser(), assignment.id), /ไม่มีสิทธิ์/);
 });
 test("US03: joined student can read assignment while missing IDs return 404", async () => {
   const { student, assignment } = makeVotingFixture();
@@ -52,10 +50,7 @@ test("US03: joined student can read assignment while missing IDs return 404", as
     new FakeAssignmentRepository([assignment]),
   );
   assert.equal((await service.get(student, assignment.id)).id, assignment.id);
-  await assert.rejects(
-    () => service.get(student, crypto.randomUUID()),
-    /ไม่พบ/,
-  );
+  await assert.rejects(() => service.get(student, crypto.randomUUID()), /ไม่พบ/);
 });
 test("US03: student in classroom can list and read assignment without prior join", async () => {
   const teacher = makeUser({ role: "teacher" });
@@ -106,10 +101,7 @@ test("US03: student in classroom can list and read assignment without prior join
   const fetched = await service.get(student, assignment.id);
   assert.equal(fetched.id, assignment.id);
 
-  await assert.rejects(
-    () => service.get(outsider, assignment.id),
-    /ไม่มีสิทธิ์/,
-  );
+  await assert.rejects(() => service.get(outsider, assignment.id), /ไม่มีสิทธิ์/);
 });
 test("US04: student can join a teacher-created group only once", () => {
   const teacher = makeUser({ role: "teacher" });

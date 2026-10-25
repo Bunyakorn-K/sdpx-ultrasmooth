@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+
 const { Workbook } = createRequire(import.meta.url)(
   "exceljs",
 ) as typeof import("exceljs");
@@ -100,9 +101,7 @@ test("US02-US04-US09: import questions, create work and access it without an enr
   await assignment.joinExistingGroup();
   await expect(page.getByText("กลุ่มของฉัน", { exact: true })).toBeVisible();
   await assignment.selectTab("คำถาม (2)");
-  await expect(
-    page.getByText("ความคิดสร้างสรรค์", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("ความคิดสร้างสรรค์", { exact: true })).toBeVisible();
   await expect(page.getByText("ความครบถ้วน", { exact: true })).toBeVisible();
 });
 // US06 AC2: no opening a vote with fewer than two populated groups.
@@ -113,11 +112,7 @@ test("US06 AC2: insufficient groups prevent opening a vote", async ({
   const assignment = new AssignmentPage(page);
   await home.goto();
   await home.exploreDemo();
-  await assignment.createWork(
-    "ยังไม่มีกลุ่ม",
-    "การเรียนรู้",
-    futureLocalDeadline(),
-  );
+  await assignment.createWork("ยังไม่มีกลุ่ม", "การเรียนรู้", futureLocalDeadline());
   await assignment.dialog
     .getByRole("button", { name: "สร้าง assignment", exact: true })
     .click();

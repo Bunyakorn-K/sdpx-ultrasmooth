@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+
 export function useDeadline(deadline: string) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {

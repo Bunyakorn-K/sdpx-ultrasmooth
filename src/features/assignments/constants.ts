@@ -1,4 +1,7 @@
-export const statusLabels: Record<"draft" | "active" | "closed" | "finalized", string> = {
+export const statusLabels: Record<
+  "draft" | "active" | "closed" | "finalized",
+  string
+> = {
   draft: "รอเริ่มโหวต",
   active: "กำลังโหวต",
   closed: "สิ้นสุดแล้ว",

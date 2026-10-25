@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Box,
-  Button,
-  Chip,
-  Paper,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Chip, Paper, Stack, Typography } from "@mui/material";
 import { EditOutlined } from "@mui/icons-material";
 import type { Assignment } from "../types";
 import { FeasibilityPanel } from "@/features/pairwise/components/feasibility-panel";
@@ -93,7 +86,11 @@ export function CriteriaPanel({
                 เกณฑ์การเปรียบเทียบคู่ระดับ 6 ระดับ (1–6 Forced Choice)
               </Typography>
             </Box>
-            <Chip label={`น้ำหนัก ${c.weight_pct}%`} color="primary" variant="outlined" />
+            <Chip
+              label={`น้ำหนัก ${c.weight_pct}%`}
+              color="primary"
+              variant="outlined"
+            />
           </Stack>
         </Paper>
       ))}

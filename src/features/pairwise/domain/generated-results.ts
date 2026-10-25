@@ -1,5 +1,6 @@
 import type { Assignment } from "@/features/assignments/types";
 import { generatedCriteria } from "./regeneration";
+import { appealScore } from "@/features/assignments/domain/appeals";
 import {
   calculateItemScores,
   calculateParticipation,
@@ -56,7 +57,9 @@ export function generatedResult(a: Assignment, userId: string) {
     individualScore,
     groupParticipation,
     individualParticipation,
-    finalScore:
+    finalScore: appealScore(
+      a,
+      userId,
       individualScore === null
         ? null
         : Number(
@@ -65,5 +68,6 @@ export function generatedResult(a: Assignment, userId: string) {
               individualScore * individualParticipation
             ).toFixed(3),
           ),
+    ),
   };
 }

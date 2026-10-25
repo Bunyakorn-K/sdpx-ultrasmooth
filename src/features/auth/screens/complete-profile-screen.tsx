@@ -40,7 +40,9 @@ export function CompleteProfileScreen() {
         } = await supabase.auth.getUser();
 
         if (!user || !user.email) {
-          console.warn("[complete-profile] No Supabase user found, redirecting to login");
+          console.warn(
+            "[complete-profile] No Supabase user found, redirecting to login",
+          );
           router.push("/login?error=session_not_found");
           return;
         }
@@ -145,7 +147,8 @@ export function CompleteProfileScreen() {
                     color="text.secondary"
                     className="form-description"
                   >
-                    ยืนยันตัวตนด้วย Google สำเร็จแล้ว กรุณาระบุชื่อที่แสดงและบทบาทเพื่อใช้งานระบบ
+                    ยืนยันตัวตนด้วย Google สำเร็จแล้ว
+                    กรุณาระบุชื่อที่แสดงและบทบาทเพื่อใช้งานระบบ
                   </Typography>
 
                   {email && (
@@ -181,16 +184,24 @@ export function CompleteProfileScreen() {
                     }
                     slotProps={{ inputLabel: { shrink: true } }}
                   >
-                    <MenuItem value="teacher">คุณครู (Teacher / Instructor)</MenuItem>
+                    <MenuItem value="teacher">
+                      คุณครู (Teacher / Instructor)
+                    </MenuItem>
                     <MenuItem value="student">นักเรียน (Student)</MenuItem>
                   </TextField>
 
                   {/* FR-PRIV-01: PDPA Privacy Notice */}
                   <Alert severity="info" sx={{ mt: 1, borderRadius: "8px" }}>
-                    <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{ fontWeight: 700, display: "block", mb: 0.5 }}
+                    >
                       ประกาศการคุ้มครองข้อมูลส่วนบุคคล (PDPA Notice — FR-PRIV-01)
                     </Typography>
-                    ระบบจะจัดเก็บอีเมล ชื่อ และผลการประเมินเป็นเวลา 2 ปีการศึกษา (time-on-task 1 ปีการศึกษา) เพื่อการประเมินผลและการตรวจสอบความสุจริตทางวิชาการ โดยข้อมูลตัวตนผู้ประเมินจะถูกปกปิดเป็นความลับตามมาตรฐาน Anonymity
+                    ระบบจะจัดเก็บอีเมล ชื่อ และผลการประเมินเป็นเวลา 2 ปีการศึกษา
+                    (time-on-task 1 ปีการศึกษา)
+                    เพื่อการประเมินผลและการตรวจสอบความสุจริตทางวิชาการ
+                    โดยข้อมูลตัวตนผู้ประเมินจะถูกปกปิดเป็นความลับตามมาตรฐาน Anonymity
                   </Alert>
 
                   {error && <Alert severity="error">{error}</Alert>}

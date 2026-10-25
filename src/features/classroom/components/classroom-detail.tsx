@@ -50,7 +50,11 @@ export type ClassroomDetailProps = {
   allAssignments?: Assignment[];
   teacher: boolean;
   onImportRoster: (roster: ParseRosterResult) => Promise<void>;
-  onAddStaff: (input: { email: string; name: string; role: "CO_TEACHER" | "TA" }) => Promise<void>;
+  onAddStaff: (input: {
+    email: string;
+    name: string;
+    role: "CO_TEACHER" | "TA";
+  }) => Promise<void>;
   onRemoveMember: (memberId: string) => Promise<void>;
   onArchive: () => Promise<void>;
   onLinkAssignment?: (assignmentId: string) => Promise<void>;
@@ -125,7 +129,11 @@ export function ClassroomDetail({
   }
 
   async function handleArchiveClassroom() {
-    if (!confirm("คุณต้องการเก็บ Classroom นี้เข้าคลังถาวร (Archive) หรือไม่? ห้องเรียนจะอยู่ในสถานะอ่านอย่างเดียว")) {
+    if (
+      !confirm(
+        "คุณต้องการเก็บ Classroom นี้เข้าคลังถาวร (Archive) หรือไม่? ห้องเรียนจะอยู่ในสถานะอ่านอย่างเดียว",
+      )
+    ) {
       return;
     }
     try {
@@ -160,10 +168,18 @@ export function ClassroomDetail({
           }}
         >
           <Box>
-            <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1 }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{ alignItems: "center", mb: 1 }}
+            >
               <Chip
                 size="small"
-                label={classroom.status === "ACTIVE" ? "ห้องเรียนที่เปิดใช้งาน" : "เก็บถาวร (Archived)"}
+                label={
+                  classroom.status === "ACTIVE"
+                    ? "ห้องเรียนที่เปิดใช้งาน"
+                    : "เก็บถาวร (Archived)"
+                }
                 color={classroom.status === "ACTIVE" ? "secondary" : "default"}
               />
               <Typography variant="body2" color="text.secondary">
@@ -186,12 +202,17 @@ export function ClassroomDetail({
               {classroom.name}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              เขตเวลา {classroom.timezone} · นักศึกษา {students.length} คน · {classroom.groups.length} กลุ่ม
+              เขตเวลา {classroom.timezone} · นักศึกษา {students.length} คน ·{" "}
+              {classroom.groups.length} กลุ่ม
             </Typography>
           </Box>
 
           {teacher && classroom.status === "ACTIVE" && (
-            <Stack direction="row" spacing={1.5} sx={{ flexWrap: "wrap", gap: 1 }}>
+            <Stack
+              direction="row"
+              spacing={1.5}
+              sx={{ flexWrap: "wrap", gap: 1 }}
+            >
               <Button
                 variant="outlined"
                 color="secondary"
@@ -231,11 +252,27 @@ export function ClassroomDetail({
         aria-label="แท็บข้อมูล Classroom"
         sx={{ borderBottom: "1px solid #e8ecea", mb: 3 }}
       >
-        <Tab icon={<AssignmentOutlined />} iconPosition="start" label={`Assignment (${assignments.length})`} />
-        <Tab icon={<GroupOutlined />} iconPosition="start" label={`นักศึกษาและกลุ่ม (${students.length} คน)`} />
-        <Tab icon={<SchoolOutlined />} iconPosition="start" label={`ผู้สอน & TA (${staffMembers.length} คน)`} />
+        <Tab
+          icon={<AssignmentOutlined />}
+          iconPosition="start"
+          label={`Assignment (${assignments.length})`}
+        />
+        <Tab
+          icon={<GroupOutlined />}
+          iconPosition="start"
+          label={`นักศึกษาและกลุ่ม (${students.length} คน)`}
+        />
+        <Tab
+          icon={<SchoolOutlined />}
+          iconPosition="start"
+          label={`ผู้สอน & TA (${staffMembers.length} คน)`}
+        />
         {teacher && (
-          <Tab icon={<SettingsOutlined />} iconPosition="start" label="การตั้งค่าห้องเรียน" />
+          <Tab
+            icon={<SettingsOutlined />}
+            iconPosition="start"
+            label="การตั้งค่าห้องเรียน"
+          />
         )}
       </Tabs>
 
@@ -245,18 +282,37 @@ export function ClassroomDetail({
           {assignments.length === 0 ? (
             <Paper
               variant="outlined"
-              sx={{ p: 4, borderRadius: "12px", textAlign: "center", bgcolor: "background.paper" }}
+              sx={{
+                p: 4,
+                borderRadius: "12px",
+                textAlign: "center",
+                bgcolor: "background.paper",
+              }}
             >
               <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
                 ยังไม่มี Assignment ในห้องเรียนนี้
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                สร้างการประเมินผลงานแบบ Pairwise เพื่อให้นักศึกษาในห้องเรียนนี้เริ่มเปรียบเทียบคู่
+                สร้างการประเมินผลงานแบบ Pairwise
+                เพื่อให้นักศึกษาในห้องเรียนนี้เริ่มเปรียบเทียบคู่
               </Typography>
               {teacher && (
-                <Stack direction="row" spacing={1.5} sx={{ justifyContent: "center", mt: 1, flexWrap: "wrap", gap: 1 }}>
+                <Stack
+                  direction="row"
+                  spacing={1.5}
+                  sx={{
+                    justifyContent: "center",
+                    mt: 1,
+                    flexWrap: "wrap",
+                    gap: 1,
+                  }}
+                >
                   {onCreateAssignment && (
-                    <Button variant="contained" startIcon={<Add />} onClick={onCreateAssignment}>
+                    <Button
+                      variant="contained"
+                      startIcon={<Add />}
+                      onClick={onCreateAssignment}
+                    >
                       สร้าง Assignment แรก
                     </Button>
                   )}
@@ -266,7 +322,9 @@ export function ClassroomDetail({
                       color="secondary"
                       startIcon={<AddLinkOutlined />}
                       onClick={() => {
-                        setSelectedAssignmentToLink(unlinkedAssignments[0]?.id || "");
+                        setSelectedAssignmentToLink(
+                          unlinkedAssignments[0]?.id || "",
+                        );
                         setLinkOpen(true);
                       }}
                     >
@@ -278,47 +336,58 @@ export function ClassroomDetail({
             </Paper>
           ) : (
             <>
-              {teacher && onLinkAssignment && unlinkedAssignments.length > 0 && (
-                <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="secondary"
-                    startIcon={<AddLinkOutlined />}
-                    onClick={() => {
-                      setSelectedAssignmentToLink(unlinkedAssignments[0]?.id || "");
-                      setLinkOpen(true);
-                    }}
-                  >
-                    เชื่อมโยง Assignment ที่มีอยู่ ({unlinkedAssignments.length})
-                  </Button>
-                </Box>
-              )}
+              {teacher &&
+                onLinkAssignment &&
+                unlinkedAssignments.length > 0 && (
+                  <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="secondary"
+                      startIcon={<AddLinkOutlined />}
+                      onClick={() => {
+                        setSelectedAssignmentToLink(
+                          unlinkedAssignments[0]?.id || "",
+                        );
+                        setLinkOpen(true);
+                      }}
+                    >
+                      เชื่อมโยง Assignment ที่มีอยู่ ({unlinkedAssignments.length})
+                    </Button>
+                  </Box>
+                )}
               {assignments.map((assignment) => (
-              <Paper
-                key={assignment.id}
-                variant="outlined"
-                sx={{ p: 2.5, borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}
-              >
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {assignment.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {assignment.subject} · {assignment.groups.length} กลุ่ม · สิ้นสุด:{" "}
-                    {new Date(assignment.deadline).toLocaleString("th-TH")}
-                  </Typography>
-                </Box>
-                <Button
-                  component={Link}
-                  href={`/assignments/${encodeURIComponent(assignment.id)}`}
+                <Paper
+                  key={assignment.id}
                   variant="outlined"
-                  size="small"
+                  sx={{
+                    p: 2.5,
+                    borderRadius: "12px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
                 >
-                  ดูรายละเอียด
-                </Button>
-              </Paper>
-            ))}
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                      {assignment.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {assignment.subject} · {assignment.groups.length} กลุ่ม ·
+                      สิ้นสุด:{" "}
+                      {new Date(assignment.deadline).toLocaleString("th-TH")}
+                    </Typography>
+                  </Box>
+                  <Button
+                    component={Link}
+                    href={`/assignments/${encodeURIComponent(assignment.id)}`}
+                    variant="outlined"
+                    size="small"
+                  >
+                    ดูรายละเอียด
+                  </Button>
+                </Paper>
+              ))}
             </>
           )}
         </Stack>
@@ -327,13 +396,17 @@ export function ClassroomDetail({
       {/* Tab 1: Students & Groups (FR-CLASS-01..05) */}
       {tab === 1 && (
         <Stack spacing={2.5}>
-          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
+          <Stack
+            direction="row"
+            sx={{ justifyContent: "space-between", alignItems: "center" }}
+          >
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 รายชื่อนักศึกษาและกลุ่มผลงาน (Roster & Groups)
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                จัดการรายชื่อนักศึกษา กลุ่ม และสถานะการเปิดใช้งาน (FR-CLASS-01 ถึง FR-CLASS-05)
+                จัดการรายชื่อนักศึกษา กลุ่ม และสถานะการเปิดใช้งาน (FR-CLASS-01 ถึง
+                FR-CLASS-05)
               </Typography>
             </Box>
             {teacher && classroom.status === "ACTIVE" && (
@@ -348,7 +421,10 @@ export function ClassroomDetail({
           </Stack>
 
           {students.length === 0 ? (
-            <Paper variant="outlined" sx={{ p: 4, borderRadius: "12px", textAlign: "center" }}>
+            <Paper
+              variant="outlined"
+              sx={{ p: 4, borderRadius: "12px", textAlign: "center" }}
+            >
               <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
                 ยังไม่มีรายชื่อนักศึกษาใน Classroom นี้
               </Typography>
@@ -366,7 +442,11 @@ export function ClassroomDetail({
               )}
             </Paper>
           ) : (
-            <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: "12px" }}>
+            <TableContainer
+              component={Paper}
+              variant="outlined"
+              sx={{ borderRadius: "12px" }}
+            >
               <Table size="medium">
                 <TableHead>
                   <TableRow>
@@ -375,25 +455,45 @@ export function ClassroomDetail({
                     <TableCell sx={{ fontWeight: 700 }}>รหัสนักศึกษา</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>กลุ่ม</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>สถานะ</TableCell>
-                    {teacher && <TableCell align="right" sx={{ fontWeight: 700 }}>จัดการ</TableCell>}
+                    {teacher && (
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>
+                        จัดการ
+                      </TableCell>
+                    )}
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {students.map((student) => {
-                    const group = classroom.groups.find((g) => g.id === student.group_id);
+                    const group = classroom.groups.find(
+                      (g) => g.id === student.group_id,
+                    );
                     return (
                       <TableRow key={student.id}>
-                        <TableCell sx={{ fontWeight: 600 }}>{student.display_name}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>
+                          {student.display_name}
+                        </TableCell>
                         <TableCell>{student.email}</TableCell>
                         <TableCell>{student.student_id || "-"}</TableCell>
                         <TableCell>
-                          <Chip size="small" label={group?.name || "ไม่มีกลุ่ม"} variant="outlined" />
+                          <Chip
+                            size="small"
+                            label={group?.name || "ไม่มีกลุ่ม"}
+                            variant="outlined"
+                          />
                         </TableCell>
                         <TableCell>
                           <Chip
                             size="small"
-                            label={student.status === "ACTIVE" ? "ใช้งานแล้ว" : "รอล็อกอิน (Pending)"}
-                            color={student.status === "ACTIVE" ? "success" : "warning"}
+                            label={
+                              student.status === "ACTIVE"
+                                ? "ใช้งานแล้ว"
+                                : "รอล็อกอิน (Pending)"
+                            }
+                            color={
+                              student.status === "ACTIVE"
+                                ? "success"
+                                : "warning"
+                            }
                             variant="outlined"
                           />
                         </TableCell>
@@ -403,7 +503,12 @@ export function ClassroomDetail({
                               size="small"
                               color="error"
                               aria-label={`ลบ ${student.display_name}`}
-                              onClick={() => handleRemoveMember(student.id, student.display_name)}
+                              onClick={() =>
+                                handleRemoveMember(
+                                  student.id,
+                                  student.display_name,
+                                )
+                              }
                             >
                               <DeleteOutlined sx={{ fontSize: 18 }} />
                             </IconButton>
@@ -422,7 +527,10 @@ export function ClassroomDetail({
       {/* Tab 2: Co-teachers & TAs (FR-CLASS-06) */}
       {tab === 2 && (
         <Stack spacing={2.5}>
-          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
+          <Stack
+            direction="row"
+            sx={{ justifyContent: "space-between", alignItems: "center" }}
+          >
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 ผู้สอนร่วมและผู้ช่วยสอน (Co-teachers & TAs)
@@ -442,7 +550,11 @@ export function ClassroomDetail({
             )}
           </Stack>
 
-          <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: "12px" }}>
+          <TableContainer
+            component={Paper}
+            variant="outlined"
+            sx={{ borderRadius: "12px" }}
+          >
             <Table>
               <TableHead>
                 <TableRow>
@@ -450,13 +562,19 @@ export function ClassroomDetail({
                   <TableCell sx={{ fontWeight: 700 }}>อีเมล</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>บทบาท</TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>สถานะ</TableCell>
-                  {teacher && <TableCell align="right" sx={{ fontWeight: 700 }}>จัดการ</TableCell>}
+                  {teacher && (
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>
+                      จัดการ
+                    </TableCell>
+                  )}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {staffMembers.map((staff) => (
                   <TableRow key={staff.id}>
-                    <TableCell sx={{ fontWeight: 600 }}>{staff.display_name}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>
+                      {staff.display_name}
+                    </TableCell>
                     <TableCell>{staff.email}</TableCell>
                     <TableCell>
                       <Chip
@@ -474,7 +592,9 @@ export function ClassroomDetail({
                     <TableCell>
                       <Chip
                         size="small"
-                        label={staff.status === "ACTIVE" ? "เข้าใช้งานแล้ว" : "รอล็อกอิน"}
+                        label={
+                          staff.status === "ACTIVE" ? "เข้าใช้งานแล้ว" : "รอล็อกอิน"
+                        }
                         variant="outlined"
                       />
                     </TableCell>
@@ -485,7 +605,9 @@ export function ClassroomDetail({
                             size="small"
                             color="error"
                             aria-label={`ลบ ${staff.display_name}`}
-                            onClick={() => handleRemoveMember(staff.id, staff.display_name)}
+                            onClick={() =>
+                              handleRemoveMember(staff.id, staff.display_name)
+                            }
                           >
                             <DeleteOutlined sx={{ fontSize: 18 }} />
                           </IconButton>
@@ -502,7 +624,10 @@ export function ClassroomDetail({
 
       {/* Tab 3: Settings */}
       {teacher && tab === 3 && (
-        <Paper variant="outlined" sx={{ p: 3, borderRadius: "12px", bgcolor: "background.paper" }}>
+        <Paper
+          variant="outlined"
+          sx={{ p: 3, borderRadius: "12px", bgcolor: "background.paper" }}
+        >
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
             การตั้งค่าห้องเรียน (Classroom Settings)
           </Typography>
@@ -515,7 +640,9 @@ export function ClassroomDetail({
             />
             <TextField
               label="โดเมนอีเมลที่อนุญาต (Allowed Domains)"
-              value={classroom.allowed_email_domains.join(", ") || "อนุญาตทุกโดเมน"}
+              value={
+                classroom.allowed_email_domains.join(", ") || "อนุญาตทุกโดเมน"
+              }
               disabled
               helperText="ข้อจำกัดโดเมนสำหรับนักศึกษาที่เข้าร่วม (FR-AUTHZ-02)"
             />
@@ -542,12 +669,19 @@ export function ClassroomDetail({
         onClose={() => setRosterOpen(false)}
         onImportConfirm={async (roster) => {
           await onImportRoster(roster);
-          setToast(`นำเข้ารายชื่อสำเร็จ: ${roster.members.length} คน ใน ${roster.groups.length} กลุ่ม`);
+          setToast(
+            `นำเข้ารายชื่อสำเร็จ: ${roster.members.length} คน ใน ${roster.groups.length} กลุ่ม`,
+          );
         }}
       />
 
       {/* Add Staff Modal */}
-      <Dialog open={teacher && staffModalOpen} onClose={() => setStaffModalOpen(false)} maxWidth="xs" fullWidth>
+      <Dialog
+        open={teacher && staffModalOpen}
+        onClose={() => setStaffModalOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
         <form onSubmit={handleAddStaffSubmit}>
           <DialogTitle sx={{ fontWeight: 700 }}>เพิ่มผู้สอนหรือผู้ช่วยสอน</DialogTitle>
           <DialogContent sx={{ pt: 1 }}>
@@ -571,10 +705,14 @@ export function ClassroomDetail({
                 label="บทบาท"
                 fullWidth
                 value={staffRole}
-                onChange={(e) => setStaffRole(e.target.value as "CO_TEACHER" | "TA")}
+                onChange={(e) =>
+                  setStaffRole(e.target.value as "CO_TEACHER" | "TA")
+                }
               >
                 <MenuItem value="CO_TEACHER">อาจารย์ร่วม (Co-teacher)</MenuItem>
-                <MenuItem value="TA">ผู้ช่วยสอน (Teaching Assistant - TA)</MenuItem>
+                <MenuItem value="TA">
+                  ผู้ช่วยสอน (Teaching Assistant - TA)
+                </MenuItem>
               </TextField>
             </Stack>
           </DialogContent>

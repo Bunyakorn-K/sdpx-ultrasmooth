@@ -1,5 +1,6 @@
 import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
+
 const deriveKey = promisify(scrypt);
 export async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");

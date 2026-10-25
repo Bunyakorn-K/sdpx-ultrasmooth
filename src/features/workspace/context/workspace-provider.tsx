@@ -26,13 +26,18 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
             open={!!controller.toast}
             autoHideDuration={4000}
             onClose={() => controller.setToast("")}
-            anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
           >
             <Alert
               severity="success"
               variant="filled"
               onClose={() => controller.setToast("")}
-              sx={{ width: "100%", boxShadow: "0 4px 20px rgba(0,0,0,0.15)", color: "#fff", fontWeight: 600 }}
+              sx={{
+                width: "100%",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                color: "#fff",
+                fontWeight: 600,
+              }}
             >
               {controller.toast}
             </Alert>
@@ -49,7 +54,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
               severity="error"
               variant="filled"
               onClose={() => controller.setError("")}
-              sx={{ width: "100%", boxShadow: "0 4px 20px rgba(0,0,0,0.15)", color: "#fff", fontWeight: 600 }}
+              sx={{
+                width: "100%",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                color: "#fff",
+                fontWeight: 600,
+              }}
             >
               {controller.error}
             </Alert>

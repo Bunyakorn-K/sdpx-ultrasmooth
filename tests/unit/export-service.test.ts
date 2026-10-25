@@ -68,8 +68,18 @@ test("FR-EXPORT-02 & FR-EXPORT-06: XLSX workbook contains exactly 4 sheets with 
       created_at: new Date().toISOString(),
     },
     groups: [
-      { id: "g-1", classroom_id: "class-1", name: "Aurora", created_at: new Date().toISOString() },
-      { id: "g-2", classroom_id: "class-1", name: "Borealis", created_at: new Date().toISOString() },
+      {
+        id: "g-1",
+        classroom_id: "class-1",
+        name: "Aurora",
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: "g-2",
+        classroom_id: "class-1",
+        name: "Borealis",
+        created_at: new Date().toISOString(),
+      },
     ],
     members: [
       {
@@ -134,7 +144,9 @@ test("FR-EXPORT-02 & FR-EXPORT-06: XLSX workbook contains exactly 4 sheets with 
   const metaSheet = wb.getWorksheet("Metadata");
   assert.ok(metaSheet);
   const rows = metaSheet.getRows(1, metaSheet.rowCount);
-  const formulaRow = rows?.find((r) => r.getCell(1).value === "Scoring Formula Version");
+  const formulaRow = rows?.find(
+    (r) => r.getCell(1).value === "Scoring Formula Version",
+  );
   assert.ok(formulaRow);
   assert.equal(formulaRow.getCell(2).value, "v2.0");
 

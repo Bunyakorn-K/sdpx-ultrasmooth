@@ -49,8 +49,24 @@ test("Pairing Engine Property-Based Test: verifies Invariants INV-1 to INV-5", (
   );
 
   const seed = 12345;
-  const pairs1 = generateGroupPairs("assign-1", "crit-1", students, groups, 5, 8, seed);
-  const pairs2 = generateGroupPairs("assign-1", "crit-1", students, groups, 5, 8, seed);
+  const pairs1 = generateGroupPairs(
+    "assign-1",
+    "crit-1",
+    students,
+    groups,
+    5,
+    8,
+    seed,
+  );
+  const pairs2 = generateGroupPairs(
+    "assign-1",
+    "crit-1",
+    students,
+    groups,
+    5,
+    8,
+    seed,
+  );
 
   // INV-5: Deterministic with same seed
   const stripCreatedAt = (p: (typeof pairs1)[number]) => {
@@ -134,7 +150,13 @@ test("§8.3 Individual Evaluation: complete enumeration and boundaries", () => {
   // Standard group m = 5:
   // C(5, 2) = 10 pairs. Each member evaluates C(4, 2) = 6 pairs. Total pairs = 5 * 6 = 30.
   // Coverage = m - 2 = 3.
-  const groupOf5 = [{ id: "u1" }, { id: "u2" }, { id: "u3" }, { id: "u4" }, { id: "u5" }];
+  const groupOf5 = [
+    { id: "u1" },
+    { id: "u2" },
+    { id: "u3" },
+    { id: "u4" },
+    { id: "u5" },
+  ];
   const indivPairs = generateIndividualPairs("a1", "c1", "g1", groupOf5, 8, 42);
 
   assert.equal(indivPairs.length, 30);
@@ -147,7 +169,9 @@ test("§8.3 Individual Evaluation: complete enumeration and boundaries", () => {
 
   // Check each member gets exactly 6 pairs
   for (const member of groupOf5) {
-    const memberPairs = indivPairs.filter((p) => p.evaluator_user_id === member.id);
+    const memberPairs = indivPairs.filter(
+      (p) => p.evaluator_user_id === member.id,
+    );
     assert.equal(memberPairs.length, 6);
   }
 
@@ -158,6 +182,10 @@ test("§8.3 Individual Evaluation: complete enumeration and boundaries", () => {
     coverageMap.set(key, (coverageMap.get(key) || 0) + 1);
   }
   for (const count of coverageMap.values()) {
-    assert.equal(count, 3, "Each pair in group of 5 must receive coverage of exactly 3");
+    assert.equal(
+      count,
+      3,
+      "Each pair in group of 5 must receive coverage of exactly 3",
+    );
   }
 });

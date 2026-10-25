@@ -225,9 +225,7 @@ export function GeneratedReportsPanel({
           sx={{ justifyContent: "space-between", gap: 2, alignItems: "center" }}
         >
           <Box>
-            <Typography sx={{ fontWeight: 700 }}>
-              ความคืบหน้าการประเมิน
-            </Typography>
+            <Typography sx={{ fontWeight: 700 }}>ความคืบหน้าการประเมิน</Typography>
             <Typography variant="body2" color="text.secondary">
               ส่งแล้ว {submittedCount} / {pairs.length} งานเปรียบเทียบ
             </Typography>
@@ -248,8 +246,7 @@ export function GeneratedReportsPanel({
           sx={{ height: 8, borderRadius: 4, my: 2, bgcolor: "#dfede5" }}
         />
         <Typography variant="caption" color="text.secondary">
-          คำนวณเฉพาะคำตอบที่ส่งแล้วในคู่ชุดปัจจุบัน ·
-          ไม่นับฉบับร่างและประวัติที่ถูกแทนที่
+          คำนวณเฉพาะคำตอบที่ส่งแล้วในคู่ชุดปัจจุบัน · ไม่นับฉบับร่างและประวัติที่ถูกแทนที่
         </Typography>
       </Paper>
 
@@ -285,9 +282,7 @@ export function GeneratedReportsPanel({
                 กดแต่ละกลุ่มเพื่อดูรายละเอียดรายเกณฑ์
               </Typography>
               {active.groups.length === 0 && (
-                <Alert severity="info">
-                  ยังไม่มีกลุ่มสำหรับแสดงผลการประเมิน
-                </Alert>
+                <Alert severity="info">ยังไม่มีกลุ่มสำหรับแสดงผลการประเมิน</Alert>
               )}
               {active.groups.map((g) => {
                 const s = calculateItemScores(
@@ -415,9 +410,7 @@ export function GeneratedReportsPanel({
                 คะแนนรวมคำนวณร่วมกับสัดส่วนการส่งประเมินของนักศึกษาแต่ละคน
               </Typography>
               {active.groups.every((g) => !g.members.length) ? (
-                <Alert severity="info">
-                  ยังไม่มีนักศึกษาในกลุ่มสำหรับแสดงคะแนน
-                </Alert>
+                <Alert severity="info">ยังไม่มีนักศึกษาในกลุ่มสำหรับแสดงคะแนน</Alert>
               ) : (
                 <ReportTable
                   label="สรุปคะแนนรายบุคคล"
@@ -468,12 +461,7 @@ export function GeneratedReportsPanel({
             ) : (
               <ReportTable
                 label="ความครอบคลุมคู่"
-                columns={[
-                  "คู่ประเมิน",
-                  "รูปแบบ",
-                  "เกณฑ์ประเมิน",
-                  "ส่งแล้ว / มอบหมาย",
-                ]}
+                columns={["คู่ประเมิน", "รูปแบบ", "เกณฑ์ประเมิน", "ส่งแล้ว / มอบหมาย"]}
               >
                 {[...coverage.entries()].map(([key, row]) => (
                   <TableRow key={key} hover>
@@ -506,13 +494,10 @@ export function GeneratedReportsPanel({
           {tab === 3 && (
             <Stack spacing={2}>
               <Alert severity="info">
-                สัญญาณเหล่านี้ใช้ประกอบการทบทวน
-                โดยไม่ลบคำตอบหรือลดคะแนนอัตโนมัติ
+                สัญญาณเหล่านี้ใช้ประกอบการทบทวน โดยไม่ลบคำตอบหรือลดคะแนนอัตโนมัติ
               </Alert>
               {signals.length === 0 ? (
-                <Alert severity="success">
-                  ไม่พบสัญญาณที่ต้องทบทวนในข้อมูลปัจจุบัน
-                </Alert>
+                <Alert severity="success">ไม่พบสัญญาณที่ต้องทบทวนในข้อมูลปัจจุบัน</Alert>
               ) : (
                 signals.map((signal, index) => (
                   <Paper
@@ -544,8 +529,7 @@ export function GeneratedReportsPanel({
           {tab === 4 && (
             <Stack spacing={2}>
               <Typography variant="body2" color="text.secondary">
-                ประวัติการสร้างคู่ (อ่านอย่างเดียว) ·
-                ไม่นำคำตอบชุดเก่ามารวมคะแนนปัจจุบัน
+                ประวัติการสร้างคู่ (อ่านอย่างเดียว) · ไม่นำคำตอบชุดเก่ามารวมคะแนนปัจจุบัน
               </Typography>
               {!active.pairHistory?.length && (
                 <Alert severity="info">ยังไม่มีประวัติการสร้างคู่ใหม่</Alert>

@@ -20,6 +20,7 @@ import {
   isIndividualEvaluation,
   targetVotes,
 } from "../domain/evaluation-targets";
+
 export function StudentVotingPanel({
   active,
   user,
@@ -55,9 +56,7 @@ export function StudentVotingPanel({
               ? "ประเมินสมาชิกแต่ละคนภายในกลุ่มของคุณ โดยไม่ประเมินตนเอง"
               : "ประเมินเปรียบเทียบผลงานของแต่ละกลุ่ม โดยไม่ประเมินกลุ่มของตนเอง"}
           </p>
-          <p>
-            บันทึกคะแนนแยกตามบัญชีของคุณ ส่งได้หนึ่งครั้งต่อผู้รับการประเมิน
-          </p>
+          <p>บันทึกคะแนนแยกตามบัญชีของคุณ ส่งได้หนึ่งครั้งต่อผู้รับการประเมิน</p>
         </div>
       </div>
       {active.status !== "active" || expired ? (
@@ -69,9 +68,7 @@ export function StudentVotingPanel({
       ) : !active.groups.some((g) =>
           g.members.some((m) => m.id === user?.id),
         ) ? (
-        <Alert severity="warning">
-          คุณต้องอยู่ในกลุ่มจึงจะประเมินได้ กรุณาติดต่อคุณครู
-        </Alert>
+        <Alert severity="warning">คุณต้องอยู่ในกลุ่มจึงจะประเมินได้ กรุณาติดต่อคุณครู</Alert>
       ) : (
         <>
           <Paper
@@ -98,8 +95,8 @@ export function StudentVotingPanel({
                   สถานะการมีส่วนร่วมของคุณ (Participation Metric)
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  เกณฑ์เต็ม M = 100% เมื่อประเมินครบ ≥ {(threshold * 100).toFixed(0)}% ·
-                  คะแนนกลุ่มไม่ถูกหักลดตาม M ของสมาชิก (FR-SCORE-11)
+                  เกณฑ์เต็ม M = 100% เมื่อประเมินครบ ≥ {(threshold * 100).toFixed(0)}
+                  % · คะแนนกลุ่มไม่ถูกหักลดตาม M ของสมาชิก (FR-SCORE-11)
                 </Typography>
               </Box>
               <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
@@ -125,48 +122,51 @@ export function StudentVotingPanel({
           </Paper>
 
           <div className="group-grid">
-          {targets.map((target) => {
-            const voted = targetVotes(active, target.id).some(
-              (vote) => vote.userId === user?.id,
-            );
-            return (
-              <Paper
-                variant="outlined"
-                className="group-card"
-                data-testid="group-card"
-                key={target.id}
-                sx={{ borderRadius: "12px" }}
-              >
-                <span className="stat-icon mint">
-                  <HowToVoteOutlined />
-                </span>
-                <h3>{target.name}</h3>
-                {individual && (
-                  <p>
-                    {active.groups.find((group) =>
-                      group.members.some((member) => member.id === target.id),
-                    )?.name || "ยังไม่มีกลุ่ม"}
-                  </p>
-                )}
-                <p>{active.questions.length} เกณฑ์การประเมิน · เปรียบเทียบ 6 ระดับ (Pairwise)</p>
-                <Button
-                  variant={voted ? "outlined" : "contained"}
-                  disabled={voted}
-                  fullWidth
-                  onClick={() => {
-                    setScores(Array(active.questions.length).fill(0));
-                    setVoteTarget(target.id);
-                    setError("");
-                  }}
-                  startIcon={voted ? <Check /> : undefined}
+            {targets.map((target) => {
+              const voted = targetVotes(active, target.id).some(
+                (vote) => vote.userId === user?.id,
+              );
+              return (
+                <Paper
+                  variant="outlined"
+                  className="group-card"
+                  data-testid="group-card"
+                  key={target.id}
+                  sx={{ borderRadius: "12px" }}
                 >
-                  {voted ? "ประเมินแล้ว" : "เริ่มประเมิน"}
-                </Button>
-              </Paper>
-            );
-          })}
-        </div>
-      </>
+                  <span className="stat-icon mint">
+                    <HowToVoteOutlined />
+                  </span>
+                  <h3>{target.name}</h3>
+                  {individual && (
+                    <p>
+                      {active.groups.find((group) =>
+                        group.members.some((member) => member.id === target.id),
+                      )?.name || "ยังไม่มีกลุ่ม"}
+                    </p>
+                  )}
+                  <p>
+                    {active.questions.length} เกณฑ์การประเมิน · เปรียบเทียบ 6 ระดับ
+                    (Pairwise)
+                  </p>
+                  <Button
+                    variant={voted ? "outlined" : "contained"}
+                    disabled={voted}
+                    fullWidth
+                    onClick={() => {
+                      setScores(Array(active.questions.length).fill(0));
+                      setVoteTarget(target.id);
+                      setError("");
+                    }}
+                    startIcon={voted ? <Check /> : undefined}
+                  >
+                    {voted ? "ประเมินแล้ว" : "เริ่มประเมิน"}
+                  </Button>
+                </Paper>
+              );
+            })}
+          </div>
+        </>
       )}
     </>
   );

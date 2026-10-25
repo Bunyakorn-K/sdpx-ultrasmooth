@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import type { User } from "@/features/auth/types";
+
 export type SeedAccount = User & { password: string };
 export type TestUsers = {
   runId: string;

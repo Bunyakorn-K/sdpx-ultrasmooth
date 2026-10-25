@@ -1,6 +1,7 @@
 import { AppError } from "@/shared/domain/app-error";
 import { randomUUID } from "node:crypto";
 import { logger, type RequestContext } from "./logger";
+
 const codes: Record<number, string> = {
   400: "BAD_REQUEST",
   401: "UNAUTHORIZED",

@@ -165,7 +165,11 @@ export function calculateItemScores(
   const kAnonymity =
     side === "INDIVIDUAL"
       ? checkKAnonymityThreshold(itemId, comparisons, pairs, minComparisons)
-      : { isSatisfied: true, submittedEvaluatorsCount: 0, kMin: minComparisons };
+      : {
+          isSatisfied: true,
+          submittedEvaluatorsCount: 0,
+          kMin: minComparisons,
+        };
 
   return {
     itemId,
@@ -226,4 +230,3 @@ export function getGroupAnonymityWarning(groupSize: number): string | null {
   }
   return null;
 }
-

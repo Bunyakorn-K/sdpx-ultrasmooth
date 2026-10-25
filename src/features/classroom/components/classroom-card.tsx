@@ -7,14 +7,7 @@ import {
   MenuBookOutlined,
   SchoolOutlined,
 } from "@mui/icons-material";
-import {
-  Box,
-  Button,
-  Chip,
-  Paper,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Chip, Paper, Stack, Typography } from "@mui/material";
 import type { Classroom } from "../types";
 
 export type ClassroomCardProps = {
@@ -22,11 +15,18 @@ export type ClassroomCardProps = {
   assignmentsCount?: number;
 };
 
-export function ClassroomCard({ classroom, assignmentsCount: customCount }: ClassroomCardProps) {
-  const studentsCount = classroom.members.filter((m) => m.role === "STUDENT").length;
+export function ClassroomCard({
+  classroom,
+  assignmentsCount: customCount,
+}: ClassroomCardProps) {
+  const studentsCount = classroom.members.filter(
+    (m) => m.role === "STUDENT",
+  ).length;
   const groupsCount = classroom.groups.length;
   const assignmentsCount =
-    customCount !== undefined ? customCount : classroom.assignment_ids?.length || 0;
+    customCount !== undefined
+      ? customCount
+      : classroom.assignment_ids?.length || 0;
 
   return (
     <Paper
@@ -38,7 +38,8 @@ export function ClassroomCard({ classroom, assignmentsCount: customCount }: Clas
         flexDirection: "column",
         justifyContent: "space-between",
         height: "100%",
-        bgcolor: classroom.status === "ARCHIVED" ? "action.hover" : "background.paper",
+        bgcolor:
+          classroom.status === "ARCHIVED" ? "action.hover" : "background.paper",
         transition: "box-shadow 0.2s ease, border-color 0.2s ease",
         "&:hover": {
           boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
@@ -51,20 +52,32 @@ export function ClassroomCard({ classroom, assignmentsCount: customCount }: Clas
         <Stack
           direction="row"
           spacing={1}
-          sx={{ justifyContent: "space-between", alignItems: "flex-start", mb: 1.5 }}
+          sx={{
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            mb: 1.5,
+          }}
         >
           <Chip
             size="small"
-            label={classroom.status === "ACTIVE" ? "ใช้งานอยู่" : "เก็บถาวร (Archived)"}
+            label={
+              classroom.status === "ACTIVE" ? "ใช้งานอยู่" : "เก็บถาวร (Archived)"
+            }
             color={classroom.status === "ACTIVE" ? "secondary" : "default"}
             variant="outlined"
             sx={{ fontWeight: 600 }}
           />
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
+            <Typography
+              variant="caption"
+              sx={{ color: "text.secondary", fontWeight: 500 }}
+            >
               รหัสเข้าร่วม:
             </Typography>
-            <Typography variant="caption" sx={{ fontWeight: 700, color: "secondary.main" }}>
+            <Typography
+              variant="caption"
+              sx={{ fontWeight: 700, color: "secondary.main" }}
+            >
               {classroom.slug}
             </Typography>
           </Box>

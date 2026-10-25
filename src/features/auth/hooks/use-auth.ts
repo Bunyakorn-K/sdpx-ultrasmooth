@@ -3,6 +3,7 @@ import { postJson, requestJson } from "@/shared/services/http-client";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "../types";
 import { demoUsers } from "../data/demo-users";
+
 const DEMO_SESSION_KEY = "peerly-demo-user";
 export function useAuth(onError: (message: string) => void) {
   const revision = useRef(0);

@@ -56,7 +56,6 @@ export class PostgresClassroomRepository implements ClassroomRepository {
     );
   }
 
-
   async create(classroom: Classroom): Promise<boolean> {
     const sql = database();
     const rows =

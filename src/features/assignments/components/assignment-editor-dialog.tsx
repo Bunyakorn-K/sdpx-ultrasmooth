@@ -286,8 +286,8 @@ export function AssignmentEditorDialog({
             <span>อ่านคำถามจากคอลัมน์แรก · สูงสุด 100 ข้อ</span>
           </div>
           <Alert severity="info" icon={false}>
-            การประเมินแบบ Pairwise ใช้ระบบเปรียบเทียบคู่ 6 ระดับ (Forced Choice
-            — ไม่มีตัวเลือกเท่ากัน) และแก้ไขได้ก่อนเริ่มโหวต
+            การประเมินแบบ Pairwise ใช้ระบบเปรียบเทียบคู่ 6 ระดับ (Forced Choice —
+            ไม่มีตัวเลือกเท่ากัน) และแก้ไขได้ก่อนเริ่มโหวต
           </Alert>
         </>
       )}

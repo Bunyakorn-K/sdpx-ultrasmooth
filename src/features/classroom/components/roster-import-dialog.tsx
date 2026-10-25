@@ -77,9 +77,7 @@ export function RosterImportDialog({
       handleClose();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "นำเข้าไม่สำเร็จ กรุณาลองอีกครั้ง",
+        error instanceof Error ? error.message : "นำเข้าไม่สำเร็จ กรุณาลองอีกครั้ง",
       );
     } finally {
       setSaving(false);
@@ -121,9 +119,9 @@ export function RosterImportDialog({
           </Button>
           <Typography variant="body2" color="text.secondary">
             ตัวอย่าง: s1@kmitl.ac.th · รหัส 67015001 · ชื่อแก้ไขได้ · Group 1
-            สามารถเปลี่ยนจำนวนคนและกลุ่มในไฟล์ได้
-            การนำเข้าจะสร้างรายชื่อในห้องเรียน และเตรียมสิทธิ์ให้นักศึกษา
-            โดยไม่กำหนดรหัสผ่านให้ สมัครด้วยอีเมลเดียวกันเพื่อเข้ากลุ่มอัตโนมัติ
+            สามารถเปลี่ยนจำนวนคนและกลุ่มในไฟล์ได้ การนำเข้าจะสร้างรายชื่อในห้องเรียน
+            และเตรียมสิทธิ์ให้นักศึกษา โดยไม่กำหนดรหัสผ่านให้
+            สมัครด้วยอีเมลเดียวกันเพื่อเข้ากลุ่มอัตโนมัติ
           </Typography>
 
           {/* Upload Box */}
@@ -148,8 +146,7 @@ export function RosterImportDialog({
               color="text.secondary"
               sx={{ display: "block", mb: 2 }}
             >
-              หากมีแถวใดผิดพลาดจะไม่บันทึกทั้งไฟล์
-              นำเข้าซ้ำด้วยอีเมลเดิมเพื่ออัปเดตข้อมูลได้
+              หากมีแถวใดผิดพลาดจะไม่บันทึกทั้งไฟล์ นำเข้าซ้ำด้วยอีเมลเดิมเพื่ออัปเดตข้อมูลได้
             </Typography>
 
             <Button
@@ -196,9 +193,8 @@ export function RosterImportDialog({
                 icon={<CheckCircleOutlined />}
                 sx={{ borderRadius: "12px" }}
               >
-                ตรวจสอบข้อมูลถูกต้อง: พบ{" "}
-                <strong>{parsed.members.length}</strong> นักศึกษา ใน{" "}
-                <strong>{parsed.groups.length}</strong> กลุ่ม
+                ตรวจสอบข้อมูลถูกต้อง: พบ <strong>{parsed.members.length}</strong>{" "}
+                นักศึกษา ใน <strong>{parsed.groups.length}</strong> กลุ่ม
               </Alert>
 
               {parsed.warnings.length > 0 && (

@@ -1,7 +1,14 @@
 "use client";
 import { average } from "@/features/assignments/domain/scoring";
 import { FileDownloadOutlined } from "@mui/icons-material";
-import { Alert, Box, Button, LinearProgress, Paper, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  LinearProgress,
+  Paper,
+  Typography,
+} from "@mui/material";
 
 import type { Assignment } from "../types";
 import {
@@ -9,6 +16,7 @@ import {
   isIndividualEvaluation,
   targetVotes,
 } from "../domain/evaluation-targets";
+
 export function ResultsPanel({
   active,
   teacher,
@@ -22,12 +30,8 @@ export function ResultsPanel({
     <>
       <div className="section-toolbar">
         <div>
-          <h3>
-            ภาพรวมคะแนน{isIndividualEvaluation(active) ? "รายคน" : "กลุ่ม"}
-          </h3>
-          <p>
-            {active.votes.length} ชุดคำตอบ · คะแนนเฉลี่ยจากการประเมิน
-          </p>
+          <h3>ภาพรวมคะแนน{isIndividualEvaluation(active) ? "รายคน" : "กลุ่ม"}</h3>
+          <p>{active.votes.length} ชุดคำตอบ · คะแนนเฉลี่ยจากการประเมิน</p>
         </div>
         {teacher && (
           <Button

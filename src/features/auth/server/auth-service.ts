@@ -4,6 +4,7 @@ import type { User } from "../types";
 import { hashPassword, verifyPassword } from "./password-service";
 import type { UserRepository } from "./user-repository";
 import { parseCredentials, parseRegistration } from "./auth-validation";
+
 export class AuthService {
   constructor(private readonly users: UserRepository) {}
   async authenticate(input: Record<string, unknown>): Promise<User> {

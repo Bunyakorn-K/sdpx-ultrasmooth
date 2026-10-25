@@ -1,6 +1,7 @@
 import http from "k6/http";
 import { check, group, sleep, fail } from "k6";
 import { Rate, Trend } from "k6/metrics";
+
 const errors = new Rate("errors");
 const creationLatency = new Trend("assignment_creation_latency", true);
 const strict = __ENV.STRICT_THRESHOLDS === "1";

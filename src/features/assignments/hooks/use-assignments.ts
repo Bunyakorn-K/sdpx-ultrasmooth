@@ -12,6 +12,7 @@ import {
   demoClassroomRoster,
 } from "../services/assignment-client";
 import type { Assignment } from "../types";
+
 export function useAssignments(
   user: User | null,
   demo: boolean,

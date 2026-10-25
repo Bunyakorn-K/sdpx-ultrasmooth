@@ -103,9 +103,7 @@ export function useEvaluationDraft(
           }),
         );
       } catch (cause) {
-        setError(
-          cause instanceof Error ? cause.message : "บันทึกฉบับร่างไม่สำเร็จ",
-        );
+        setError(cause instanceof Error ? cause.message : "บันทึกฉบับร่างไม่สำเร็จ");
       } finally {
         setSaving(false);
       }
@@ -193,9 +191,7 @@ export function useEvaluationDraft(
         );
         success = true;
       } catch (cause) {
-        setError(
-          cause instanceof Error ? cause.message : "ส่งผลประเมินไม่สำเร็จ",
-        );
+        setError(cause instanceof Error ? cause.message : "ส่งผลประเมินไม่สำเร็จ");
       } finally {
         submitLock.current = false;
         setSubmitting(false);

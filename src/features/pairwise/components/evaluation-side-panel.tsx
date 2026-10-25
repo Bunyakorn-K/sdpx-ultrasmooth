@@ -112,8 +112,8 @@ export function EvaluationSidePanel({
   return (
     <Stack spacing={2}>
       <Alert severity="info">
-        เลือกคำตอบได้ต่อเนื่อง ระบบบันทึกฉบับร่างอัตโนมัติ
-        แล้วกดส่งผลประเมินรวมด้านล่าง ฉบับร่างยังไม่นำไปคำนวณคะแนน
+        เลือกคำตอบได้ต่อเนื่อง ระบบบันทึกฉบับร่างอัตโนมัติ แล้วกดส่งผลประเมินรวมด้านล่าง
+        ฉบับร่างยังไม่นำไปคำนวณคะแนน
       </Alert>
       {!editable && (
         <Alert severity="info">
@@ -281,13 +281,12 @@ export function EvaluationSidePanel({
           </DialogContentText>
           {answered < pairs.length && (
             <Alert severity="warning" sx={{ mt: 2 }}>
-              ยังไม่ได้ตอบ {pairs.length - answered} คู่
-              สามารถส่งเฉพาะคำตอบที่เลือกไว้ได้ และกลับมาทำต่อก่อนหมดเวลา
+              ยังไม่ได้ตอบ {pairs.length - answered} คู่ สามารถส่งเฉพาะคำตอบที่เลือกไว้ได้
+              และกลับมาทำต่อก่อนหมดเวลา
             </Alert>
           )}
           <DialogContentText sx={{ mt: 2 }}>
-            ระบบใช้คำตอบที่ส่งครั้งล่าสุดคำนวณคะแนน
-            คุณสามารถแก้ไขแล้วส่งใหม่ได้ก่อนหมดเวลา
+            ระบบใช้คำตอบที่ส่งครั้งล่าสุดคำนวณคะแนน คุณสามารถแก้ไขแล้วส่งใหม่ได้ก่อนหมดเวลา
           </DialogContentText>
           {draft.error && (
             <Alert severity="error" sx={{ mt: 2 }}>

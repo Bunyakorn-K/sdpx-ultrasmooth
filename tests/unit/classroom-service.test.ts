@@ -43,7 +43,9 @@ test("ClassroomService: Roster import updates classroom with parsed students", a
   const repo = new FakeClassroomRepository();
   const service = new ClassroomService(repo);
 
-  const classroom = await service.create(teacher, { name: "ห้องปฏิบัติการคอมพิวเตอร์" });
+  const classroom = await service.create(teacher, {
+    name: "ห้องปฏิบัติการคอมพิวเตอร์",
+  });
 
   const csv = `email,group_name,display_name
 alice@school.ac.th,Team 1,Alice
@@ -72,7 +74,11 @@ test("ClassroomService: Add and remove staff member", async () => {
   const taMember = withStaff.members.find((m) => m.role === "TA");
   assert.ok(taMember);
 
-  const withoutStaff = await service.removeMember(teacher, classroom.id, taMember.id);
+  const withoutStaff = await service.removeMember(
+    teacher,
+    classroom.id,
+    taMember.id,
+  );
   assert.equal(withoutStaff.members.length, 1);
 });
 
@@ -125,12 +131,20 @@ test("ClassroomService: Teacher links assignment to classroom", async () => {
   const classroom = await service.create(teacher, { name: "วิชาคณิตศาสตร์" });
   const assignmentId = crypto.randomUUID();
 
-  const linked = await service.linkAssignment(teacher, classroom.id, assignmentId);
+  const linked = await service.linkAssignment(
+    teacher,
+    classroom.id,
+    assignmentId,
+  );
   assert.equal(linked.assignment_ids?.length, 1);
   assert.equal(linked.assignment_ids?.[0], assignmentId);
 
   // Idempotent link
-  const reLinked = await service.linkAssignment(teacher, classroom.id, assignmentId);
+  const reLinked = await service.linkAssignment(
+    teacher,
+    classroom.id,
+    assignmentId,
+  );
   assert.equal(reLinked.assignment_ids?.length, 1);
 
   // Outsider cannot link assignment
@@ -160,7 +174,11 @@ test("ClassroomService: Allowed email domains support @prefix and subdomains (e.
   });
   const joined1 = await service.join(student1, "CPE-2026"); // Case-insensitive slug
   assert.equal(joined1.id, classroom.id);
-  assert.ok(joined1.members.some((m) => m.email === student1.email && m.role === "STUDENT"));
+  assert.ok(
+    joined1.members.some(
+      (m) => m.email === student1.email && m.role === "STUDENT",
+    ),
+  );
 
   // Student 2: Subdomain @student.kmitl.ac.th
   const student2 = makeUser({
