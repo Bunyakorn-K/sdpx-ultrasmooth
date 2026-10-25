@@ -25,6 +25,47 @@ tags:
 security:
   - cookieAuth: []
 paths:
+  /api/assignments/{id}/exports/raw:
+    post:
+      operationId: exportRawComparisons
+      summary: Owner downloads raw comparisons as UTF-8 BOM CSV
+      description: Same-origin cookie session and assignment/classroom ownership required. Defaults to per-file pseudonyms for evaluators and items. Identified exports require explicit confirmation and durable EXPORT_IDENTITY audit before returning the file. Current or finalized comparison set only; drafts are omitted and excluded rows retain EXCLUDED status. No-store response.
+      tags: [Assignments]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                identityMode:
+                  type: string
+                  enum: [pseudonymous, identified]
+                  default: pseudonymous
+                confirmIdentity:
+                  type: boolean
+                  default: false
+                  description: Must be true for identified mode.
+      responses:
+        "200":
+          description: Raw comparison CSV attachment; pseudonyms are consistent within this file and rotated on every export.
+          headers:
+            Content-Disposition:
+              schema: { type: string }
+          content:
+            text/csv:
+              schema: { type: string }
+        "400": { description: Invalid mode or identity export not confirmed. }
+        "401": { description: Sign-in required. }
+        "403": { description: Owner and same-origin request required. }
+        "404": { description: Assignment missing. }
+        "409": { description: Assignment has no pairwise data. }
+        "503": { description: Database or audit unavailable; no identified file is returned. }
   /api/appeals:
     post:
       operationId: submitAppeal

@@ -366,7 +366,8 @@ Not covered by this change, and still open:
   downloaded workbook through ExcelJS and asserts the configured scoring values
   reach the Metadata sheet, which guards the export adapter's `?? default`
   mapping against regressing to hardcoded constants. FR-EXPORT-03 and
-  FR-EXPORT-04 remain unimplemented and stay as skipped tests with reasons.
+  FR-EXPORT-04 were initially skipped; the raw export delivery below replaces those
+  placeholders with executable assertions.
 
 ## Scoring Engine completion — FR-SCORE-01..10 (2026-10-25)
 
@@ -438,3 +439,40 @@ No student/team names, human code approvals, clean-clone observations from other
 - Local verification: 3 appeals E2E journeys passed (1280px, 390px and guarded isolated PostgreSQL authorization/privacy/concurrency/audit). No production database was changed. Deployment and hosted authentication are not externally verified.
 - Required checks passed: 156 unit/integration tests, lint, typecheck, OpenAPI lint, production build, coverage (97.34% lines / 100% functions / 87.45% branches), and mutation fidelity. Excel/CSV regression verifies nonzero and zero personal-total overrides without changing another student's result.
 - Current limitations: no email/push delivery, attachments or multi-message conversation; users read requests/responses in the Assignment tab. Existing broader scoring/finalized-output snapshot gaps in `prd-gap-audit.md` remain separate work.
+
+
+## Raw comparison and confirmed identity export (2026-10-25)
+
+FR-EXPORT-03 and FR-EXPORT-04 are implemented locally on
+`feat/scoring-engine-completion`, together with the seven outstanding Oxfmt fixes.
+Teacher pairwise results now provide a raw CSV export dialog. The default mode
+uses random pseudonyms for evaluators and compared items, consistent within a file
+and rotated between downloads. Identity-bearing pair/response IDs and names/emails
+are omitted. This is a separate raw CSV download; the four-sheet summary XLSX
+and its formula-version Metadata (FR-EXPORT-06) remain available.
+
+An explicit opt-in and separate confirmation checkbox are required to include
+real evaluator ID/name/email. The server independently enforces a teacher session,
+assignment ownership, classroom ownership when linked, and boolean confirmation.
+It loads identities through parameterized SQL, then must durably record an
+`EXPORT_IDENTITY` event before returning CSV. Audit failure returns no identified
+file. The audit contains report/mode/count/generation/version, without copying the
+exported personal details. Responses are no-store attachments. Demo downloads are
+disabled because they cannot persist the required audit.
+
+Exports read current pairwise data or finalized snapshot inputs, omit drafts,
+archived/dangling comparisons and mismatched evaluators, and retain EXCLUDED
+status for analysis. UTF-8 BOM, CSV quoting and formula-injection escaping reuse
+the existing encoder. No database schema or CI changes were needed. General
+identity-read auditing outside this export remains outstanding.
+
+The two formerly skipped export tests now have real privacy/authorization/audit
+assertions. Six additional tests cover stable per-file pseudonyms, rotation,
+identity-bearing IDs, failed audit, strict confirmation, frozen inputs,
+cross-classroom access, formula escaping and empty exports. Local verification: all 184 unit/integration tests pass with zero skips; Oxfmt,
+Oxlint, TypeScript, OpenAPI and production build pass. Configured coverage passes
+(97.35% lines, 100% functions, 87.81% branches), and fidelity detects the mutant
+and restores source. Browser/E2E tests and hosted deployment are not claimed as
+verified in this delivery. The local Docker daemon is unavailable, so the new
+identity SQL/audit flow has not been verified against PostgreSQL in this request.
+No hosted database was accessed or migrated.
