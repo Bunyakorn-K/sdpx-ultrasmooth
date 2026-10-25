@@ -26,6 +26,11 @@ const commands = new Set([
   "stop",
   "vote",
   "finalize",
+  "unpublishPairs",
+  "configurePairs",
+  "regeneratePairs",
+  "submitPair",
+  "reopen",
 ]);
 const events: Record<string, string> = {
   create: "assignment_created",
@@ -37,6 +42,11 @@ const events: Record<string, string> = {
   stop: "voting_stopped",
   vote: "vote_submitted",
   finalize: "assignment_finalized",
+  unpublishPairs: "assignment_unpublished",
+  configurePairs: "pair_configuration_updated",
+  regeneratePairs: "pairs_regenerated",
+  submitPair: "comparison_submitted",
+  reopen: "assignment_reopened",
 };
 export const listAssignmentsResponse = withApi(
   "/api/assignments",
@@ -89,4 +99,22 @@ export async function assignmentDetailResponse(request: Request, id: string) {
       assignment: await assignments.get(user, requireResourceId(id)),
     });
   })(request);
+}
+export async function pairPreviewResponse(request: Request, id: string) {
+  return withApi(
+    "/api/assignments/:id/pairs/preview",
+    async (request, context) => {
+      requireSameOrigin(request);
+      const user = await requireUser();
+      context.userId = user.id;
+      const input = await readJsonObject(request);
+      return Response.json({
+        preview: await assignments.previewPairs(
+          user,
+          requireResourceId(id),
+          input.scope as import("../types").PairScope,
+        ),
+      });
+    },
+  )(request);
 }

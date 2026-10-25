@@ -9,6 +9,8 @@ import type { Assignment } from "../types";
 import type { AssignmentRepository } from "./assignment-repository";
 
 import { assignmentEvent } from "@/features/notifications/domain/notification-policy";
+import { previewRegeneration } from "@/features/pairwise/domain/regeneration";
+import type { PairScope } from "../types";
 
 const MAX_RETRIES = 5;
 
@@ -62,17 +64,41 @@ export class AssignmentService {
         }
       }
       const previousStatus = record.assignment.status;
+      const previousGeneration = record.assignment.pairGeneration ?? 0;
       const updated = applyAssignmentCommand(
         record.assignment,
         user,
         String(input.action),
         input,
       );
+      const regenerationEvent =
+        input.action === "regeneratePairs"
+          ? previewRegenerationEvent(
+              updated,
+              input.scope as PairScope,
+              String(input.reason),
+            )
+          : undefined;
       if (
         await this.repository.update(
           updated,
           record.version,
-          assignmentEvent(previousStatus, updated, record.version),
+          regenerationEvent ??
+            (input.action === "unpublishPairs"
+              ? {
+                  kind: "pairs_paused" as const,
+                  key: `${updated.id}:paused:${record.version + 1}`,
+                  reason: String(input.reason),
+                  generation: previousGeneration,
+                }
+              : input.action === "reopen"
+                ? {
+                    kind: "pairs_reopened" as const,
+                    key: `${updated.id}:reopen:${record.version + 1}`,
+                    reason: String(input.reason),
+                    generation: previousGeneration,
+                  }
+                : assignmentEvent(previousStatus, updated, record.version)),
         )
       ) {
         if (input.action === "overrideScore") {
@@ -135,6 +161,14 @@ export class AssignmentService {
     throw new AppError("มีการเปลี่ยนแปลงข้อมูล กรุณาลองอีกครั้ง", 409);
   }
 
+  async previewPairs(user: User, id: string, scope: PairScope) {
+    const record = await this.repository.findById(id);
+    if (!record) throw new AppError("ไม่พบ assignment", 404);
+    if (user.role !== "teacher" || record.assignment.ownerId !== user.id)
+      throw new AppError("เฉพาะครูเจ้าของงานเท่านั้น", 403);
+    return previewRegeneration(record.assignment, scope);
+  }
+
   private async checkClassroomAccess(
     user: User,
     assignment: Assignment,
@@ -179,4 +213,30 @@ export class AssignmentService {
     }
     throw new AppError("กรุณาลองสร้างใหม่อีกครั้ง", 409);
   }
+}
+
+function previewRegenerationEvent(
+  a: Assignment,
+  scope: PairScope,
+  reason: string,
+) {
+  // Validation/authorization remains in the command; only compute recipients for an owner mutation.
+  const selected = (side: string) =>
+    scope === "both" || side === (scope === "group" ? "GROUP" : "INDIVIDUAL");
+  return {
+    kind: "pairs_regenerated" as const,
+    key: `${a.id}:pairs:${a.pairGeneration}`,
+    recipientIds: [
+      ...new Set([
+        ...(a.pairs
+          ?.filter((p) => selected(p.side))
+          .map((p) => p.evaluator_user_id) ?? []),
+        ...(a.pairHistory?.at(-1)?.pairs.map((p) => p.evaluator_user_id) ?? []),
+        ...(a.pairHistory?.at(-1)?.votes.map((v) => v.userId) ?? []),
+      ]),
+    ],
+    scope,
+    reason,
+    generation: (a.pairGeneration ?? 1) - 1,
+  };
 }

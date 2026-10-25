@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   id uuid PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   assignment_id uuid NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
-  kind text NOT NULL CHECK(kind IN ('assignment_opened','deadline_reminder','results_finalized')),
+  kind text NOT NULL CONSTRAINT notifications_kind_check CHECK(kind IN ('assignment_opened','deadline_reminder','results_finalized','pairs_regenerated')),
   event_key text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   read_at timestamptz,
@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX IF NOT EXISTS notifications_inbox ON notifications(user_id,created_at DESC,id DESC);
 CREATE INDEX IF NOT EXISTS notifications_unread ON notifications(user_id) WHERE read_at IS NULL;
 CREATE INDEX IF NOT EXISTS notifications_assignment ON notifications(assignment_id);
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_kind_check;
+ALTER TABLE notifications ADD CONSTRAINT notifications_kind_check CHECK(kind IN ('assignment_opened','deadline_reminder','results_finalized','pairs_regenerated'));
 
 CREATE TABLE IF NOT EXISTS classrooms (
   id uuid PRIMARY KEY, owner_id uuid NOT NULL REFERENCES users(id), slug text NOT NULL UNIQUE,

@@ -1,6 +1,16 @@
 export type NotificationKind =
-  "assignment_opened" | "deadline_reminder" | "results_finalized";
-export type NotificationEvent = { kind: NotificationKind; key: string };
+  | "assignment_opened"
+  | "deadline_reminder"
+  | "results_finalized"
+  | "pairs_regenerated";
+export type NotificationEvent = {
+  kind: NotificationKind | "pairs_paused" | "pairs_reopened";
+  key: string;
+  recipientIds?: string[];
+  reason?: string;
+  generation?: number;
+  scope?: string;
+};
 export type Notification = {
   id: string;
   assignmentId: string;

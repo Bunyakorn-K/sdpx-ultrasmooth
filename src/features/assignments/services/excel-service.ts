@@ -1,4 +1,5 @@
 import type { Assignment } from "../types";
+import { generatedCriteria } from "@/features/pairwise/domain/regeneration";
 import {
   CSV_REPORTS,
   worksheetToCsv,
@@ -70,15 +71,17 @@ async function downloadAnswers(a: Assignment, report?: CsvReport) {
     created_at: a.createdAt,
   };
 
-  const criteria = a.questions.map((q, idx) => ({
-    id: `crit-${idx}`,
-    assignment_id: a.id,
-    side: "GROUP" as const,
-    name: q,
-    description: q,
-    weight_pct: Number((100 / (a.questions.length || 1)).toFixed(2)),
-    display_order: idx + 1,
-  }));
+  const criteria = a.pairs
+    ? generatedCriteria(a)
+    : a.questions.map((q, idx) => ({
+        id: `crit-${idx}`,
+        assignment_id: a.id,
+        side: "GROUP" as const,
+        name: q,
+        description: q,
+        weight_pct: Number((100 / (a.questions.length || 1)).toFixed(2)),
+        display_order: idx + 1,
+      }));
 
   const pairwiseAssignment: PairwiseAssignment = {
     id: a.id,
@@ -86,17 +89,17 @@ async function downloadAnswers(a: Assignment, report?: CsvReport) {
     name: a.title,
     slug: assignmentSlug,
     description: a.description,
-    group_max_score: 15,
-    individual_max_score: 5,
+    group_max_score: a.groupMaxScore ?? 15,
+    individual_max_score: a.individualMaxScore ?? 5,
     group_deadline_utc: a.deadline,
     individual_deadline_utc: a.deadline,
-    instructor_weight: 1.0,
-    target_coverage: 5,
-    max_workload: 8,
-    min_comparisons: 3,
-    score_floor: 0.6,
-    score_ceiling: 1.0,
-    completion_threshold: 0.9,
+    instructor_weight: a.instructorWeight ?? 1.0,
+    target_coverage: a.targetCoverage ?? 5,
+    max_workload: a.maxWorkload ?? 8,
+    min_comparisons: a.minComparisons ?? 3,
+    score_floor: a.scoreFloor ?? 0.6,
+    score_ceiling: a.scoreCeiling ?? 1.0,
+    completion_threshold: a.completionThreshold ?? 0.9,
     scoring_formula_version: "v2.0",
     pairing_seed: 42,
     status:
@@ -131,11 +134,11 @@ async function downloadAnswers(a: Assignment, report?: CsvReport) {
     };
   });
 
-  const pairs: PairAssignment[] = [];
-  const comparisons: Comparison[] = [];
+  const pairs: PairAssignment[] = [...(a.pairs ?? [])];
+  const comparisons: Comparison[] = [...(a.comparisons ?? [])];
 
   // Map votes into pairs and comparisons
-  a.votes.forEach((v, vIdx) => {
+  (a.pairs ? [] : a.votes).forEach((v, vIdx) => {
     criteria.forEach((crit, cIdx) => {
       const pairId = `pair-${vIdx}-${crit.id}`;
       const targetId = v.groupId || v.studentId || "";
@@ -171,6 +174,7 @@ async function downloadAnswers(a: Assignment, report?: CsvReport) {
   });
 
   const exportData: ExportData = {
+    generation: a.pairGeneration,
     classroom,
     assignment: pairwiseAssignment,
     groups,

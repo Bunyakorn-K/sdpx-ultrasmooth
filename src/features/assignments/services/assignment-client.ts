@@ -20,6 +20,11 @@ const commandEndpoints: Record<
   stop: { suffix: "voting/stop", method: "POST" },
   finalize: { suffix: "finalize", method: "POST" },
   vote: { suffix: "votes", method: "POST" },
+  unpublishPairs: { suffix: "pairs/unpublish", method: "POST" },
+  configurePairs: { suffix: "pairs/configure", method: "POST" },
+  regeneratePairs: { suffix: "pairs/regenerate", method: "POST" },
+  submitPair: { suffix: "pairs/submit", method: "POST" },
+  reopen: { suffix: "reopen", method: "POST" },
 };
 export async function sendAssignmentCommand(input: Record<string, unknown>) {
   const { action, id, ...payload } = input;
