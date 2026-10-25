@@ -106,9 +106,7 @@ test("FR-REPORT-05: the teacher's distribution tab charts each criterion's sprea
     ).toBeVisible();
     for (const choice of [1, 2, 3, 4, 5, 6]) {
       await expect(
-        chart.getByLabel(
-          `ตัวเลือก ${choice} · ${counts.get(choice) ?? 0} ครั้ง`,
-        ),
+        chart.getByLabel(`ตัวเลือก ${choice} · ${counts.get(choice) ?? 0} ครั้ง`),
       ).toBeVisible();
     }
   }
