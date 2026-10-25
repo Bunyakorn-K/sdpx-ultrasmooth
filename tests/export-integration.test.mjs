@@ -534,25 +534,45 @@ async function captureDownload(assignment) {
   return { anchor, bytes: Buffer.from(await blob.arrayBuffer()) };
 }
 
-// FR-EXPORT-03 and FR-EXPORT-04 are listed as Export requirements but have no
-// implementation to test yet — see docs/lab-status.md. FR-EXPORT-01's CSV writer
-// and its BOM are covered by tests/unit/csv-export.test.ts and
-// tests/e2e/specs/csv-export.spec.ts.
-test(
-  "FR-EXPORT-03: raw comparison export defaults to pseudonymous evaluator IDs",
-  {
-    skip: "No raw-comparison export exists in src/; tracked in docs/lab-status.md",
-  },
-  async () => {},
-);
+test("FR-EXPORT-03: raw comparison export defaults to pseudonymous evaluator IDs", async () => {
+  const { rawExportFixture } = await import("./fakes/raw-export-fixture.ts");
+  const f = rawExportFixture();
+  const result = await f.service.export(f.teacher, f.assignment.id, {});
+  assert.ok(result.csv.startsWith("\uFEFF"));
+  assert.ok(result.csv.includes("anon-"));
+  assert.ok(!result.csv.includes(f.student.id));
+  assert.ok(!result.csv.includes(f.student.name));
+  assert.ok(!result.csv.includes(f.student.email));
+  assert.equal(f.lookups.length, 0);
+  assert.equal(result.csv.trim().split("\r\n").length, 3);
+});
 
-test(
-  "FR-EXPORT-04: identity-revealing export is OWNER-only, confirmed, and audited",
-  {
-    skip: "No identity export or audit log exists in src/; tracked in docs/lab-status.md",
-  },
-  async () => {},
-);
+test("FR-EXPORT-04: identity-revealing export is OWNER-only, confirmed, and audited", async () => {
+  const { rawExportFixture } = await import("./fakes/raw-export-fixture.ts");
+  const f = rawExportFixture();
+  await assert.rejects(
+    f.service.export(f.student, f.assignment.id, {
+      identityMode: "identified",
+      confirmIdentity: true,
+    }),
+    { status: 403 },
+  );
+  await assert.rejects(
+    f.service.export(f.teacher, f.assignment.id, {
+      identityMode: "identified",
+    }),
+    { status: 400 },
+  );
+  assert.equal(f.audits.length, 0);
+  const result = await f.service.export(f.teacher, f.assignment.id, {
+    identityMode: "identified",
+    confirmIdentity: true,
+  });
+  assert.ok(result.csv.includes(f.student.email));
+  assert.equal(f.audits.length, 1);
+  assert.equal(f.audits[0].action, "EXPORT_IDENTITY");
+  assert.equal(f.audits[0].actor_id, f.teacher.id);
+});
 
 // The results screen honours the values a teacher sets in the assignment editor
 // (`active.groupMaxScore ?? 15` and friends in pairwise-reports-panel.tsx), so

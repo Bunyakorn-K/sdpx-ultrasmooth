@@ -173,8 +173,7 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
           </Typography>
           <Typography variant="body2">
             ระบบจะแสดงคะแนนส่วนบุคคลเมื่อมีเพื่อนในกลุ่มส่งประเมินครบอย่างน้อย{" "}
-            {individualScores.kAnonymity.kMin} คน
-            เพื่อรักษาความเป็นส่วนตัวของผู้ประเมิน
+            {individualScores.kAnonymity.kMin} คน เพื่อรักษาความเป็นส่วนตัวของผู้ประเมิน
           </Typography>
         </Alert>
       )}
@@ -241,8 +240,7 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
               {appealScore(active, user?.id ?? "", null) !== null &&
                 "คะแนนรวมปรับตามผลอุทธรณ์ · คะแนนคำนวณเดิม: "}
               คำนวณจาก (คะแนนกลุ่ม {groupComponent.toFixed(2)} + รายคน{" "}
-              {individualComponent.toFixed(2)}) × ตัวคูณการมีส่วนร่วม{" "}
-              {M.toFixed(2)}
+              {individualComponent.toFixed(2)}) × ตัวคูณการมีส่วนร่วม {M.toFixed(2)}
             </Typography>
           </Box>
 
@@ -274,8 +272,8 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
               sx={{ height: 6, borderRadius: 4, my: 0.5 }}
             />
             <Typography variant="caption" sx={{ fontWeight: 600 }}>
-              ส่งแล้ว {submittedCount}/{assignedCount} คู่ (
-              {(p * 100).toFixed(0)}%) → ตัวคูณ M = {M.toFixed(2)}
+              ส่งแล้ว {submittedCount}/{assignedCount} คู่ ({(p * 100).toFixed(0)}%)
+              → ตัวคูณ M = {M.toFixed(2)}
             </Typography>
           </Box>
         </Stack>
@@ -292,9 +290,7 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
             <Table size="small" aria-label="รายละเอียดคะแนนกลุ่ม">
               <TableHead>
                 <TableRow sx={{ bgcolor: "action.hover" }}>
-                  <TableCell sx={{ fontWeight: 600 }}>
-                    เกณฑ์การประเมิน
-                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>เกณฑ์การประเมิน</TableCell>
                   <TableCell align="right" sx={{ fontWeight: 600 }}>
                     น้ำหนัก (%)
                   </TableCell>
@@ -323,9 +319,7 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
             </Table>
           </TableContainer>
         ) : (
-          <Alert severity="warning">
-            คุณยังไม่ได้อยู่ในกลุ่มที่ได้รับการประเมิน
-          </Alert>
+          <Alert severity="warning">คุณยังไม่ได้อยู่ในกลุ่มที่ได้รับการประเมิน</Alert>
         )}
 
         {/* FR-SCORE-11 Policy Note */}

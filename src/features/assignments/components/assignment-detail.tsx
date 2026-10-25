@@ -197,9 +197,8 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
       </div>
       {teacher && !active.pairwiseRequired && !active.pairs && (
         <Alert severity="info" sx={{ mb: 3 }}>
-          งานนี้ใช้การประเมินรูปแบบเดิม หากต้องการเปลี่ยนเป็นประเมินแบบคู่
-          ให้ใช้ Re-generate Pairs และยืนยันการเปลี่ยนระบบ
-          คำตอบเดิมจะถูกเก็บเป็นประวัติ
+          งานนี้ใช้การประเมินรูปแบบเดิม หากต้องการเปลี่ยนเป็นประเมินแบบคู่ ให้ใช้ Re-generate
+          Pairs และยืนยันการเปลี่ยนระบบ คำตอบเดิมจะถูกเก็บเป็นประวัติ
         </Alert>
       )}
       {publishOpen &&
