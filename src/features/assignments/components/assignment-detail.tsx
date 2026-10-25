@@ -85,6 +85,13 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
   const [unpublishReasonVal, setUnpublishReasonVal] = useState("");
   const [unpublishError, setUnpublishError] = useState("");
   const [unpublishSubmitting, setUnpublishSubmitting] = useState(false);
+
+  const toLocalDateTimeString = (date: string | Date) => {
+    const d = new Date(date);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16);
+  };
   const {
     setSelected,
     active,
@@ -174,10 +181,7 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
                     size="small"
                     aria-label="แก้ไขกำหนดส่ง"
                     onClick={() => {
-                      const localIso = new Date(active.deadline)
-                        .toISOString()
-                        .slice(0, 16);
-                      setNewDeadlineVal(localIso);
+                      setNewDeadlineVal(toLocalDateTimeString(active.deadline));
                       setDeadlineError("");
                       setDeadlineOpen(true);
                     }}
@@ -428,7 +432,14 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
             fullWidth
             value={newDeadlineVal}
             onChange={(e) => setNewDeadlineVal(e.target.value)}
-            slotProps={{ inputLabel: { shrink: true } }}
+            slotProps={{
+              inputLabel: { shrink: true },
+              htmlInput: {
+                min: toLocalDateTimeString(
+                  new Date(Math.floor(Date.now() / 60000) * 60000 + 60000),
+                ),
+              },
+            }}
             sx={{ mt: 1 }}
           />
         </DialogContent>

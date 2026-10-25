@@ -262,12 +262,11 @@ test.describe("Database-backed authenticated journeys", () => {
         403,
       );
       const cloneRes = await teacher.post(`${root}/clone`, { data: {} });
-      expect(cloneRes.status()).toBe(200);
+      expect(cloneRes.status()).toBe(201);
       const cloned = (await cloneRes.json()).assignment as Assignment;
       expect(cloned.status).toBe("draft");
       expect(cloned.id).not.toBe(assignment.id);
       expect(cloned.title).toContain("(สำเนา)");
-      users.createdUserIds.push(cloned.id);
 
       // FR-SCORE-09: finalize snapshots inputs and outputs (after closing the extended active session)
       expect(

@@ -2,6 +2,29 @@ import type { User } from "@/features/auth/types";
 import { AppError } from "@/shared/domain/app-error";
 import type { Assignment } from "../types";
 
+export function validateArtifactUrl(value: unknown): string | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (typeof value !== "string")
+    throw new AppError("ลิงก์ผลงานไม่ถูกต้อง", 400);
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.length > 2000)
+    throw new AppError("ลิงก์ผลงานต้องมีความยาวไม่เกิน 2,000 ตัวอักษร", 400);
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new AppError(
+      "ลิงก์ผลงานต้องเป็น URL ที่ถูกต้อง (เช่น https://...)",
+      400,
+    );
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new AppError("ลิงก์ผลงานต้องเริ่มต้นด้วย http:// หรือ https://", 400);
+  }
+  return trimmed;
+}
+
 export function validateQuestions(value: unknown): string[] {
   if (
     !Array.isArray(value) ||
@@ -35,10 +58,14 @@ export function createAssignment(
     throw new AppError(
       "กรุณากรอกชื่องานไม่เกิน 200 ตัวอักษรและวันสิ้นสุดในอนาคต",
     );
-  const groupMaxScore = input.groupMaxScore ? Number(input.groupMaxScore) : 15;
-  const individualMaxScore = input.individualMaxScore
-    ? Number(input.individualMaxScore)
-    : 5;
+  const groupMaxScore =
+    input.groupMaxScore !== undefined && input.groupMaxScore !== ""
+      ? Number(input.groupMaxScore)
+      : 15;
+  const individualMaxScore =
+    input.individualMaxScore !== undefined && input.individualMaxScore !== ""
+      ? Number(input.individualMaxScore)
+      : 5;
   const scoreFloor =
     input.scoreFloor !== undefined && input.scoreFloor !== ""
       ? Number(input.scoreFloor)
@@ -69,10 +96,7 @@ export function createAssignment(
       : undefined;
 
   const rawArtifactUrl = input.artifactUrl ?? input.artifact_url;
-  const artifactUrl =
-    typeof rawArtifactUrl === "string" && rawArtifactUrl.trim()
-      ? rawArtifactUrl.trim()
-      : undefined;
+  const artifactUrl = validateArtifactUrl(rawArtifactUrl);
 
   const groupDeadline = input.groupDeadline
     ? new Date(String(input.groupDeadline)).toISOString()
@@ -143,12 +167,16 @@ export function cloneAssignment(
     individualDeadline: overrides.individualDeadline
       ? new Date(String(overrides.individualDeadline)).toISOString()
       : deadline,
-    artifactUrl:
+    artifactUrl: validateArtifactUrl(
       (overrides.artifactUrl as string | undefined) ?? source.artifactUrl,
+    ),
     status: "draft",
     pairwiseRequired: true,
     evaluationMode: source.evaluationMode ?? "group",
     questions: [...source.questions],
+    criteriaWeights: source.criteriaWeights
+      ? { ...source.criteriaWeights }
+      : undefined,
     groups: [],
     students: [],
     votes: [],
@@ -162,5 +190,6 @@ export function cloneAssignment(
     minComparisons: source.minComparisons ?? 3,
     completionThreshold: source.completionThreshold ?? 0.9,
     instructorWeight: source.instructorWeight ?? 1.0,
+    maxWorkload: source.maxWorkload ?? 8,
   };
 }

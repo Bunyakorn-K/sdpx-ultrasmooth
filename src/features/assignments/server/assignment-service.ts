@@ -282,6 +282,16 @@ export class AssignmentService {
     const sourceId = String(input.id || input.sourceId || "");
     const record = await this.repository.findById(sourceId);
     if (!record) throw new AppError("ไม่พบ assignment ต้นฉบับ", 404);
+    const isOwner = record.assignment.ownerId === user.id;
+    if (!isOwner) {
+      const hasAccess = await this.checkClassroomAccess(
+        user,
+        record.assignment,
+      );
+      if (!hasAccess) {
+        throw new AppError("คุณไม่มีสิทธิ์เข้าถึง assignment นี้", 403);
+      }
+    }
     let assignment = cloneAssignment(record.assignment, user, input);
     if (assignment.classroomId) {
       const classroom = (

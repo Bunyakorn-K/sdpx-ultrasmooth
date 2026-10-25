@@ -98,7 +98,11 @@ export function assignmentCommandResponse(
     );
     return Response.json(
       { assignment },
-      { status: ["create", "group", "vote"].includes(action) ? 201 : 200 },
+      {
+        status: ["create", "group", "vote", "clone"].includes(action)
+          ? 201
+          : 200,
+      },
     );
   })(request);
 }

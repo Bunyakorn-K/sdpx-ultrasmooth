@@ -205,4 +205,87 @@ test("FR-ASSIGN-06: cloneAssignment creates a fresh draft with future deadline a
   assert.equal(cloned.pairs, undefined);
   assert.equal(cloned.comparisons, undefined);
   assert.equal(cloned.finalizedSnapshot, undefined);
+  assert.equal(cloned.maxWorkload, 8);
+});
+
+test("FR-ASSIGN-01 SEC: createAssignment sanitizes artifactUrl and prevents javascript: XSS", () => {
+  const future = new Date(Date.now() + 86400000).toISOString();
+
+  // javascript: scheme must throw
+  assert.throws(
+    () =>
+      createAssignment(
+        {
+          title: "Malicious URL",
+          deadline: future,
+          artifactUrl: "javascript:alert(document.cookie)",
+        },
+        teacher,
+      ),
+    /ลิงก์ผลงานต้องเริ่มต้นด้วย http:\/\/ หรือ https:\/\//,
+  );
+
+  // valid https is accepted
+  const valid = createAssignment(
+    {
+      title: "Valid URL",
+      deadline: future,
+      artifactUrl: "https://github.com/project/docs",
+    },
+    teacher,
+  );
+  assert.equal(valid.artifactUrl, "https://github.com/project/docs");
+});
+
+test("FR-ASSIGN-07: createAssignment preserves individualMaxScore = 0 without resetting to default", () => {
+  const future = new Date(Date.now() + 86400000).toISOString();
+  const zeroIndiv = createAssignment(
+    {
+      title: "Group Only",
+      deadline: future,
+      individualMaxScore: 0,
+      groupMaxScore: 0,
+    },
+    teacher,
+  );
+  assert.equal(zeroIndiv.individualMaxScore, 0);
+  assert.equal(zeroIndiv.groupMaxScore, 0);
+});
+
+test("FR-ASSIGN-04: updateDeadline validates extension, shortening, and ownership invariants", () => {
+  const currentDeadline = new Date(Date.now() + 3600000).toISOString();
+  const asgn = fixture({ deadline: currentDeadline, status: "closed" });
+
+  // Student cannot update deadline
+  assert.throws(
+    () =>
+      applyAssignmentCommand(asgn, student, "updateDeadline", {
+        deadline: new Date(Date.now() + 7200000).toISOString(),
+      }),
+    /เฉพาะครูเจ้าของงานเท่านั้น/,
+  );
+
+  // Extend deadline on closed assignment reopens to active
+  const futureExt = new Date(Date.now() + 7200000).toISOString();
+  applyAssignmentCommand(asgn, teacher, "updateDeadline", {
+    deadline: futureExt,
+  });
+  assert.equal(asgn.deadline, new Date(futureExt).toISOString());
+  assert.equal(asgn.status, "active");
+
+  // Shorten deadline to valid future time is permitted
+  const futureShorten = new Date(Date.now() + 5000000).toISOString();
+  applyAssignmentCommand(asgn, teacher, "updateDeadline", {
+    deadline: futureShorten,
+  });
+  assert.equal(asgn.deadline, new Date(futureShorten).toISOString());
+
+  // Shortening to a past time is rejected
+  assert.throws(
+    () =>
+      applyAssignmentCommand(asgn, teacher, "updateDeadline", {
+        deadline: new Date(Date.now() - 1000).toISOString(),
+      }),
+    /กำหนดส่งที่ร่นเข้ามาต้องเป็นเวลาในอนาคต/,
+  );
 });
