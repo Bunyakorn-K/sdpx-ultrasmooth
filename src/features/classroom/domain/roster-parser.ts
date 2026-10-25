@@ -28,7 +28,9 @@ function csvRecords(text: string): { cols: string[]; rowNumber: number }[] {
     const char = source[i];
     if (quoted) {
       if (char === undefined)
-        throw new AppError(`แถวที่ ${rowNumber}: เครื่องหมายคำพูดใน CSV ไม่ครบ`);
+        throw new AppError(
+          `แถวที่ ${rowNumber}: เครื่องหมายคำพูดใน CSV ไม่ครบ`,
+        );
       if (char === '"') {
         if (source[i + 1] === '"') {
           cell += '"';
@@ -87,15 +89,15 @@ export function normalizeEmail(email: string): string {
   let local = trimmed.slice(0, atIndex);
   const domain = trimmed.slice(atIndex);
 
-  // If gmail, remove dots and strip +tag
-  if (domain === "@gmail.com" || domain === "@googlemail.com") {
-    local = local.replace(/\./g, "");
-  }
   // Strip +tag
   const plusIndex = local.indexOf("+");
   if (plusIndex !== -1) {
     local = local.slice(0, plusIndex);
   }
+
+  // Remove dots in local part (Gmail, Google Workspace for Education, and university domains)
+  // so that Somchai.A matches somchaia (FR-AUTH-03)
+  local = local.replace(/\./g, "");
 
   return `${local}${domain}`;
 }
@@ -131,7 +133,9 @@ export function parseRosterCsv(csvText: string): ParseRosterResult {
   for (let i = 1; i < lines.length; i++) {
     const { rowNumber, cols } = lines[i];
     if (cols.length !== headerCols.length)
-      throw new AppError(`แถวที่ ${rowNumber}: จำนวนคอลัมน์ไม่ตรงกับหัวตาราง CSV`);
+      throw new AppError(
+        `แถวที่ ${rowNumber}: จำนวนคอลัมน์ไม่ตรงกับหัวตาราง CSV`,
+      );
 
     const rawEmail = cols[emailIdx] || "";
     const groupName = cols[groupIdx] || "";
@@ -144,7 +148,9 @@ export function parseRosterCsv(csvText: string): ParseRosterResult {
     }
 
     if (!rawEmail || !emailRegex.test(rawEmail)) {
-      throw new AppError(`แถวที่ ${rowNumber}: รูปแบบอีเมล "${rawEmail}" ไม่ถูกต้อง`);
+      throw new AppError(
+        `แถวที่ ${rowNumber}: รูปแบบอีเมล "${rawEmail}" ไม่ถูกต้อง`,
+      );
     }
 
     const normalized = normalizeEmail(rawEmail);
@@ -174,7 +180,9 @@ export function parseRosterCsv(csvText: string): ParseRosterResult {
   const warnings: string[] = [];
   for (const [group, count] of groupCounts.entries()) {
     if (count < 2) {
-      warnings.push(`กลุ่ม "${group}" มีสมาชิกเพียง ${count} คน (น้อยกว่า 2 คน)`);
+      warnings.push(
+        `กลุ่ม "${group}" มีสมาชิกเพียง ${count} คน (น้อยกว่า 2 คน)`,
+      );
     }
   }
 

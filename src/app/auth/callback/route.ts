@@ -133,7 +133,7 @@ export async function GET(request: Request) {
           targetUrl = next;
           const token = randomBytes(32).toString("hex");
           const userId = String(rows[0].id);
-          await sql`INSERT INTO sessions(token_hash, user_id, expires_at) VALUES(${hashToken(token)}, ${userId}, now() + interval '7 days')`;
+          await sql`INSERT INTO sessions(token_hash, user_id, expires_at) VALUES(${hashToken(token)}, ${userId}, now() + interval '12 hours')`;
           sessionToken = token;
         }
 
@@ -144,14 +144,14 @@ export async function GET(request: Request) {
           response.cookies.set(name, value, options);
         });
 
-        // Set session cookie if existing user
+        // Set session cookie if existing user (FR-AUTH-04: 12-hour session lifetime)
         if (sessionToken) {
           response.cookies.set("pair_session", sessionToken, {
             httpOnly: true,
             sameSite: "lax",
             secure: process.env.NODE_ENV === "production",
             path: "/",
-            maxAge: 7 * 24 * 60 * 60,
+            maxAge: 12 * 60 * 60,
           });
         }
 

@@ -25,7 +25,7 @@ test("ClassroomService: Teacher creates, lists, and retrieves classroom", async 
   assert.equal(fetched.id, created.id);
 });
 
-test("ClassroomService: Outsider cannot access classroom", async () => {
+test("FR-AUTHZ-02: ClassroomService: Outsider receives 404 on cross-classroom access", async () => {
   const teacher = makeUser({ role: "teacher" });
   const outsider = makeUser({ role: "student" });
   const repo = new FakeClassroomRepository();
@@ -34,7 +34,32 @@ test("ClassroomService: Outsider cannot access classroom", async () => {
   const created = await service.create(teacher, { name: "วิชาลับ" });
   await assert.rejects(
     () => service.get(outsider, created.id),
-    /คุณไม่มีสิทธิ์เข้าถึงห้องเรียนนี้/,
+    /ไม่พบห้องเรียน/,
+  );
+});
+
+test("FR-AUTHZ-03: TA can import classroom roster successfully", async () => {
+  const teacher = makeUser({ role: "teacher" });
+  const taUser = makeUser({
+    role: "student",
+    name: "TA Bob",
+    email: "tabob@uni.ac.th",
+  });
+  const repo = new FakeClassroomRepository();
+  const service = new ClassroomService(repo);
+
+  const classroom = await service.create(teacher, { name: "Lab CS" });
+  await service.addStaff(teacher, classroom.id, {
+    email: taUser.email,
+    name: taUser.name,
+    role: "TA",
+  });
+
+  const csv = `email,group_name,display_name\ns1@uni.ac.th,Alpha,Student 1`;
+  const result = await service.importRoster(taUser, classroom.id, csv);
+  assert.equal(
+    result.classroom.members.some((m) => m.email === "s1@uni.ac.th"),
+    true,
   );
 });
 
@@ -238,4 +263,21 @@ somchai@kmitl.ac.th,Team Alpha,Somchai`;
   assert.ok(member);
   assert.equal(member.user_id, student.id); // Binds real google user_id
   assert.equal(member.status, "ACTIVE"); // Activates from PENDING
+});
+
+test("FR-AUTH-02: Roster import rejects emails outside classroom allowed_email_domains", async () => {
+  const teacher = makeUser({ role: "teacher" });
+  const repo = new FakeClassroomRepository();
+  const service = new ClassroomService(repo);
+
+  const classroom = await service.create(teacher, {
+    name: "Engineering Lab",
+    allowed_email_domains: ["@kmitl.ac.th"],
+  });
+
+  const csv = `email,group_name,display_name\nstudent1@other.ac.th,Alpha,Student 1`;
+  await assert.rejects(
+    () => service.importRoster(teacher, classroom.id, csv),
+    /ไม่อยู่ในโดเมนที่อนุญาตสำหรับห้องเรียนนี้/,
+  );
 });

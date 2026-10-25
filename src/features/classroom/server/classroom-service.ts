@@ -9,7 +9,7 @@ import {
   archiveClassroom,
   isDomainAllowed,
 } from "../domain/classroom";
-import { parseRosterCsv } from "../domain/roster-parser";
+import { parseRosterCsv, normalizeEmail } from "../domain/roster-parser";
 import type {
   Classroom,
   ClassroomMember,
@@ -32,7 +32,7 @@ export class ClassroomService {
         if (
           !classroom.members.some(
             (m) =>
-              m.email.toLowerCase() === user.email.toLowerCase() &&
+              normalizeEmail(m.email) === normalizeEmail(user.email) &&
               m.status === "PENDING",
           )
         )
@@ -43,7 +43,7 @@ export class ClassroomService {
           const updated = {
             ...record.classroom,
             members: record.classroom.members.map((m) =>
-              m.email.toLowerCase() === user.email.toLowerCase()
+              normalizeEmail(m.email) === normalizeEmail(user.email)
                 ? { ...m, user_id: user.id, status: "ACTIVE" as const }
                 : m,
             ),
@@ -64,10 +64,11 @@ export class ClassroomService {
     const isMember = classroom.members.some(
       (m) =>
         m.user_id === user.id ||
-        m.email.toLowerCase() === user.email.toLowerCase(),
+        normalizeEmail(m.email) === normalizeEmail(user.email),
     );
     if (classroom.created_by !== user.id && !isMember) {
-      throw new AppError("คุณไม่มีสิทธิ์เข้าถึงห้องเรียนนี้", 403);
+      // FR-AUTHZ-02: Cross-classroom resource access returns 404
+      throw new AppError("ไม่พบห้องเรียน", 404);
     }
 
     return classroom;
@@ -98,15 +99,21 @@ export class ClassroomService {
       if (!record) throw new AppError("ไม่พบห้องเรียน", 404);
 
       const requesterMember = record.classroom.members.find(
-        (m) => m.user_id === user.id,
+        (m) =>
+          m.user_id === user.id ||
+          normalizeEmail(m.email) === normalizeEmail(user.email),
       );
       if (
         record.classroom.created_by !== user.id &&
         (!requesterMember ||
           (requesterMember.role !== "OWNER" &&
-            requesterMember.role !== "CO_TEACHER"))
+            requesterMember.role !== "CO_TEACHER" &&
+            requesterMember.role !== "TA"))
       ) {
-        throw new AppError("เฉพาะอาจารย์ผู้รับผิดชอบเท่านั้นที่สามารถนำเข้ารายชื่อได้", 403);
+        throw new AppError(
+          "เฉพาะอาจารย์ผู้รับผิดชอบหรือ TA เท่านั้นที่สามารถนำเข้ารายชื่อได้",
+          403,
+        );
       }
 
       const result = applyRosterImport(record.classroom, roster);
@@ -205,7 +212,10 @@ export class ClassroomService {
       const classroom = record.classroom;
 
       if (classroom.status === "ARCHIVED") {
-        throw new AppError("ห้องเรียนนี้ถูกเก็บถาวรแล้ว ไม่สามารถเข้าร่วมได้", 400);
+        throw new AppError(
+          "ห้องเรียนนี้ถูกเก็บถาวรแล้ว ไม่สามารถเข้าร่วมได้",
+          400,
+        );
       }
 
       if (
@@ -223,7 +233,7 @@ export class ClassroomService {
       const existingMemberIndex = classroom.members.findIndex(
         (m) =>
           m.user_id === user.id ||
-          m.email.toLowerCase() === user.email.toLowerCase(),
+          normalizeEmail(m.email) === normalizeEmail(user.email),
       );
 
       if (existingMemberIndex !== -1) {

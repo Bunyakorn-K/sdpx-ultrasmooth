@@ -41,6 +41,7 @@ import {
 } from "@mui/material";
 import type { Classroom } from "../types";
 import type { Assignment } from "@/features/assignments/types";
+import type { User } from "@/features/auth/types";
 import { RosterImportDialog } from "./roster-import-dialog";
 import type { ParseRosterResult } from "../domain/roster-parser";
 
@@ -49,6 +50,7 @@ export type ClassroomDetailProps = {
   assignments: Assignment[];
   allAssignments?: Assignment[];
   teacher: boolean;
+  user?: User | null;
   onImportRoster: (roster: ParseRosterResult) => Promise<void>;
   onAddStaff: (input: {
     email: string;
@@ -68,6 +70,7 @@ export function ClassroomDetail({
   assignments,
   allAssignments,
   teacher,
+  user,
   onImportRoster,
   onAddStaff,
   onRemoveMember,
@@ -99,6 +102,16 @@ export function ClassroomDetail({
   const staffMembers = classroom.members.filter(
     (m) => m.role === "OWNER" || m.role === "CO_TEACHER" || m.role === "TA",
   );
+  const currentUserMember = classroom.members.find(
+    (m) => m.user_id === user?.id,
+  );
+  // FR-AUTHZ-03: Owner, Co-teacher and TA can manage roster
+  const canManageRoster =
+    teacher ||
+    classroom.created_by === user?.id ||
+    currentUserMember?.role === "OWNER" ||
+    currentUserMember?.role === "CO_TEACHER" ||
+    currentUserMember?.role === "TA";
 
   async function handleAddStaffSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -114,7 +127,9 @@ export function ClassroomDetail({
       setStaffEmail("");
       setStaffName("");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการเพิ่มผู้สอน");
+      setError(
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการเพิ่มผู้สอน",
+      );
     }
   }
 
@@ -140,7 +155,9 @@ export function ClassroomDetail({
       await onArchive();
       setToast("เก็บ Classroom ถาวรแล้ว");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "ไม่สามารถเก็บ Classroom ได้");
+      setError(
+        err instanceof Error ? err.message : "ไม่สามารถเก็บ Classroom ได้",
+      );
     }
   }
 
@@ -207,7 +224,7 @@ export function ClassroomDetail({
             </Typography>
           </Box>
 
-          {teacher && classroom.status === "ACTIVE" && (
+          {canManageRoster && classroom.status === "ACTIVE" && (
             <Stack
               direction="row"
               spacing={1.5}
@@ -221,7 +238,7 @@ export function ClassroomDetail({
               >
                 นำเข้ารายชื่อ (CSV)
               </Button>
-              {onCreateAssignment && (
+              {teacher && onCreateAssignment && (
                 <Button
                   variant="contained"
                   color="primary"
@@ -328,7 +345,8 @@ export function ClassroomDetail({
                         setLinkOpen(true);
                       }}
                     >
-                      เชื่อมโยง Assignment ที่มีอยู่ ({unlinkedAssignments.length})
+                      เชื่อมโยง Assignment ที่มีอยู่ (
+                      {unlinkedAssignments.length})
                     </Button>
                   )}
                 </Stack>
@@ -352,7 +370,8 @@ export function ClassroomDetail({
                         setLinkOpen(true);
                       }}
                     >
-                      เชื่อมโยง Assignment ที่มีอยู่ ({unlinkedAssignments.length})
+                      เชื่อมโยง Assignment ที่มีอยู่ (
+                      {unlinkedAssignments.length})
                     </Button>
                   </Box>
                 )}
@@ -405,11 +424,11 @@ export function ClassroomDetail({
                 รายชื่อนักศึกษาและกลุ่มผลงาน (Roster & Groups)
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                จัดการรายชื่อนักศึกษา กลุ่ม และสถานะการเปิดใช้งาน (FR-CLASS-01 ถึง
-                FR-CLASS-05)
+                จัดการรายชื่อนักศึกษา กลุ่ม และสถานะการเปิดใช้งาน (FR-CLASS-01
+                ถึง FR-CLASS-05)
               </Typography>
             </Box>
-            {teacher && classroom.status === "ACTIVE" && (
+            {canManageRoster && classroom.status === "ACTIVE" && (
               <Button
                 variant="outlined"
                 startIcon={<FileUploadOutlined />}
@@ -431,7 +450,7 @@ export function ClassroomDetail({
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 นำเข้ารายชื่อผ่านไฟล์ CSV เพื่อสร้างกลุ่มและนักศึกษาอัตโนมัติ
               </Typography>
-              {teacher && (
+              {canManageRoster && (
                 <Button
                   variant="contained"
                   startIcon={<FileUploadOutlined />}
@@ -450,7 +469,9 @@ export function ClassroomDetail({
               <Table size="medium">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>ชื่อ - นามสกุล</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>
+                      ชื่อ - นามสกุล
+                    </TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>อีเมล</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>รหัสนักศึกษา</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>กลุ่ม</TableCell>
@@ -536,7 +557,8 @@ export function ClassroomDetail({
                 ผู้สอนร่วมและผู้ช่วยสอน (Co-teachers & TAs)
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                อาจารย์ผู้รับผิดชอบสามารถเพิ่มหรือถอดถอนผู้สอนร่วมและ TA ได้ (FR-CLASS-06)
+                อาจารย์ผู้รับผิดชอบสามารถเพิ่มหรือถอดถอนผู้สอนร่วมและ TA ได้
+                (FR-CLASS-06)
               </Typography>
             </Box>
             {teacher && classroom.status === "ACTIVE" && (
@@ -593,7 +615,9 @@ export function ClassroomDetail({
                       <Chip
                         size="small"
                         label={
-                          staff.status === "ACTIVE" ? "เข้าใช้งานแล้ว" : "รอล็อกอิน"
+                          staff.status === "ACTIVE"
+                            ? "เข้าใช้งานแล้ว"
+                            : "รอล็อกอิน"
                         }
                         variant="outlined"
                       />
@@ -665,7 +689,7 @@ export function ClassroomDetail({
       {/* Roster Import Dialog */}
       <RosterImportDialog
         classroom={classroom}
-        open={teacher && rosterOpen}
+        open={canManageRoster && rosterOpen}
         onClose={() => setRosterOpen(false)}
         onImportConfirm={async (roster) => {
           await onImportRoster(roster);
@@ -683,7 +707,9 @@ export function ClassroomDetail({
         fullWidth
       >
         <form onSubmit={handleAddStaffSubmit}>
-          <DialogTitle sx={{ fontWeight: 700 }}>เพิ่มผู้สอนหรือผู้ช่วยสอน</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 700 }}>
+            เพิ่มผู้สอนหรือผู้ช่วยสอน
+          </DialogTitle>
           <DialogContent sx={{ pt: 1 }}>
             <Stack spacing={2}>
               <TextField
