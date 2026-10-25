@@ -1,3 +1,18 @@
+import type { PairAssignment, Comparison } from "@/features/pairwise/types";
+export type PairScope = "group" | "individual" | "both";
+export type PairHistory = {
+  generation: number;
+  reason: string;
+  changedAt: string;
+  changedBy: string;
+  pairs: PairAssignment[];
+  comparisons: Comparison[];
+  votes: Vote[];
+  groups: Group[];
+  questions: string[];
+  finalizedSnapshot?: FinalizedSnapshot;
+  scoreOverrides?: ScoreOverride[];
+};
 export type Group = {
   id: string;
   name: string;
@@ -28,6 +43,8 @@ export type FinalizedSnapshot = {
   finalizedAt: string;
   finalizedBy: string;
   inputs: {
+    pairs?: PairAssignment[];
+    comparisons?: Comparison[];
     votes: Vote[];
     groups: Group[];
     questions: string[];
@@ -39,6 +56,17 @@ export type FinalizedSnapshot = {
 };
 
 export type Assignment = {
+  pairGeneration?: number;
+  pairResult?: ReturnType<
+    typeof import("@/features/pairwise/domain/generated-results").generatedResult
+  >;
+  pairs?: PairAssignment[];
+  comparisons?: Comparison[];
+  pairHistory?: PairHistory[];
+  pairingShape?: string;
+  pairingSnapshot?: { groups: Group[]; questions: string[] };
+  pairingPaused?: boolean;
+  pairingReason?: string;
   id: string;
   ownerId: string;
   classroomId?: string;

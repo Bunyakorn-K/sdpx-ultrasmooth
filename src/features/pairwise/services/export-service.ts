@@ -13,6 +13,7 @@ import {
 } from "../domain/scoring-engine";
 
 export type ExportData = {
+  generation?: number;
   classroom: Classroom;
   assignment: Assignment;
   groups: GroupEntity[];
@@ -171,9 +172,35 @@ export async function buildPairEvalWorkbook(data: ExportData) {
     }
   }
 
-  for (const p of pairs) {
+  const exportPairs =
+    data.generation === undefined
+      ? pairs
+      : [
+          ...new Map(
+            pairs.map((p) => [
+              JSON.stringify([
+                p.criterion_id,
+                ...[p.item_a_id, p.item_b_id].sort(),
+              ]),
+              p,
+            ]),
+          ).values(),
+        ];
+  for (const p of exportPairs) {
     const criterion = assignment.criteria.find((c) => c.id === p.criterion_id);
-    const actualCoverage = pairCoverageMap.get(p.id) || 0;
+    const relevant =
+      data.generation === undefined
+        ? [p]
+        : pairs.filter(
+            (other) =>
+              other.criterion_id === p.criterion_id &&
+              [other.item_a_id, other.item_b_id].sort().join(":") ===
+                [p.item_a_id, p.item_b_id].sort().join(":"),
+          );
+    const actualCoverage = relevant.reduce(
+      (sum, pair) => sum + (pairCoverageMap.get(pair.id) ?? 0),
+      0,
+    );
     const itemAName =
       groups.find((g) => g.id === p.item_a_id)?.name ||
       members.find((m) => m.user_id === p.item_a_id)?.display_name ||
@@ -200,6 +227,8 @@ export async function buildPairEvalWorkbook(data: ExportData) {
   // 4. Sheet 4: Metadata (FR-EXPORT-02, FR-EXPORT-06)
   const metaSheet = wb.addWorksheet("Metadata");
   metaSheet.addRow(["Property", "Value"]);
+  if (data.generation !== undefined)
+    metaSheet.addRow(["Pair Generation", data.generation]);
   metaSheet.addRow(["Classroom", classroom.name]);
   metaSheet.addRow(["Classroom Slug", classroom.slug]);
   metaSheet.addRow(["Assignment", assignment.name]);

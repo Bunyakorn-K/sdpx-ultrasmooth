@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { GeneratedReportsPanel } from "./generated-reports-panel";
 import {
   Alert,
   Box,
@@ -55,6 +56,14 @@ export function PairwiseReportsPanel({
 }: PairwiseReportsPanelProps) {
   const [reportTab, setReportTab] = useState<number>(0);
   const [csvAnchor, setCsvAnchor] = useState<HTMLElement | null>(null);
+  if (active.pairs)
+    return teacher ? (
+      <GeneratedReportsPanel
+        active={active}
+        exportExcel={exportExcel}
+        exportCsv={exportCsv}
+      />
+    ) : null;
 
   const criteria: Criterion[] = active.questions.map((q, idx) => ({
     id: `crit-${idx}`,

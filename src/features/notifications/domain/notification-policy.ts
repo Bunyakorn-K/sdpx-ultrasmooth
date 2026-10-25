@@ -33,19 +33,27 @@ export function deadlineReminder(
     remaining > 48 * 60 * 60 * 1000
   )
     return;
-  const incomplete = evaluationTargets(assignment).some(
-    (target) =>
-      canEvaluateTarget(assignment, userId, target.id) &&
-      !assignment.votes.some(
-        (vote) =>
-          vote.userId === userId &&
-          (vote.groupId ?? vote.studentId) === target.id,
-      ),
-  );
+  const incomplete = assignment.pairs
+    ? assignment.pairs.some(
+        (p) =>
+          p.evaluator_user_id === userId &&
+          !assignment.comparisons?.some(
+            (c) => c.pair_assignment_id === p.id && c.status === "SUBMITTED",
+          ),
+      )
+    : evaluationTargets(assignment).some(
+        (target) =>
+          canEvaluateTarget(assignment, userId, target.id) &&
+          !assignment.votes.some(
+            (vote) =>
+              vote.userId === userId &&
+              (vote.groupId ?? vote.studentId) === target.id,
+          ),
+      );
   return incomplete
     ? {
         kind: "deadline_reminder",
-        key: `${assignment.id}:deadline:${assignment.deadline}`,
+        key: `${assignment.id}:deadline:${assignment.deadline}${assignment.pairGeneration ? `:generation:${assignment.pairGeneration}` : ""}`,
       }
     : undefined;
 }

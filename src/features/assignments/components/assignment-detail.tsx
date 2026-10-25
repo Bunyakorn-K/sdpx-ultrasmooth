@@ -1,4 +1,7 @@
 "use client";
+import { useState } from "react";
+import { RegeneratePairsDialog } from "@/features/pairwise/components/regenerate-pairs-dialog";
+import { GeneratedEvaluationPanel } from "@/features/pairwise/components/generated-evaluation-panel";
 import { statusLabels } from "@/features/assignments/constants";
 import {
   AccessTime,
@@ -19,6 +22,7 @@ import type { Assignment } from "../types";
 import type { CsvReport } from "@/features/pairwise/services/csv-service";
 import type { User } from "@/features/auth/types";
 type AssignmentDetailProps = {
+  demo: boolean;
   active: Assignment | undefined;
   teacher: boolean;
   busy: boolean;
@@ -37,6 +41,7 @@ type AssignmentDetailProps = {
   setVoteTarget: (id: string | null) => void;
 };
 export function AssignmentDetail(props: AssignmentDetailProps) {
+  const [regenerateOpen, setRegenerateOpen] = useState(false);
   const {
     setSelected,
     active,
@@ -155,6 +160,26 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
             </Button>
           )}
       </div>
+      {teacher && active.ownerId === user?.id && (
+        <Button
+          variant="outlined"
+          sx={{ mb: 2 }}
+          disabled={busy}
+          onClick={() => setRegenerateOpen(true)}
+        >
+          สร้างคู่ประเมินใหม่ (Re-generate Pairs)
+        </Button>
+      )}
+      {regenerateOpen && teacher && active.ownerId === user?.id && (
+        <RegeneratePairsDialog
+          key={active.id}
+          active={active}
+          demo={props.demo}
+          busy={busy}
+          action={action}
+          onClose={() => setRegenerateOpen(false)}
+        />
+      )}
       <Tabs
         variant="scrollable"
         scrollButtons="auto"
@@ -193,6 +218,14 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
             teacher={teacher}
             exportExcel={exportExcel}
             exportCsv={exportCsv}
+          />
+        ) : active.pairs ? (
+          <GeneratedEvaluationPanel
+            key={`${active.id}:${active.pairGeneration}:${user?.id}`}
+            active={active}
+            user={user}
+            busy={busy}
+            action={action}
           />
         ) : active.status === "closed" || active.status === "finalized" ? (
           <StudentScorecard active={active} user={user} />

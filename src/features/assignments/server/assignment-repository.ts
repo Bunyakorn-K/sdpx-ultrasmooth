@@ -86,17 +86,22 @@ export class PostgresAssignmentRepository implements AssignmentRepository {
         INSERT INTO notifications(id,user_id,assignment_id,kind,event_key)
         SELECT gen_random_uuid(),u.id,a.id,${event?.kind ?? null},${event?.key ?? null}
         FROM updated a JOIN users u ON u.role='student' AND u.id<>a.owner_id
-        WHERE ${event !== undefined} AND (
+        WHERE ${event !== undefined && !["pairs_paused", "pairs_reopened"].includes(event?.kind ?? "")}
+        AND (${event?.recipientIds === undefined} OR u.id::text IN (SELECT jsonb_array_elements_text(${JSON.stringify(event?.recipientIds ?? [])}::jsonb))) AND (
           a.data->'students' @> jsonb_build_array(jsonb_build_object('id',u.id::text))
           OR EXISTS (SELECT 1 FROM classrooms c CROSS JOIN LATERAL jsonb_array_elements(c.data->'members') m
             WHERE (c.id::text=a.data->>'classroomId' OR c.data->'assignment_ids' ? a.id::text)
             AND m->>'role'='STUDENT' AND (m->>'user_id'=u.id::text OR lower(m->>'email')=lower(u.email)))
         ) ON CONFLICT(user_id,event_key) DO NOTHING RETURNING id
       ), audited AS (
-        INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,assignment_id,before_state,after_state)
-        SELECT gen_random_uuid(),owner_id,'ASSIGNMENT_FINALIZE','assignment',id::text,id,
-          '{"status":"closed"}'::jsonb,'{"status":"finalized"}'::jsonb
-        FROM updated WHERE ${event?.kind ?? null}='results_finalized' RETURNING id
+        INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,assignment_id,before_state,after_state,reason)
+        SELECT gen_random_uuid(),owner_id,
+          CASE ${event?.kind ?? null} WHEN 'pairs_regenerated' THEN 'PAIRS_REGENERATE' WHEN 'pairs_paused' THEN 'ASSIGNMENT_UNPUBLISH' WHEN 'pairs_reopened' THEN 'ASSIGNMENT_REOPEN' ELSE 'ASSIGNMENT_FINALIZE' END,
+          'assignment',id::text,id,
+          ${JSON.stringify(event?.kind === "results_finalized" ? { status: "closed" } : { generation: event?.generation })}::jsonb,
+          ${JSON.stringify(event?.kind === "results_finalized" ? { status: "finalized" } : { generation: assignment.pairGeneration ?? 0, scope: event?.scope, status: assignment.status })}::jsonb,
+          ${event?.reason ?? null}
+        FROM updated WHERE ${event?.kind ?? null} IN ('results_finalized','pairs_regenerated','pairs_paused','pairs_reopened') RETURNING id
       ) SELECT id FROM updated`;
     return rows.length > 0;
   }

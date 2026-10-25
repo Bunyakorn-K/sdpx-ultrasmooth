@@ -1,6 +1,12 @@
 import type { User } from "@/features/auth/types";
 import { AppError } from "@/shared/domain/app-error";
 import type { Assignment } from "../types";
+import type { PairScope } from "../types";
+import {
+  pairingShape,
+  previewRegeneration,
+} from "@/features/pairwise/domain/regeneration";
+import type { ComparisonChoice } from "@/features/pairwise/types";
 import { validateQuestions } from "./create-assignment";
 import {
   canEvaluateTarget,
@@ -38,8 +44,7 @@ function createGroup(
   }: PolicyContext,
   input: CommandInput,
 ) {
-  if (!canEditGroups)
-    throw new AppError("ไม่สามารถจัดกลุ่มได้", 403);
+  if (!canEditGroups) throw new AppError("ไม่สามารถจัดกลุ่มได้", 403);
   if (!isOwner && user.role !== "student")
     throw new AppError("ไม่สามารถจัดกลุ่มได้", 403);
   if (!isOwner && hasGroup) throw new AppError("คุณอยู่ในกลุ่มแล้ว");
@@ -70,6 +75,8 @@ function joinGroup(
 }
 function startVoting({ assignment, isOwner, canEditGroups }: PolicyContext) {
   if (!isOwner) throw new AppError("เฉพาะครูเจ้าของงานเท่านั้น", 403);
+  if (assignment.pairingPaused)
+    throw new AppError("กรุณาสร้างและเผยแพร่คู่ใหม่ก่อนเปิดประเมิน", 409);
   const populatedGroups = assignment.groups.filter(
     (group) => group.members.length > 0,
   );
@@ -100,6 +107,8 @@ function castVote(
   { assignment, user, isMember }: PolicyContext,
   input: CommandInput,
 ) {
+  if (assignment.pairs)
+    throw new AppError("กรุณาประเมินผ่านคู่ที่ได้รับใน generation ล่าสุด", 409);
   const expired = new Date(assignment.deadline).getTime() <= Date.now();
   if (
     !isMember ||
@@ -175,12 +184,13 @@ function overrideScore(
     overriddenAt: new Date().toISOString(),
   });
 }
-function finalizeAssignment(
-  { assignment, isOwner, user }: PolicyContext,
-) {
+function finalizeAssignment({ assignment, isOwner, user }: PolicyContext) {
   if (!isOwner) throw new AppError("เฉพาะครูเจ้าของงานเท่านั้น", 403);
   if (assignment.status !== "closed") {
-    throw new AppError("สามารถ Finalize ได้เฉพาะงานที่ปิดรับการประเมินแล้วเท่านั้น", 400);
+    throw new AppError(
+      "สามารถ Finalize ได้เฉพาะงานที่ปิดรับการประเมินแล้วเท่านั้น",
+      400,
+    );
   }
 
   // FR-SCORE-09: Snapshot inputs and outputs
@@ -194,9 +204,19 @@ function finalizeAssignment(
       questions: [...assignment.questions],
     },
     outputs: {
-      overrides: assignment.scoreOverrides ? [...assignment.scoreOverrides] : [],
+      overrides: assignment.scoreOverrides
+        ? [...assignment.scoreOverrides]
+        : [],
     },
   };
+  if (assignment.pairs) {
+    assignment.finalizedSnapshot.inputs.pairs = structuredClone(
+      assignment.pairs,
+    );
+    assignment.finalizedSnapshot.inputs.comparisons = structuredClone(
+      assignment.comparisons ?? [],
+    );
+  }
 }
 function reopenAssignment(
   { assignment, isOwner }: PolicyContext,
@@ -204,11 +224,17 @@ function reopenAssignment(
 ) {
   if (!isOwner) throw new AppError("เฉพาะครูเจ้าของงานเท่านั้น", 403);
   if (assignment.status !== "finalized") {
-    throw new AppError("สามารถ Reopen ได้เฉพาะงานที่ Finalize แล้วเท่านั้น", 400);
+    throw new AppError(
+      "สามารถ Reopen ได้เฉพาะงานที่ Finalize แล้วเท่านั้น",
+      400,
+    );
   }
   const reason = String(input.reason || "").trim();
   if (!reason) {
-    throw new AppError("กรุณาระบุเหตุผลในการเปิดประเมินใหม่ (FR-ASSIGN-03)", 400);
+    throw new AppError(
+      "กรุณาระบุเหตุผลในการเปิดประเมินใหม่ (FR-ASSIGN-03)",
+      400,
+    );
   }
   assignment.status = "closed";
   assignment.reopenReason = reason;
@@ -235,7 +261,10 @@ function updateDeadline(
   const isShortening = newDeadlineTime < currentDeadlineTime;
   if (isShortening) {
     if (now >= currentDeadlineTime) {
-      throw new AppError("ไม่สามารถร่นกำหนดส่งได้เนื่องจากเลยกำหนดส่งเดิมแล้ว (FR-ASSIGN-04)", 400);
+      throw new AppError(
+        "ไม่สามารถร่นกำหนดส่งได้เนื่องจากเลยกำหนดส่งเดิมแล้ว (FR-ASSIGN-04)",
+        400,
+      );
     }
     if (newDeadlineTime <= now) {
       throw new AppError("กำหนดส่งที่ร่นเข้ามาต้องเป็นเวลาในอนาคต", 400);
@@ -248,7 +277,149 @@ function updateDeadline(
     assignment.status = "active";
   }
 }
+function pairingOwner(context: PolicyContext, input: CommandInput) {
+  if (!context.isOwner) throw new AppError("เฉพาะครูเจ้าของงานเท่านั้น", 403);
+  if (!String(input.reason || "").trim() || String(input.reason).length > 1000)
+    throw new AppError("กรุณาระบุเหตุผลไม่เกิน 1000 ตัวอักษร");
+  if (input.expectedGeneration !== (context.assignment.pairGeneration ?? 0))
+    throw new AppError("ชุดคู่เปลี่ยนแล้ว กรุณาโหลดข้อมูลล่าสุด", 409);
+}
+function unpublishPairs(context: PolicyContext, input: CommandInput) {
+  pairingOwner(context, input);
+  const a = context.assignment;
+  if (a.status !== "active" && a.status !== "closed")
+    throw new AppError(
+      "ต้องเปิดผลใหม่ก่อนหาก Finalized แล้ว หรืองานอยู่ใน Draft อยู่แล้ว",
+      409,
+    );
+  a.status = "draft";
+  a.pairingSnapshot ??= {
+    groups: structuredClone(a.groups),
+    questions: [...a.questions],
+  };
+  a.pairingPaused = true;
+  a.pairingReason = String(input.reason).trim();
+}
+function configurePairs(context: PolicyContext, input: CommandInput) {
+  pairingOwner(context, input);
+  const a = context.assignment;
+  if (a.status !== "draft")
+    throw new AppError("แก้การตั้งค่าได้ใน Draft เท่านั้น", 409);
+  const target = Number(input.targetCoverage);
+  const workload = Number(input.maxWorkload);
+  const deadline = new Date(String(input.deadline)).getTime();
+  if (
+    !Number.isInteger(target) ||
+    target < 1 ||
+    target > 50 ||
+    !Number.isInteger(workload) ||
+    workload < 1 ||
+    workload > 100 ||
+    !Number.isFinite(deadline) ||
+    deadline <= Date.now()
+  )
+    throw new AppError(
+      "Coverage 1–50, workload 1–100 และกำหนดส่งต้องเป็นเวลาในอนาคต",
+    );
+  a.targetCoverage = target;
+  a.maxWorkload = workload;
+  a.deadline = new Date(deadline).toISOString();
+}
+function regeneratePairs(context: PolicyContext, input: CommandInput) {
+  pairingOwner(context, input);
+  const a = context.assignment;
+  const plan = previewRegeneration(a, input.scope as PairScope);
+  if (plan.token !== input.previewToken)
+    throw new AppError("ข้อมูลเปลี่ยนแล้ว กรุณาดูตัวอย่างใหม่ก่อนยืนยัน", 409);
+  const selected = (side: string) =>
+    input.scope === "both" ||
+    side === (input.scope === "group" ? "GROUP" : "INDIVIDUAL");
+  const oldPairs = a.pairs?.filter((p) => selected(p.side)) ?? [];
+  const oldIds = new Set(oldPairs.map((p) => p.id));
+  a.pairHistory ??= [];
+  a.pairHistory.push({
+    generation: a.pairGeneration ?? 0,
+    reason: String(input.reason).trim(),
+    changedAt: new Date().toISOString(),
+    changedBy: context.user.id,
+    pairs: structuredClone(oldPairs),
+    comparisons: structuredClone(
+      a.comparisons?.filter((c) => oldIds.has(c.pair_assignment_id)) ?? [],
+    ),
+    votes: structuredClone(a.votes),
+    groups: structuredClone(a.pairingSnapshot?.groups ?? a.groups),
+    questions: [...(a.pairingSnapshot?.questions ?? a.questions)],
+    finalizedSnapshot: a.finalizedSnapshot
+      ? structuredClone(a.finalizedSnapshot)
+      : undefined,
+    scoreOverrides: structuredClone(a.scoreOverrides ?? []),
+  });
+  a.pairs = [
+    ...(a.pairs?.filter((p) => !selected(p.side)) ?? []),
+    ...plan.pairs.map((p) => ({ ...p, created_at: new Date().toISOString() })),
+  ];
+  a.comparisons =
+    a.comparisons?.filter((c) => !oldIds.has(c.pair_assignment_id)) ?? [];
+  a.votes = [];
+  a.scoreOverrides = [];
+  delete a.finalizedSnapshot;
+  a.pairGeneration = plan.generation;
+  a.pairingShape = pairingShape(a);
+  a.pairingSnapshot = {
+    groups: structuredClone(a.groups),
+    questions: [...a.questions],
+  };
+  a.pairingPaused = false;
+  a.pairingReason = String(input.reason).trim();
+  a.status = "active";
+}
+function submitPair(context: PolicyContext, input: CommandInput) {
+  const a = context.assignment;
+  if (
+    context.user.role !== "student" ||
+    !context.isMember ||
+    a.status !== "active" ||
+    new Date(a.deadline).getTime() <= Date.now()
+  )
+    throw new AppError("ยังไม่เปิดประเมินหรือหมดเวลาแล้ว", 403);
+  if (input.expectedGeneration !== a.pairGeneration)
+    throw new AppError("ชุดคู่เปลี่ยนแล้ว กรุณาโหลดข้อมูลล่าสุด", 409);
+  const pair = a.pairs?.find(
+    (p) => p.id === input.pairId && p.evaluator_user_id === context.user.id,
+  );
+  if (!pair) throw new AppError("ไม่พบคู่ที่คุณมีสิทธิ์ประเมิน", 403);
+  if (
+    !Number.isInteger(input.choice) ||
+    Number(input.choice) < 1 ||
+    Number(input.choice) > 6
+  )
+    throw new AppError("กรุณาเลือกคะแนนตั้งแต่ 1–6");
+  const time = new Date().toISOString();
+  const response = {
+    id: `response:${pair.id}`,
+    pair_assignment_id: pair.id,
+    evaluator_user_id: context.user.id,
+    choice: input.choice as ComparisonChoice,
+    status: "SUBMITTED" as const,
+    time_on_task_ms: Math.max(
+      0,
+      Math.min(86400000, Number(input.timeOnTaskMs) || 0),
+    ),
+    saved_at: time,
+    submitted_at: time,
+  };
+  a.comparisons ??= [];
+  const index = a.comparisons.findIndex(
+    (c) => c.pair_assignment_id === pair.id,
+  );
+  if (index >= 0) throw new AppError("คุณส่งผลประเมินคู่นี้แล้ว", 409);
+  a.comparisons.push(response);
+}
 const commandHandlers: Record<string, CommandHandler> = {
+  configurePairs,
+  unpublishPairs,
+  regeneratePairs,
+  submitPair,
   join: joinAssignment,
   group: createGroup,
   joinGroup,

@@ -26,6 +26,7 @@ const titles: Record<Notification["kind"], string> = {
   assignment_opened: "An assignment is open for evaluation",
   deadline_reminder: "Evaluation is due within 48 hours",
   results_finalized: "Your teacher has finalized the results",
+  pairs_regenerated: "คู่ประเมินเปลี่ยนแล้ว กรุณากลับมาประเมินชุดใหม่",
 };
 
 export function NotificationBell({

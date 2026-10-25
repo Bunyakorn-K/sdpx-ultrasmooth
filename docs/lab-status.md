@@ -15,6 +15,52 @@ For requirement-by-requirement implementation mapping and explicit specification
 | WS07 | k6 real teacher journey, baseline JSON, failure-gate probe, request/business JSON logging, performance CI job | local 2-minute production-container benchmark + 1 ms threshold fails with exit 99 | repeat on the team's actual staging/Neon target; CI performance run |
 | WS08 | review/refactoring plan, scoped before/after record, security fixes/regression tests, ADRs | unchanged scoped-refactor tests, security probes/audits, redacted history/source scan | real human review and remote security-alert review |
 
+## Pair regeneration (2026-10-25)
+
+The assignment owner can open **Re-generate Pairs** from assignment detail.
+Active/closed work must return to Draft with a reason; finalized work must first
+reopen with a reason. The owner can edit the roster/questions in Draft and adjust
+coverage, workload and a future deadline in the regeneration dialog. A read-only
+preview shows feasible coverage, per-student workload, disabled small groups,
+affected students and replaced-answer counts before explicit publication.
+
+Publication archives replaced answers and the previous roster/criteria, increments
+the generation, persists deterministic left/right positions, clears score overrides
+with an explicit warning, and activates the new pairs. Regenerating one side keeps
+the other side's pairs/answers; roster/criteria changes require both sides. Group
+allocation uses integral max-flow with exact coverage per pair and a per-criterion
+workload cap. Individual allocation enumerates every eligible pair and rejects an
+insufficient workload cap instead of silently truncating; groups of at most two
+members and a zero individual maximum have no individual tasks.
+
+The aggregate, FR-NOTIF-03 inbox notifications and audit entries commit in one
+optimistic SQL statement. Stale previews/generations and duplicate concurrent
+publication are rejected. Students receive only their own pairs, comparisons and
+read-only answer history. Closed results expose only their own aggregate result,
+with individual scores hidden below the anonymity threshold. Generated-pair reports
+and XLSX/CSV exports use persisted comparisons; Pair Coverage aggregates responses
+by criterion and item pair and Metadata includes the current generation.
+
+Verified locally: 128 unit/integration tests, lint, typecheck, OpenAPI validation,
+production build, coverage (96.21% lines, 100% functions, 83.90% branches) and
+test fidelity. The combined production-server browser check passed 11 cases
+(assignment/import, CSV, deadlines, theme and regeneration); its database-only
+case was run separately against isolated PostgreSQL and passed. Two additional
+PostgreSQL notification/rollback cases passed. The final regeneration UI check
+passed again at 1280px and 390px, including a persisted vote, generation change,
+read-only history and workbook coverage/metadata. A legacy voter whose answers
+are replaced remains a notification recipient even without a newly assigned pair.
+
+Run `npm run db:init` against the intended database before deploying: existing
+notification tables need the expanded kind constraint. Local PostgreSQL migration
+was tested and the configured development database schema was updated without
+logging connection details. Legacy assignments keep their original voting flow until an owner
+publishes generated pairs; this is not a blanket migration or a claim of complete
+Evaluation UI/Reporting PRD compliance. Autosaved drafts, versioned resubmission,
+independent group/individual deadlines and criteria editors, instructor extra/self
+evaluation, and full identity-export auditing remain separate work. No hosted
+deployment has been verified.
+
 ## CSV report export — FR-EXPORT-01 (2026-10-24)
 
 Teachers can use Assignment → evaluation results → Export CSV to download
@@ -69,8 +115,9 @@ push. FR-NOTIF-01 (evaluation opened), FR-NOTIF-02 (unfinished work within 48 ho
 FR-NOTIF-04 (finalized results), and FR-NOTIF-06 (direct links without scores or
 evaluator identity) are implemented in code. Reminders are evaluated when the
 student opens/refreshes the inbox; there is no scheduled worker or cron.
-FR-NOTIF-03 (regenerated pairs), FR-NOTIF-05 (additional evaluation tasks), and
-email delivery remain pending their supporting workflows and external setup.
+FR-NOTIF-03 (regenerated pairs) is implemented by the regeneration workflow above.
+FR-NOTIF-05 (additional evaluation tasks) and email delivery remain pending their
+supporting workflows and external setup.
 
 Run `npm run db:init` against the intended database before deploying this code;
 the additive notifications table and indexes are required by assignment writes.
