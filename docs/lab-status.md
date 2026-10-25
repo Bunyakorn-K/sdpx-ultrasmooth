@@ -333,6 +333,41 @@ Browser checks pass in Asia/Bangkok and America/Los_Angeles for past dates,
 past times today, a stale selection after time advances, and successful future
 assignment creation. Unit tests (108), lint, TypeScript, and OpenAPI checks pass.
 
+## Reports module — FR-REPORT-05 distribution chart (2026-10-25)
+
+FR-REPORT-05 required a distribution chart per criterion and none existed. It is
+now a sixth tab, "การกระจายคะแนน", on `GeneratedReportsPanel` — the panel the
+teacher gets once an assignment has persisted pairs. It counts how many
+submitted comparisons landed on each of the six choice points, per criterion, so
+the teacher sees the room's spread rather than only its averages. No charting
+dependency was added; it is a plain flex layout with proportional bars, each
+labelled for screen readers.
+
+`choiceDistribution` (new, in `src/features/pairwise/domain/report-metrics.ts`)
+counts only `SUBMITTED` comparisons, matching every other report. Covered by
+`tests/unit/report-metrics.test.ts` and, in a browser,
+`tests/e2e/specs/reports-distribution.spec.ts`, which publishes pairs on a demo
+assignment and asserts each criterion's bar counts. Mutating the domain rule to
+count drafts fails three unit assertions, and dropping the per-criterion filter
+in the panel fails the browser test.
+
+Not covered by this change, and still open:
+
+- FR-REPORT-02's per-criterion breakdown is missing from the Individual Summary
+  in **both** report panels. `GeneratedReportsPanel` lists one row per group
+  member with group/individual/final scores; `PairwiseReportsPanel` lists one row
+  per student. Neither shows student × criterion × (q, count, score, flag).
+- FR-REPORT-03's average result per pair is missing from the generated panel's
+  coverage tab, which lists assigned/submitted counts and a status. The two
+  coverage actions ("ส่งประเมินเพิ่ม" / "ประเมินเอง", FR-PAIR-10) are being
+  implemented separately on `feat/additional-pair-evaluations`; this change
+  deliberately does not duplicate that work.
+- `tests/export-integration.test.mjs` was added here. It round-trips the
+  downloaded workbook through ExcelJS and asserts the configured scoring values
+  reach the Metadata sheet, which guards the export adapter's `?? default`
+  mapping against regressing to hardcoded constants. FR-EXPORT-03 and
+  FR-EXPORT-04 remain unimplemented and stay as skipped tests with reasons.
+
 ## Earlier verification
 
 Testing was paused at the user's request on 2026-10-20. Completed checks: lint, TypeScript, OpenAPI validation and production build; host E2E 27/27 (9 scenarios × 3); Docker E2E 9/9 after declaring a UTF-8 locale for Thai download filenames. Business coverage measured 97.52% lines, 90.34% branches and 97.14% functions. The Docker unit run exposed that the redaction probe inherited `LOG_LEVEL=silent`; the probe now explicitly enables its own logger. Further testing and final evidence consolidation are deferred.

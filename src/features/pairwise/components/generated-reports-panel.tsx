@@ -29,6 +29,10 @@ import type { Assignment } from "@/features/assignments/types";
 import type { CsvReport } from "../services/csv-service";
 import { generatedResult } from "../domain/generated-results";
 import { generatedCriteria } from "../domain/regeneration";
+import {
+  choiceDistribution,
+  COMPARISON_CHOICES,
+} from "../domain/report-metrics";
 import { calculateItemScores } from "../domain/scoring-engine";
 import { analyzeAssignmentSignals } from "../domain/quality-signals";
 
@@ -133,12 +137,29 @@ export function GeneratedReportsPanel({
     if (submittedIds.has(p.id)) row.submitted++;
     coverage.set(key, row);
   }
+  // FR-REPORT-05: how the room spread across the six-point scale, per criterion.
+  const distribution = criteria.map((criterion) => {
+    const criterionPairIds = new Set(
+      pairs
+        .filter((pair) => pair.criterion_id === criterion.id)
+        .map((pair) => pair.id),
+    );
+    return {
+      criterion,
+      ...choiceDistribution(
+        comparisons.filter((comparison) =>
+          criterionPairIds.has(comparison.pair_assignment_id),
+        ),
+      ),
+    };
+  });
   const labels = [
     "สรุปคะแนนกลุ่ม",
     "สรุปคะแนนรายบุคคล",
     "ความครอบคลุมคู่",
     "ตรวจสอบคุณภาพ",
     "ประวัติการสร้างคู่",
+    "การกระจายคะแนน",
   ];
   const provisional = active.status !== "finalized";
   return (
@@ -225,7 +246,9 @@ export function GeneratedReportsPanel({
           sx={{ justifyContent: "space-between", gap: 2, alignItems: "center" }}
         >
           <Box>
-            <Typography sx={{ fontWeight: 700 }}>ความคืบหน้าการประเมิน</Typography>
+            <Typography sx={{ fontWeight: 700 }}>
+              ความคืบหน้าการประเมิน
+            </Typography>
             <Typography variant="body2" color="text.secondary">
               ส่งแล้ว {submittedCount} / {pairs.length} งานเปรียบเทียบ
             </Typography>
@@ -246,7 +269,8 @@ export function GeneratedReportsPanel({
           sx={{ height: 8, borderRadius: 4, my: 2, bgcolor: "#dfede5" }}
         />
         <Typography variant="caption" color="text.secondary">
-          คำนวณเฉพาะคำตอบที่ส่งแล้วในคู่ชุดปัจจุบัน · ไม่นับฉบับร่างและประวัติที่ถูกแทนที่
+          คำนวณเฉพาะคำตอบที่ส่งแล้วในคู่ชุดปัจจุบัน ·
+          ไม่นับฉบับร่างและประวัติที่ถูกแทนที่
         </Typography>
       </Paper>
 
@@ -282,7 +306,9 @@ export function GeneratedReportsPanel({
                 กดแต่ละกลุ่มเพื่อดูรายละเอียดรายเกณฑ์
               </Typography>
               {active.groups.length === 0 && (
-                <Alert severity="info">ยังไม่มีกลุ่มสำหรับแสดงผลการประเมิน</Alert>
+                <Alert severity="info">
+                  ยังไม่มีกลุ่มสำหรับแสดงผลการประเมิน
+                </Alert>
               )}
               {active.groups.map((g) => {
                 const s = calculateItemScores(
@@ -410,7 +436,9 @@ export function GeneratedReportsPanel({
                 คะแนนรวมคำนวณร่วมกับสัดส่วนการส่งประเมินของนักศึกษาแต่ละคน
               </Typography>
               {active.groups.every((g) => !g.members.length) ? (
-                <Alert severity="info">ยังไม่มีนักศึกษาในกลุ่มสำหรับแสดงคะแนน</Alert>
+                <Alert severity="info">
+                  ยังไม่มีนักศึกษาในกลุ่มสำหรับแสดงคะแนน
+                </Alert>
               ) : (
                 <ReportTable
                   label="สรุปคะแนนรายบุคคล"
@@ -461,7 +489,12 @@ export function GeneratedReportsPanel({
             ) : (
               <ReportTable
                 label="ความครอบคลุมคู่"
-                columns={["คู่ประเมิน", "รูปแบบ", "เกณฑ์ประเมิน", "ส่งแล้ว / มอบหมาย"]}
+                columns={[
+                  "คู่ประเมิน",
+                  "รูปแบบ",
+                  "เกณฑ์ประเมิน",
+                  "ส่งแล้ว / มอบหมาย",
+                ]}
               >
                 {[...coverage.entries()].map(([key, row]) => (
                   <TableRow key={key} hover>
@@ -494,10 +527,13 @@ export function GeneratedReportsPanel({
           {tab === 3 && (
             <Stack spacing={2}>
               <Alert severity="info">
-                สัญญาณเหล่านี้ใช้ประกอบการทบทวน โดยไม่ลบคำตอบหรือลดคะแนนอัตโนมัติ
+                สัญญาณเหล่านี้ใช้ประกอบการทบทวน
+                โดยไม่ลบคำตอบหรือลดคะแนนอัตโนมัติ
               </Alert>
               {signals.length === 0 ? (
-                <Alert severity="success">ไม่พบสัญญาณที่ต้องทบทวนในข้อมูลปัจจุบัน</Alert>
+                <Alert severity="success">
+                  ไม่พบสัญญาณที่ต้องทบทวนในข้อมูลปัจจุบัน
+                </Alert>
               ) : (
                 signals.map((signal, index) => (
                   <Paper
@@ -526,10 +562,86 @@ export function GeneratedReportsPanel({
             </Stack>
           )}
 
+          {tab === 5 && (
+            <Stack spacing={2}>
+              <Typography variant="body2" color="text.secondary">
+                การกระจายตัวของคะแนนแยกตามเกณฑ์ · นับเฉพาะคำตอบที่ส่งแล้ว
+                เพื่อให้เห็นภาพรวมของห้องเรียน
+              </Typography>
+              {distribution.every((entry) => entry.total === 0) ? (
+                <Alert severity="info">
+                  ยังไม่มีคำตอบที่ส่งแล้วให้แสดงการกระจายตัว
+                </Alert>
+              ) : (
+                distribution.map((entry) => {
+                  const peak = Math.max(
+                    1,
+                    ...COMPARISON_CHOICES.map(
+                      (choice) => entry.counts.get(choice) ?? 0,
+                    ),
+                  );
+                  return (
+                    <Paper
+                      key={entry.criterion.id}
+                      variant="outlined"
+                      sx={{ p: 2.5, borderRadius: "12px" }}
+                    >
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                        {entry.criterion.name} · {entry.total} การเปรียบเทียบ
+                      </Typography>
+                      <Stack
+                        direction="row"
+                        spacing={1}
+                        role="img"
+                        aria-label={`การกระจายคะแนน ${entry.criterion.name} (${entry.criterion.side})`}
+                        sx={{ alignItems: "flex-end", height: 120, mt: 1 }}
+                      >
+                        {COMPARISON_CHOICES.map((choice) => {
+                          const count = entry.counts.get(choice) ?? 0;
+                          return (
+                            <Stack
+                              key={choice}
+                              data-testid="distribution-bar"
+                              aria-label={`ตัวเลือก ${choice} · ${count} ครั้ง`}
+                              sx={{
+                                flex: 1,
+                                height: "100%",
+                                alignItems: "center",
+                                justifyContent: "flex-end",
+                              }}
+                            >
+                              <Typography variant="caption">{count}</Typography>
+                              <Box
+                                sx={{
+                                  width: "100%",
+                                  height: `${(count / peak) * 100}%`,
+                                  minHeight: count > 0 ? 4 : 0,
+                                  bgcolor: "secondary.main",
+                                  borderRadius: "4px 4px 0 0",
+                                }}
+                              />
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                {choice}
+                              </Typography>
+                            </Stack>
+                          );
+                        })}
+                      </Stack>
+                    </Paper>
+                  );
+                })
+              )}
+            </Stack>
+          )}
+
           {tab === 4 && (
             <Stack spacing={2}>
               <Typography variant="body2" color="text.secondary">
-                ประวัติการสร้างคู่ (อ่านอย่างเดียว) · ไม่นำคำตอบชุดเก่ามารวมคะแนนปัจจุบัน
+                ประวัติการสร้างคู่ (อ่านอย่างเดียว) ·
+                ไม่นำคำตอบชุดเก่ามารวมคะแนนปัจจุบัน
               </Typography>
               {!active.pairHistory?.length && (
                 <Alert severity="info">ยังไม่มีประวัติการสร้างคู่ใหม่</Alert>
