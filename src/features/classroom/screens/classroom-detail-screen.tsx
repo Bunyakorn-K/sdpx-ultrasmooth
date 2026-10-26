@@ -93,6 +93,7 @@ export function ClassroomDetailScreen() {
       assignments={classroomAssignments}
       allAssignments={assignments}
       teacher={teacher}
+      user={user}
       onImportRoster={async (roster) => {
         await importRoster(classroom.id, roster);
         await refreshAssignments();

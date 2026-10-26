@@ -4,8 +4,9 @@ import type { ClassroomRepository } from "@/features/classroom/server/classroom-
 import { AppError } from "@/shared/domain/app-error";
 import { applyAssignmentCommand } from "../domain/assignment-policy";
 import { visibleAssignment } from "../domain/assignment-visibility";
-import { createAssignment } from "../domain/create-assignment";
+import { createAssignment, cloneAssignment } from "../domain/create-assignment";
 import { applyClassroomRoster } from "../domain/classroom-roster";
+import { isInterimRecomputationDue } from "@/features/pairwise/domain/interim-scheduler";
 import type { Assignment } from "../types";
 import type { AssignmentRepository } from "./assignment-repository";
 
@@ -45,14 +46,27 @@ export class AssignmentService {
     if (!isOwner && !isJoined) {
       const hasAccess = await this.checkClassroomAccess(user, assignment);
       if (!hasAccess) {
+        // FR-AUTHZ-02: student of classroom A requesting resource of classroom B gets 404 (not 403 to avoid leaking existence)
+        if (assignment.classroomId) {
+          throw new AppError("ไม่พบ assignment", 404);
+        }
         throw new AppError("คุณไม่มีสิทธิ์เข้าถึง assignment นี้", 403);
       }
+    }
+    if (
+      isOwner &&
+      (assignment.status === "active" || assignment.status === "closed") &&
+      isInterimRecomputationDue(assignment.lastInterimAt, "Asia/Bangkok")
+    ) {
+      assignment.lastInterimAt = new Date().toISOString();
+      await this.repository.update(assignment, record.version).catch(() => {});
     }
     return visibleAssignment(assignment, user.id);
   }
 
   async execute(user: User, input: Record<string, unknown>) {
     if (input.action === "create") return this.create(user, input);
+    if (input.action === "clone") return this.clone(user, input);
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       const record = await this.repository.findById(String(input.id || ""));
       if (!record) throw new AppError("ไม่พบ assignment", 404);
@@ -72,6 +86,9 @@ export class AssignmentService {
           throw new AppError("คุณไม่มีสิทธิ์เข้าถึง assignment นี้", 403);
         }
       }
+      const previousPairIds = new Set(
+        record.assignment.pairs?.map((p) => p.id),
+      );
       const previousStatus = record.assignment.status;
       const previousGeneration = record.assignment.pairGeneration ?? 0;
       const appealBefore =
@@ -99,7 +116,22 @@ export class AssignmentService {
         await this.repository.update(
           updated,
           record.version,
-          regenerationEvent ??
+          (input.action === "assignAdditional"
+            ? {
+                kind: "additional_evaluation" as const,
+                key: `${updated.id}:additional:${record.version + 1}`,
+                recipientIds: [
+                  ...new Set(
+                    updated
+                      .pairs!.filter((p) => !previousPairIds.has(p.id))
+                      .map((p) => p.evaluator_user_id),
+                  ),
+                ],
+                scope: String(input.pairId),
+                generation: updated.pairGeneration,
+              }
+            : undefined) ??
+            regenerationEvent ??
             (input.action === "unpublishPairs"
               ? {
                   kind: "pairs_paused" as const,
@@ -152,6 +184,22 @@ export class AssignmentService {
               classroom_id: updated.classroomId || null,
               reason: String(input.reason || ""),
               after_state: { score: input.score, targetId: input.targetId },
+            })
+            .catch(() => {});
+        } else if (input.action === "assignAdditional") {
+          await this.auditService
+            ?.record({
+              actor_id: user.id,
+              action: "PAIRS_ASSIGN_EXTRA",
+              resource_type: "assignment_pairs",
+              resource_id: String(input.pairId),
+              assignment_id: updated.id,
+              classroom_id: updated.classroomId || null,
+              after_state: {
+                addedPairIds: updated.pairs
+                  ?.filter((p) => !previousPairIds.has(p.id))
+                  .map((p) => p.id),
+              },
             })
             .catch(() => {});
         } else if (input.action === "finalize") {
@@ -274,6 +322,34 @@ export class AssignmentService {
     }
     if (await this.repository.create(assignment)) return assignment;
     throw new AppError("กรุณาลองสร้างใหม่อีกครั้ง", 409);
+  }
+
+  private async clone(user: User, input: Record<string, unknown>) {
+    if (user.role !== "teacher") throw new AppError("เฉพาะครูเท่านั้น", 403);
+    const sourceId = String(input.id || input.sourceId || "");
+    const record = await this.repository.findById(sourceId);
+    if (!record) throw new AppError("ไม่พบ assignment ต้นฉบับ", 404);
+    const isOwner = record.assignment.ownerId === user.id;
+    if (!isOwner) {
+      const hasAccess = await this.checkClassroomAccess(
+        user,
+        record.assignment,
+      );
+      if (!hasAccess) {
+        throw new AppError("คุณไม่มีสิทธิ์เข้าถึง assignment นี้", 403);
+      }
+    }
+    let assignment = cloneAssignment(record.assignment, user, input);
+    if (assignment.classroomId) {
+      const classroom = (
+        await this.classroomRepository?.findById(assignment.classroomId)
+      )?.classroom;
+      if (classroom && classroom.status === "ACTIVE") {
+        assignment = applyClassroomRoster(assignment, classroom);
+      }
+    }
+    if (await this.repository.create(assignment)) return assignment;
+    throw new AppError("กรุณาลองคัดลอกใหม่อีกครั้ง", 409);
   }
 }
 

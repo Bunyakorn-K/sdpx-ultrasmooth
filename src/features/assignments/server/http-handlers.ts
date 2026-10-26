@@ -35,11 +35,17 @@ const commands = new Set([
   "reopen",
   "overrideScore",
   "recomputeScores",
+  "clone",
+  "updateDeadline",
+
+  "assignAdditional",
 ]);
 const events: Record<string, string> = {
   submitAppeal: "appeal_submitted",
   resolveAppeal: "appeal_resolved",
   create: "assignment_created",
+  clone: "assignment_cloned",
+  updateDeadline: "deadline_updated",
   group: "group_created",
   joinGroup: "group_joined",
   questions: "questions_updated",
@@ -56,6 +62,7 @@ const events: Record<string, string> = {
   reopen: "assignment_reopened",
   overrideScore: "score_overridden",
   recomputeScores: "interim_scores_recomputed",
+  assignAdditional: "additional_pairs_assigned",
 };
 export const listAssignmentsResponse = withApi(
   "/api/assignments",
@@ -94,7 +101,11 @@ export function assignmentCommandResponse(
     );
     return Response.json(
       { assignment },
-      { status: ["create", "group", "vote"].includes(action) ? 201 : 200 },
+      {
+        status: ["create", "group", "vote", "clone"].includes(action)
+          ? 201
+          : 200,
+      },
     );
   })(request);
 }

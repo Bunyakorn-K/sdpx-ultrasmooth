@@ -101,7 +101,11 @@ test("US03: student in classroom can list and read assignment without prior join
   const fetched = await service.get(student, assignment.id);
   assert.equal(fetched.id, assignment.id);
 
-  await assert.rejects(() => service.get(outsider, assignment.id), /ไม่มีสิทธิ์/);
+  // FR-AUTHZ-02: student of classroom A requesting resource of classroom B gets 404
+  await assert.rejects(
+    () => service.get(outsider, assignment.id),
+    /ไม่พบ assignment/,
+  );
 });
 test("US04: student can join a teacher-created group only once", () => {
   const teacher = makeUser({ role: "teacher" });

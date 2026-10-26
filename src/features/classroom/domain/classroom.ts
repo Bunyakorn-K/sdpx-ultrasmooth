@@ -114,6 +114,15 @@ export function applyRosterImport(
   let updatedCount = 0;
 
   for (const row of roster.members) {
+    if (
+      classroom.allowed_email_domains &&
+      classroom.allowed_email_domains.length > 0 &&
+      !isDomainAllowed(row.email, classroom.allowed_email_domains)
+    ) {
+      throw new AppError(
+        `แถวที่ ${row.rowNumber}: อีเมล ${row.email} ไม่อยู่ในโดเมนที่อนุญาตสำหรับห้องเรียนนี้ (${classroom.allowed_email_domains.join(", ")}) (FR-AUTH-02)`,
+      );
+    }
     const groupId = getOrCreateGroupId(row.group_name);
     const existingMemberIdx = nextMembers.findIndex(
       (m) => m.email.toLowerCase() === row.email.toLowerCase(),

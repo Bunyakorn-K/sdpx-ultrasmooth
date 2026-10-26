@@ -163,6 +163,21 @@ test.describe("Database-backed authenticated journeys", () => {
       expect((await (await other.get(root)).json()).assignment.votes).toEqual(
         [],
       );
+      // FR-PAIR-10: assign additional pairs endpoint
+      expect(
+        (
+          await student.post(`${root}/pairs/additional`, {
+            data: { pairId: "invalid", count: 1 },
+          })
+        ).status(),
+      ).toBe(403);
+      expect(
+        (
+          await teacher.post(`${root}/pairs/additional`, {
+            data: { pairId: "invalid", count: 1 },
+          })
+        ).status(),
+      ).toBe(404);
       expect(
         (await teacher.post(`${root}/voting/stop`, { data: {} })).status(),
       ).toBe(200);
@@ -231,7 +246,45 @@ test.describe("Database-backed authenticated journeys", () => {
       expect(overridden.scoreOverrides).toHaveLength(1);
       expect(overridden.scoreOverrides![0].overriddenScore).toBe(14.5);
 
-      // FR-SCORE-09: finalize snapshots inputs and outputs
+      // FR-ASSIGN-04: update deadline via HTTP
+      const newFutureDeadline = new Date(
+        Date.now() + 10 * 86400000,
+      ).toISOString();
+      expect(
+        (
+          await student.post(`${root}/deadline`, {
+            data: { deadline: newFutureDeadline },
+          })
+        ).status(),
+      ).toBe(403);
+      expect(
+        (
+          await teacher.post(`${root}/deadline`, {
+            data: { deadline: newFutureDeadline },
+          })
+        ).status(),
+      ).toBe(200);
+      const deadlineUpdated = (await (await teacher.get(root)).json())
+        .assignment as Assignment;
+      expect(new Date(deadlineUpdated.deadline).getTime()).toBe(
+        new Date(newFutureDeadline).getTime(),
+      );
+
+      // FR-ASSIGN-06: clone assignment via HTTP
+      expect((await student.post(`${root}/clone`, { data: {} })).status()).toBe(
+        403,
+      );
+      const cloneRes = await teacher.post(`${root}/clone`, { data: {} });
+      expect(cloneRes.status()).toBe(201);
+      const cloned = (await cloneRes.json()).assignment as Assignment;
+      expect(cloned.status).toBe("draft");
+      expect(cloned.id).not.toBe(assignment.id);
+      expect(cloned.title).toContain("(สำเนา)");
+
+      // FR-SCORE-09: finalize snapshots inputs and outputs (after closing the extended active session)
+      expect(
+        (await teacher.post(`${root}/voting/stop`, { data: {} })).status(),
+      ).toBe(200);
       expect(
         (await teacher.post(`${root}/finalize`, { data: {} })).status(),
       ).toBe(200);

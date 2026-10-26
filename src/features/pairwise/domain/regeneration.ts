@@ -9,22 +9,30 @@ export function pairingShape(a: Assignment) {
 
 export function generatedCriteria(a: Assignment): Criterion[] {
   const sides = [...new Set(a.pairs?.map((p) => p.side) ?? [])];
+  if (!sides.length) sides.push("GROUP", "INDIVIDUAL");
   return sides.flatMap((side) =>
-    a.questions.map((name, i) => ({
-      id: `${side}-${i}`,
-      assignment_id: a.id,
-      side,
-      name,
-      description: name,
-      weight_pct: 100 / a.questions.length,
-      display_order: i + 1,
-    })),
+    a.questions.map((name, i) => {
+      const customWeight =
+        a.criteriaWeights?.[`${side}-${i}`] ?? a.criteriaWeights?.[name];
+      const defaultWeight = a.questions.length ? 100 / a.questions.length : 100;
+      return {
+        id: `${side}-${i}`,
+        assignment_id: a.id,
+        side,
+        name,
+        description: name,
+        weight_pct:
+          customWeight !== undefined ? Number(customWeight) : defaultWeight,
+        display_order: i + 1,
+      };
+    }),
   );
 }
 
 type Edge = { to: number; rev: number; capacity: number };
 // Integral max-flow: each pair receives exactly R distinct eligible evaluators.
 // Reverse edges allow reassignment when a greedy placement would strand a pair.
+// Enforces INV-4: difference between evaluator workloads <= 1.
 function distribute(a: Assignment, coverage: number, seed: number) {
   const rng = new SeededRng(seed);
   const groups = a.groups.filter((g) => g.members.length);
@@ -34,6 +42,14 @@ function distribute(a: Assignment, coverage: number, seed: number) {
   const items = groups.flatMap((g, i) =>
     groups.slice(i + 1).map((h) => ({ a: g.id, b: h.id })),
   );
+  if (!students.length || !items.length) return null;
+
+  const totalSlots = items.length * coverage;
+  const maximum = a.maxWorkload ?? 8;
+  const kMin = Math.floor(totalSlots / students.length);
+  const kMax = Math.min(maximum, Math.ceil(totalSlots / students.length));
+  const numExtra = totalSlots % students.length;
+
   const sink = 1 + items.length + students.length;
   const graph: Edge[][] = Array.from({ length: sink + 1 }, () => []);
   function edge(from: number, to: number, capacity: number) {
@@ -58,33 +74,58 @@ function distribute(a: Assignment, coverage: number, seed: number) {
       });
     });
   });
-  students.forEach((_, j) =>
-    edge(items.length + j + 1, sink, a.maxWorkload ?? 8),
-  );
-  let flow = 0;
-  while (true) {
-    const previous: { node: number; edge: Edge }[] = [];
-    const seen = new Set([0]);
-    const queue = [0];
-    for (let head = 0; head < queue.length && !seen.has(sink); head++) {
-      const node = queue[head];
-      for (const e of graph[node]) {
-        if (!e.capacity || seen.has(e.to)) continue;
-        seen.add(e.to);
-        previous[e.to] = { node, edge: e };
-        queue.push(e.to);
+
+  // Stage 1: Enforce INV-4 (workload difference <= 1) by initializing student capacity to kMin / kMin+1
+  const studentSinkEdges: Edge[] = [];
+  students.forEach((_, j) => {
+    const cap = j < numExtra ? kMin + 1 : kMin;
+    studentSinkEdges.push(edge(items.length + j + 1, sink, cap));
+  });
+
+  function runFlow() {
+    let flow = 0;
+    while (true) {
+      const previous: { node: number; edge: Edge }[] = [];
+      const seen = new Set([0]);
+      const queue = [0];
+      for (let head = 0; head < queue.length && !seen.has(sink); head++) {
+        const node = queue[head];
+        for (const e of graph[node]) {
+          if (!e.capacity || seen.has(e.to)) continue;
+          seen.add(e.to);
+          previous[e.to] = { node, edge: e };
+          queue.push(e.to);
+        }
       }
+      if (!seen.has(sink)) break;
+      for (let node = sink; node !== 0;) {
+        const step = previous[node];
+        step.edge.capacity--;
+        graph[node][step.edge.rev].capacity++;
+        node = step.node;
+      }
+      flow++;
     }
-    if (!seen.has(sink)) break;
-    for (let node = sink; node !== 0;) {
-      const step = previous[node];
-      step.edge.capacity--;
-      graph[node][step.edge.rev].capacity++;
-      node = step.node;
-    }
-    flow++;
+    return flow;
   }
-  return flow === items.length * coverage && items.length > 0
+
+  let totalFlow = runFlow();
+  // If strict balanced distribution cannot saturate flow due to group constraints,
+  // progressively relax student capacity up to maximum (maxWorkload)
+  if (totalFlow < totalSlots && kMax < maximum) {
+    for (
+      let extra = 1;
+      extra <= maximum - kMax && totalFlow < totalSlots;
+      extra++
+    ) {
+      studentSinkEdges.forEach((e) => {
+        e.capacity += 1;
+      });
+      totalFlow += runFlow();
+    }
+  }
+
+  return totalFlow === totalSlots && items.length > 0
     ? assignments.filter((x) => x.edge.capacity === 0)
     : null;
 }
@@ -98,6 +139,30 @@ export function previewRegeneration(a: Assignment, scope: PairScope) {
     throw new AppError("กรุณากำหนดเกณฑ์การประเมินก่อน");
   if (new Date(a.deadline).getTime() <= Date.now())
     throw new AppError("กรุณาขยายกำหนดส่งให้เป็นเวลาในอนาคต");
+
+  // FR-ASSIGN-02: validate criteria weights sum to 100% (+- 0.01) before publishing pairs
+  const criteria = generatedCriteria(a);
+  const activeSides = new Set(
+    scope === "both"
+      ? ["GROUP", "INDIVIDUAL"]
+      : [scope === "group" ? "GROUP" : "INDIVIDUAL"],
+  );
+  for (const side of activeSides) {
+    if (side === "INDIVIDUAL" && (a.individualMaxScore ?? 0) === 0) continue;
+    if (side === "GROUP" && (a.groupMaxScore ?? 15) === 0) continue;
+    const sideCriteria = criteria.filter((c) => c.side === side);
+    if (!sideCriteria.length) continue;
+    const totalWeight = sideCriteria.reduce(
+      (sum, c) => sum + (c.weight_pct || 0),
+      0,
+    );
+    if (Math.abs(totalWeight - 100.0) > 0.01) {
+      throw new AppError(
+        `ผลรวมน้ำหนักของเกณฑ์การประเมินฝั่ง ${side} ต้องเท่ากับ 100% (ปัจจุบันได้ ${totalWeight.toFixed(2)}%) (FR-ASSIGN-02)`,
+        400,
+      );
+    }
+  }
   const ids = a.groups.flatMap((g) => g.members.map((m) => m.id));
   if (new Set(ids).size !== ids.length)
     throw new AppError("นักศึกษาต้องอยู่ได้เพียงกลุ่มเดียว");

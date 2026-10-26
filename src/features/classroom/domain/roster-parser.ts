@@ -87,15 +87,15 @@ export function normalizeEmail(email: string): string {
   let local = trimmed.slice(0, atIndex);
   const domain = trimmed.slice(atIndex);
 
-  // If gmail, remove dots and strip +tag
-  if (domain === "@gmail.com" || domain === "@googlemail.com") {
-    local = local.replace(/\./g, "");
-  }
   // Strip +tag
   const plusIndex = local.indexOf("+");
   if (plusIndex !== -1) {
     local = local.slice(0, plusIndex);
   }
+
+  // Remove dots in local part (Gmail, Google Workspace for Education, and university domains)
+  // so that Somchai.A matches somchaia (FR-AUTH-03)
+  local = local.replace(/\./g, "");
 
   return `${local}${domain}`;
 }

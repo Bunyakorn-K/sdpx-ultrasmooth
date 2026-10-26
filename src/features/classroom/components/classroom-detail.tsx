@@ -41,6 +41,7 @@ import {
 } from "@mui/material";
 import type { Classroom } from "../types";
 import type { Assignment } from "@/features/assignments/types";
+import type { User } from "@/features/auth/types";
 import { RosterImportDialog } from "./roster-import-dialog";
 import type { ParseRosterResult } from "../domain/roster-parser";
 
@@ -49,6 +50,7 @@ export type ClassroomDetailProps = {
   assignments: Assignment[];
   allAssignments?: Assignment[];
   teacher: boolean;
+  user?: User | null;
   onImportRoster: (roster: ParseRosterResult) => Promise<void>;
   onAddStaff: (input: {
     email: string;
@@ -68,6 +70,7 @@ export function ClassroomDetail({
   assignments,
   allAssignments,
   teacher,
+  user,
   onImportRoster,
   onAddStaff,
   onRemoveMember,
@@ -99,6 +102,16 @@ export function ClassroomDetail({
   const staffMembers = classroom.members.filter(
     (m) => m.role === "OWNER" || m.role === "CO_TEACHER" || m.role === "TA",
   );
+  const currentUserMember = classroom.members.find(
+    (m) => m.user_id === user?.id,
+  );
+  // FR-AUTHZ-03: Owner, Co-teacher and TA can manage roster
+  const canManageRoster =
+    teacher ||
+    classroom.created_by === user?.id ||
+    currentUserMember?.role === "OWNER" ||
+    currentUserMember?.role === "CO_TEACHER" ||
+    currentUserMember?.role === "TA";
 
   async function handleAddStaffSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -207,7 +220,7 @@ export function ClassroomDetail({
             </Typography>
           </Box>
 
-          {teacher && classroom.status === "ACTIVE" && (
+          {canManageRoster && classroom.status === "ACTIVE" && (
             <Stack
               direction="row"
               spacing={1.5}
@@ -221,7 +234,7 @@ export function ClassroomDetail({
               >
                 นำเข้ารายชื่อ (CSV)
               </Button>
-              {onCreateAssignment && (
+              {teacher && onCreateAssignment && (
                 <Button
                   variant="contained"
                   color="primary"
@@ -409,7 +422,7 @@ export function ClassroomDetail({
                 FR-CLASS-05)
               </Typography>
             </Box>
-            {teacher && classroom.status === "ACTIVE" && (
+            {canManageRoster && classroom.status === "ACTIVE" && (
               <Button
                 variant="outlined"
                 startIcon={<FileUploadOutlined />}
@@ -431,7 +444,7 @@ export function ClassroomDetail({
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 นำเข้ารายชื่อผ่านไฟล์ CSV เพื่อสร้างกลุ่มและนักศึกษาอัตโนมัติ
               </Typography>
-              {teacher && (
+              {canManageRoster && (
                 <Button
                   variant="contained"
                   startIcon={<FileUploadOutlined />}
@@ -665,7 +678,7 @@ export function ClassroomDetail({
       {/* Roster Import Dialog */}
       <RosterImportDialog
         classroom={classroom}
-        open={teacher && rosterOpen}
+        open={canManageRoster && rosterOpen}
         onClose={() => setRosterOpen(false)}
         onImportConfirm={async (roster) => {
           await onImportRoster(roster);

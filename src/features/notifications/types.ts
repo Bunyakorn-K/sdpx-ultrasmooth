@@ -2,7 +2,8 @@ export type NotificationKind =
   | "assignment_opened"
   | "deadline_reminder"
   | "results_finalized"
-  | "pairs_regenerated";
+  | "pairs_regenerated"
+  | "additional_evaluation";
 export type NotificationEvent = {
   kind: NotificationKind | "pairs_paused" | "pairs_reopened";
   key: string;

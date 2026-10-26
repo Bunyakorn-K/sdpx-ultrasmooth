@@ -406,6 +406,142 @@ Verified locally: 176 unit/integration tests pass, lint (Oxlint), typecheck,
 OpenAPI validation, production build, host Playwright E2E (24 passed / 12 skipped),
 and containerized E2E with disposable PostgreSQL (36 passed).
 
+## Assignment Lifecycle completion — FR-ASSIGN-01..06 (2026-10-25)
+
+The Assignment Lifecycle module requirements are completed and verified:
+
+- **FR-ASSIGN-01 (Artifact link, separate deadlines, dual evaluation mode):**
+  Added `artifactUrl`, `groupDeadline`, and `individualDeadline` to the assignment
+  model. The creation dialog includes an Artifact Link input, and the assignment
+  detail view displays a clickable external link to view the original artifact.
+  Evaluation mode defaults to both group and individual evaluations without
+  requiring an exclusive selection (with individual cleanly disabled if
+  `individualMaxScore === 0`).
+- **FR-ASSIGN-02 (Criteria weights sum to 100% validation):**
+  `previewRegeneration` strictly validates that the sum of criteria weights for
+  each active evaluation side equals 100% (±0.01) before publishing pairs,
+  rejecting invalid totals with HTTP 400. `CriteriaPanel` displays each
+  criterion's weight percentage and a total sum validity chip.
+- **FR-ASSIGN-03 (Unpublish action and warning):**
+  Added a prominent "นำกลับเป็น Draft (Unpublish)" button to the teacher actions
+  toolbar on active/closed assignments. Clicking opens a confirmation dialog
+  explaining that existing submitted comparisons will be invalidated, requiring
+  a mandatory reason.
+- **FR-ASSIGN-04 (Edit Deadline UI and API):**
+  Added an "แก้ไขกำหนดส่ง" button and dialog next to the deadline in the
+  assignment detail view. Exposed route `POST /api/assignments/:id/deadline` in
+  HTTP handlers and client services. Enforces the invariant: extensions are
+  allowed anytime, while shortening is permitted only before the original
+  deadline arrives.
+- **FR-ASSIGN-05 (Timezone formatting):**
+  Deadlines are stored as UTC ISO strings in the database and displayed using the
+  classroom's configured timezone (`classroom.timezone` or "Asia/Bangkok") in
+  both detail and list views.
+- **FR-ASSIGN-06 (Clone Assignment):**
+  Added `cloneAssignment` domain function, service method, route `POST /api/assignments/:id/clone`,
+  and "คัดลอกงาน (Clone)" buttons on the detail view and assignment list cards.
+  Cloned assignments start in `draft` status with a fresh future deadline (+7 days),
+  duplicated questions/criteria, artifact URL, and scoring configuration, with all
+  prior answers, pairs, and snapshots reset.
+- **FR-ASSIGN-07:**
+  Confirmed passing: setting `individualMaxScore = 0` generates no individual
+  pairs and hides the individual evaluation tab.
+
+Verified locally: `tests/unit/assignment-lifecycle.test.ts` (4 passed),
+`tests/e2e/specs/assignment-lifecycle.spec.ts` (passed), host Playwright E2E
+(25 passed / 12 skipped), containerized E2E with disposable PostgreSQL
+(37 passed), lint (Oxlint), typecheck, and OpenAPI validation.
+
+## Authentication & Authorization completion — FR-AUTH-01..04 & FR-AUTHZ-01..03 (2026-10-26)
+
+The Authentication and Authorization requirements are completed and verified:
+
+- **FR-AUTH-03 (Full Email Normalization):**
+  Updated `normalizeEmail` to strip dots (`.`) and `+tags` across all domains
+  (including academic `.ac.th`, `.edu`, and institutional domains). Standardized
+  its usage in `roster-parser.ts`, `auth-validation.ts` (local register/login),
+  `classroom-service.ts` (roster activation), and `session-service.ts`.
+  `Somchai.A+x@uni.ac.th` in roster matches `somchaia@uni.ac.th` on login/activation,
+  fulfilling the PRD §7.1 acceptance test and resolving tester Aom's issue.
+- **FR-AUTHZ-03 (TA Roster Import Permissions & Staff UI):**
+  Updated `ClassroomService.importRoster` to permit `TA` role members to import
+  rosters alongside `OWNER` and `CO_TEACHER` per PRD §3 Role Matrix.
+  Updated `classroom-detail.tsx` so staff members (`canManageRoster`) can access
+  and trigger the Roster Import dialog and CSV upload buttons, resolving tester
+  Oak's issue.
+- **FR-AUTH-04 (12-Hour Session Lifetime and Silent Refresh):**
+  Updated `session-service.ts` and `src/app/auth/callback/route.ts` to use
+  12-hour session lifetime (`now() + interval '12 hours'`, cookie maxAge 43,200).
+  Implemented silent refresh in `currentUser()`: active sessions with less than
+  4 hours remaining are automatically extended by 12 hours without interrupting
+  the user's work, resolving Oak's issue.
+- **FR-AUTHZ-02 (Cross-Classroom Resource Access Returns 404):**
+  Updated `AssignmentService.get` and `ClassroomService.get` so that students
+  attempting to access resources from classrooms they do not belong to receive
+  HTTP 404 Not Found instead of 403 Forbidden, preventing resource existence leaks
+  per PRD §7.1.
+- **FR-AUTH-02 (Classroom Allowed Email Domains Enforcement):**
+  Enforced domain check during atomic CSV roster import in `applyRosterImport`:
+  rejects CSV files containing emails outside the classroom's `allowed_email_domains`
+  with exact row number and disallowed domain message.
+- **FR-AUTH-01 (Google OAuth & Local Dev Auth):**
+  Google OAuth 2.0 / Supabase Auth serves as primary authentication for production
+  flows, with local password authentication retained for development, testing,
+  and offline evaluations per stakeholder guidance.
+
+Verified locally: 190 unit and integration tests pass, lint (Oxlint), typecheck,
+OpenAPI validation, production build, host Playwright E2E (24 passed / 12 skipped),
+and containerized E2E with disposable PostgreSQL (36 passed).
+
+## Pairing Engine completion — FR-PAIR-01..14 & Invariants INV-1..5 (2026-10-26)
+
+The Pairing Engine module and its 5 invariants are completed and verified:
+
+- **INV-1 (FR-PAIR-02 & FR-PAIR-03):** Group evaluation strictly excludes pairs containing the evaluator's own group; individual evaluation strictly excludes self and compares peers within the same group only.
+- **INV-2 (FR-PAIR-07):** Evaluators never receive duplicate pairs within the same criterion.
+- **INV-3 (FR-PAIR-06):** Balanced pair coverage: $\max(\text{coverage}) - \min(\text{coverage}) \le 1$.
+- **INV-4 (§8.4 Workload balance):** Balanced evaluator workload: $\max(\text{workload}) - \min(\text{workload}) \le 1$. Fixed in `distribute()` in `src/features/pairwise/domain/regeneration.ts` by initializing student capacity to $k_{\min} / k_{\min}+1$.
+- **INV-5 (FR-PAIR-09):** Deterministic with same seed across runs.
+- **FR-PAIR-04 & FR-PAIR-05 (Feasibility & Auto-reduction):** `solveFeasibility` calculates feasible coverage, workload, and total comparisons, reducing coverage with exact numeric reasoning when infeasible.
+- **FR-PAIR-08 (Randomized left/right):** Left/right presentation order is randomized and stored in `display_left_item_id`.
+- **FR-PAIR-10 (Assign additional evaluators):** Implemented `assignAdditional` command, domain logic in `src/features/pairwise/domain/additional-evaluations.ts`, dialog in `GeneratedReportsPanel`, and notification generation (`FR-NOTIF-05`).
+- **FR-PAIR-11 (Group changes after publish):** Guarded via `unpublishPairs` -> edit in draft -> `regeneratePairs` with audit and notification dispatch.
+- **FR-PAIR-12 & FR-PAIR-13:** Groups with $m \le 2$ have individual evaluation disabled; groups with $m = 3$ have pairs generated and flagged `LOW_CONFIDENCE`.
+
+Verified locally: `tests/unit/pairing-invariants.test.ts` (3 passed), `tests/unit/additional-evaluations.test.ts` (6 passed), 199 total unit/integration tests pass, lint (Oxlint), typecheck, OpenAPI validation, production build, host E2E (24 passed / 12 skipped), and containerized E2E with disposable PostgreSQL (36 passed).
+
+## Open PR integration — #57–#60 (2026-10-26)
+
+Branch `integration/open-prs-57-60` combines the four open PR heads on top of
+`origin/main` (`2e8a31e`):
+
+- #57 (`51c9a44`): development auth debugger and scoring checks.
+- #58 (`a8f15ab`): assignment artifact link, criteria weights, deadline editing,
+  timezone display, unpublish confirmation and assignment cloning.
+- #59 (`4bd21bd`): email normalization, allowed-domain validation, TA roster
+  import, session renewal and cross-classroom resource isolation.
+- #60 (`ae336a1`): pairing invariants, additional evaluator assignment and
+  additional-evaluation notifications.
+
+Resolved overlapping command registries by retaining clone, deadline and
+additional-pair commands together. Kept each feature's status documentation.
+The failing CI job was stopped by Oxfmt before its unit-test step; formatting
+was fixed without weakening assertions. Fixed the notification schema's CREATE
+and ALTER constraints to accept `additional_evaluation`, with a regression test
+that checks both constraints against every application notification kind.
+
+Local verification: 210 unit/integration tests passed with zero failures or
+skips; formatting, Oxlint, TypeScript, OpenAPI validation and production build
+passed. Coverage passed configured thresholds; mutation fidelity detected the
+intentional failure and restored the source without changing existing tests.
+
+E2E remains paused as requested. Docker is unavailable on this workstation, so
+the merged branch's database migration and real browser/database flows have not
+been reverified here. Run `npm run db:init` against the intended deployment
+database before using additional-evaluation notifications. No hosted database
+was modified during integration. Historical E2E results above refer to the
+individual feature branches, not this combined branch.
+
 ## Earlier verification
 
 Testing was paused at the user's request on 2026-10-20. Completed checks: lint, TypeScript, OpenAPI validation and production build; host E2E 27/27 (9 scenarios × 3); Docker E2E 9/9 after declaring a UTF-8 locale for Thai download filenames. Business coverage measured 97.52% lines, 90.34% branches and 97.14% functions. The Docker unit run exposed that the redaction probe inherited `LOG_LEVEL=silent`; the probe now explicitly enables its own logger. Further testing and final evidence consolidation are deferred.
@@ -439,7 +575,6 @@ No student/team names, human code approvals, clean-clone observations from other
 - Local verification: 3 appeals E2E journeys passed (1280px, 390px and guarded isolated PostgreSQL authorization/privacy/concurrency/audit). No production database was changed. Deployment and hosted authentication are not externally verified.
 - Required checks passed: 156 unit/integration tests, lint, typecheck, OpenAPI lint, production build, coverage (97.34% lines / 100% functions / 87.45% branches), and mutation fidelity. Excel/CSV regression verifies nonzero and zero personal-total overrides without changing another student's result.
 - Current limitations: no email/push delivery, attachments or multi-message conversation; users read requests/responses in the Assignment tab. Existing broader scoring/finalized-output snapshot gaps in `prd-gap-audit.md` remain separate work.
-
 
 ## Raw comparison and confirmed identity export (2026-10-25)
 

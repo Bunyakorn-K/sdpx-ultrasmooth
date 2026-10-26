@@ -11,7 +11,7 @@ import {
   SchoolOutlined,
   Search,
 } from "@mui/icons-material";
-import { Button, Tab, Tabs, TextField, Typography } from "@mui/material";
+import { Button, Stack, Tab, Tabs, TextField, Typography } from "@mui/material";
 
 import { DEFAULT_QUESTIONS as baseQuestions } from "@/features/assignments/constants";
 import { PersonArt } from "@/shared/components/person-art";
@@ -33,6 +33,8 @@ type AssignmentListProps = {
   setSelected: (id: string | null) => void;
   setTab: (tab: number) => void;
   setError: (message: string) => void;
+  cloneAssignment?: (assignment: Assignment) => Promise<void>;
+  classrooms?: Array<{ id: string; name: string; timezone?: string }>;
 };
 export function AssignmentList(props: AssignmentListProps) {
   const {
@@ -213,6 +215,9 @@ export function AssignmentList(props: AssignmentListProps) {
                 <AccessTime />
                 สิ้นสุด{" "}
                 {new Date(a.deadline).toLocaleString("th-TH", {
+                  timeZone:
+                    props.classrooms?.find((c) => c.id === a.classroomId)
+                      ?.timezone || "Asia/Bangkok",
                   day: "numeric",
                   month: "short",
                   year: "2-digit",
@@ -224,18 +229,32 @@ export function AssignmentList(props: AssignmentListProps) {
                 <span>
                   ห้องเรียน <strong>{a.subject}</strong>
                 </span>
-                <Button
-                  size="small"
-                  color="inherit"
-                  endIcon={<ArrowForward />}
-                  onClick={() => {
-                    setSelected(a.id);
-                    setTab(0);
-                    setError("");
-                  }}
-                >
-                  ดูรายละเอียด
-                </Button>
+                <Stack direction="row" spacing={1}>
+                  {teacher && props.cloneAssignment && (
+                    <Button
+                      size="small"
+                      color="inherit"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void props.cloneAssignment?.(a);
+                      }}
+                    >
+                      คัดลอก
+                    </Button>
+                  )}
+                  <Button
+                    size="small"
+                    color="inherit"
+                    endIcon={<ArrowForward />}
+                    onClick={() => {
+                      setSelected(a.id);
+                      setTab(0);
+                      setError("");
+                    }}
+                  >
+                    ดูรายละเอียด
+                  </Button>
+                </Stack>
               </div>
             </div>
           </article>

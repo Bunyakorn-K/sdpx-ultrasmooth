@@ -4,6 +4,7 @@ import { Box, Button, Chip, Paper, Stack, Typography } from "@mui/material";
 import { EditOutlined } from "@mui/icons-material";
 import type { Assignment } from "../types";
 import { FeasibilityPanel } from "@/features/pairwise/components/feasibility-panel";
+import { generatedCriteria } from "@/features/pairwise/domain/regeneration";
 
 export function CriteriaPanel({
   active,
@@ -17,12 +18,13 @@ export function CriteriaPanel({
   openModal?: (mode: "group" | "questions") => void;
 }) {
   const isDraft = active.status === "draft";
-  const criteria = active.questions.map((q, i) => ({
-    id: `crit-${i}`,
-    name: q,
-    side: "GROUP" as const,
-    weight_pct: Math.round(100 / (active.questions.length || 1)),
-  }));
+  const allCriteria = generatedCriteria(active);
+  const groupCriteria = allCriteria.filter((c) => c.side === "GROUP");
+  const totalWeight = groupCriteria.reduce(
+    (sum, c) => sum + (c.weight_pct || 0),
+    0,
+  );
+  const isWeightValid = Math.abs(totalWeight - 100.0) <= 0.01;
 
   const handleEditQuestions = () => {
     if (!isDraft) return;
@@ -46,10 +48,25 @@ export function CriteriaPanel({
         }}
       >
         <div>
-          <h3>เกณฑ์และคำถามการประเมิน ({active.questions.length} ข้อ)</h3>
-          <p>
-            เกณฑ์และน้ำหนักสำหรับการเปรียบเทียบคู่ (Pairwise Comparison) ตาม PRD §7.3
-          </p>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              เกณฑ์และคำถามการประเมิน ({active.questions.length} ข้อ)
+            </Typography>
+            <Chip
+              size="small"
+              label={
+                isWeightValid
+                  ? "ผลรวมน้ำหนัก 100% ครบถ้วน ✓"
+                  : `ผลรวมน้ำหนัก ${totalWeight.toFixed(1)}% (ต้องเท่ากับ 100%)`
+              }
+              color={isWeightValid ? "success" : "error"}
+              variant="outlined"
+            />
+          </Stack>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            เกณฑ์และน้ำหนักสำหรับการเปรียบเทียบคู่ (Pairwise Comparison) ตาม PRD §7.3 &
+            FR-ASSIGN-02
+          </Typography>
         </div>
 
         {teacher && isDraft && (
@@ -66,7 +83,7 @@ export function CriteriaPanel({
         )}
       </Box>
 
-      {criteria.map((c, idx) => (
+      {groupCriteria.map((c, idx) => (
         <Paper
           key={c.id}
           variant="outlined"
@@ -87,7 +104,7 @@ export function CriteriaPanel({
               </Typography>
             </Box>
             <Chip
-              label={`น้ำหนัก ${c.weight_pct}%`}
+              label={`น้ำหนัก ${c.weight_pct.toFixed(1)}%`}
               color="primary"
               variant="outlined"
             />

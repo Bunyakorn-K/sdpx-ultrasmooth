@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useWorkspace } from "@/features/workspace/context/workspace-provider";
 import { AuthForm } from "../components/auth-form";
 import { PersonArt } from "@/shared/components/person-art";
+import { DevAuthDebugger } from "../components/dev-auth-debugger";
 
 function formatAuthError(error?: string): string {
   if (!error) return "";
@@ -86,6 +87,7 @@ export function AuthScreen({
           </section>
         </main>
       </div>
+      {process.env.NODE_ENV !== "production" && <DevAuthDebugger />}
     </div>
   );
 }

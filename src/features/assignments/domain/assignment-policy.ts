@@ -9,6 +9,7 @@ import {
 import type { ComparisonChoice } from "@/features/pairwise/types";
 import { validateQuestions } from "./create-assignment";
 import { saveEvaluation } from "@/features/pairwise/domain/evaluation-submission";
+import { assignAdditionalEvaluations } from "@/features/pairwise/domain/additional-evaluations";
 import { submitAppeal, resolveAppeal } from "./appeals";
 import { generatedResult } from "@/features/pairwise/domain/generated-results";
 import {
@@ -475,6 +476,8 @@ function recomputeScores({ assignment, isOwner }: PolicyContext) {
   assignment.lastInterimAt = new Date().toISOString();
 }
 const commandHandlers: Record<string, CommandHandler> = {
+  assignAdditional: (context, input) =>
+    assignAdditionalEvaluations(context.assignment, context.user, input),
   recomputeScores,
   submitAppeal: ({ assignment, user }, input) =>
     submitAppeal(assignment, user, input),
