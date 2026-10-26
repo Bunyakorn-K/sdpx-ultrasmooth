@@ -181,7 +181,7 @@ async function downloadAnswers(a: Assignment, report?: CsvReport) {
         return score === null ? [] : [[s.id, score]];
       }),
     ),
-    generation: a.pairGeneration,
+    generation: a.pairGeneration ?? (a.pairwiseRequired ? 0 : undefined),
     classroom,
     assignment: pairwiseAssignment,
     groups,

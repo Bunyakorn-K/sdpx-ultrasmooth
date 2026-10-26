@@ -37,7 +37,7 @@ export function GeneratedEvaluationPanel({
       </Typography>
       {(active.status === "closed" || active.status === "finalized") && (
         <Alert severity="info">
-          คะแนนกลุ่มของคุณ: {result.groupScore} · คะแนนรายบุคคล:{" "}
+          คะแนนกลุ่มของคุณ: {result.groupScore ?? "ยังไม่มีผลประเมิน"} · คะแนนรายบุคคล:{" "}
           {result.individualScore ?? "ยังมีข้อมูลไม่พอ"} · คะแนนรวมหลัง participation:{" "}
           {result.finalScore ?? "ยังมีข้อมูลไม่พอ"}
           {appealScore(active, user?.id ?? "", null) !== null &&

@@ -14,7 +14,7 @@ export function generatedResult(a: Assignment, userId: string) {
     const frozenScores = a.finalizedSnapshot.outputs.scores as Record<
       string,
       {
-        groupScore: number;
+        groupScore: number | null;
         individualScore: number | null;
         finalScore: number | null;
         groupParticipation?: number;
@@ -67,7 +67,9 @@ export function generatedResult(a: Assignment, userId: string) {
   let groupScore =
     group && pairs.some((p) => p.side === "GROUP")
       ? scores(group.id, "GROUP", a.groupMaxScore ?? 15).totalScore
-      : 0;
+      : (a.groupMaxScore ?? 15) === 0
+        ? 0
+        : null;
   const individual =
     group &&
     group.members.length > 2 &&
@@ -121,7 +123,7 @@ export function generatedResult(a: Assignment, userId: string) {
   let finalScore: number | null = null;
   if (studentOverride) {
     finalScore = studentOverride.overriddenScore;
-  } else if (individualScore !== null) {
+  } else if (individualScore !== null && groupScore !== null) {
     // (Group + Individual) * M
     finalScore = Number(((groupScore + individualScore) * M).toFixed(3));
   }

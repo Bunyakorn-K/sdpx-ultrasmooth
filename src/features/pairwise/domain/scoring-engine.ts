@@ -123,10 +123,11 @@ export function calculateItemScores(
   minComparisons: number = 3,
   evaluatorRoles: EvaluatorRoleMap = {},
   instructorWeight: number = 1.0,
+  preserveLegacyBaseline: boolean = false,
 ) {
   const sideCriteria = criteria.filter((c) => c.side === side);
   const criterionScores = sideCriteria.map((criterion) => {
-    const { q, comparisonCount } = calculateQualityIndex(
+    const { q, comparisonCount, effectiveWeightSum } = calculateQualityIndex(
       itemId,
       criterion.id,
       pairs,
@@ -134,12 +135,19 @@ export function calculateItemScores(
       evaluatorRoles,
       instructorWeight,
     );
-    const scoreRatio = calculateScoreRatio(q, scoreFloor, scoreCeiling);
-    const weightedScore = calculateWeightedScore(
-      scoreRatio,
-      criterion.weight_pct,
-      maxScoreSide,
-    );
+    const hasData =
+      preserveLegacyBaseline || (comparisonCount > 0 && effectiveWeightSum > 0);
+    const scoreRatio = hasData
+      ? calculateScoreRatio(q, scoreFloor, scoreCeiling)
+      : null;
+    const weightedScore =
+      scoreRatio === null
+        ? null
+        : calculateWeightedScore(
+            scoreRatio,
+            criterion.weight_pct,
+            maxScoreSide,
+          );
     const flags: string[] = [];
     if (comparisonCount < minComparisons) {
       flags.push("LOW_CONFIDENCE");
@@ -148,7 +156,7 @@ export function calculateItemScores(
       criterionId: criterion.id,
       criterionName: criterion.name,
       weightPct: criterion.weight_pct,
-      q,
+      q: hasData ? q : null,
       comparisonCount,
       scoreRatio,
       weightedScore,
@@ -156,11 +164,21 @@ export function calculateItemScores(
     };
   });
 
-  const totalScore = Number(
-    criterionScores
-      .reduce((sum, item) => sum + item.weightedScore, 0)
-      .toFixed(3),
-  );
+  const hasData = criterionScores.some((item) => item.weightedScore !== null);
+  const isComplete =
+    criterionScores.length > 0 &&
+    criterionScores.every((item) => item.weightedScore !== null);
+  const totalScore =
+    maxScoreSide === 0 ||
+    (preserveLegacyBaseline && criterionScores.length === 0)
+      ? 0
+      : !isComplete
+        ? null
+        : Number(
+            criterionScores
+              .reduce((sum, item) => sum + (item.weightedScore ?? 0), 0)
+              .toFixed(3),
+          );
 
   const kAnonymity =
     side === "INDIVIDUAL"
@@ -176,9 +194,15 @@ export function calculateItemScores(
     side,
     criterionScores,
     totalScore,
+    hasData,
+    isComplete,
     kAnonymity,
     displayScore: kAnonymity.isSatisfied ? totalScore : null,
-    displayStatus: kAnonymity.isSatisfied ? null : "ยังมีข้อมูลไม่พอ",
+    displayStatus: !hasData
+      ? "ยังไม่มีผลประเมิน"
+      : totalScore === null || !kAnonymity.isSatisfied
+        ? "ยังมีข้อมูลไม่พอ"
+        : null,
   };
 }
 

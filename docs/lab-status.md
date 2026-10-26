@@ -560,6 +560,31 @@ data and the reported deployed page were not accessible for authenticated browse
 verification. E2E remains paused; this change must be deployed before the hosted
 site reflects the fix.
 
+## Missing evaluation scores — FR-SCORE-14 (2026-10-26)
+
+Clarified the previously unspecified zero-evidence case in the PRD. Current
+calculations expose null q, ratio and weighted score for criteria without
+effective submitted evidence. Totals remain unavailable until all enabled
+criteria have evidence; criteria with real answers still show provisional
+results and LOW_CONFIDENCE. Empty criteria lists do not produce initial scores;
+disabled components and genuine calculated zero scores remain zero.
+
+Teacher summaries, student results, the API's nullable groupScore contract and
+generated XLSX/CSV exports use this rule. Excel cells remain empty rather than
+containing a made-up average. Explicit overrides, including zero, still apply.
+Frozen stored outputs are not rewritten. Historical finalized workbook inputs
+without a pairing generation retain their existing calculation contract for
+backward compatibility; current generated reports do not use that compatibility
+mode. Existing assertions for these historical exports were preserved.
+
+Local unit/integration verification: 219 tests passed, including five new tests
+covering empty evidence, drafts/exclusions, zero effective weight, partial
+criteria, real zero scores, generated student results and XLSX/CSV outputs.
+Formatting, Oxlint, TypeScript, OpenAPI validation, production build, coverage
+(96.76% lines / 99.33% functions / 88.03% branches) and mutation fidelity passed.
+Authenticated production/browser verification remains pending; E2E stays paused
+as previously requested. No database migration is required.
+
 ## Appeals & Audit completion — FR-APPEAL-01..02 & FR-AUDIT-01..03 (2026-10-26)
 
 The Appeals and Audit Logging module is completed and verified:
