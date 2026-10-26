@@ -38,6 +38,28 @@ function existingAnswers(
   );
 }
 
+function getInitialOfflineDraft(
+  key: string | null,
+): Record<string, PendingAnswer> {
+  if (!key || typeof window === "undefined") return {};
+  try {
+    const cached = localStorage.getItem(key);
+    if (cached) {
+      const parsed = JSON.parse(cached) as Record<string, PendingAnswer>;
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        Object.keys(parsed).length > 0
+      ) {
+        return parsed;
+      }
+    }
+  } catch {
+    // Ignore storage parse issues
+  }
+  return {};
+}
+
 export function useEvaluationDraft(
   a: Assignment,
   userId: string,
@@ -46,8 +68,17 @@ export function useEvaluationDraft(
   editable: boolean,
   visible: boolean,
 ) {
-  const [pending, setPending] = useState<Record<string, PendingAnswer>>({});
-  const pendingRef = useRef<Record<string, PendingAnswer>>({});
+  const storageKey =
+    typeof window !== "undefined"
+      ? `peereval_offline_draft_${a.id}_${userId}_${side}`
+      : null;
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator !== "undefined" ? navigator.onLine : true,
+  );
+  const [pending, setPending] = useState<Record<string, PendingAnswer>>(() =>
+    getInitialOfflineDraft(storageKey),
+  );
+  const pendingRef = useRef<Record<string, PendingAnswer>>(pending);
   const context = useRef({ a, command });
   const queue = useRef<Promise<void>>(Promise.resolve());
   const sequence = useRef(0);
@@ -96,6 +127,17 @@ export function useEvaluationDraft(
         pendingRef.current = next;
         if (!Object.keys(next).length) editRevision.current = null;
         setPending(next);
+        if (storageKey) {
+          try {
+            if (Object.keys(next).length) {
+              localStorage.setItem(storageKey, JSON.stringify(next));
+            } else {
+              localStorage.removeItem(storageKey);
+            }
+          } catch {
+            // Ignore storage quota
+          }
+        }
         setSavedAt(
           new Date().toLocaleTimeString("th-TH", {
             hour: "2-digit",
@@ -110,7 +152,7 @@ export function useEvaluationDraft(
     });
     queue.current = job.catch(() => {});
     return job;
-  }, [side, userId]);
+  }, [side, userId, storageKey]);
 
   useEffect(() => {
     if (!editable || submitting || !Object.keys(pending).length) return;
@@ -152,7 +194,39 @@ export function useEvaluationDraft(
     pendingRef.current = next;
     setPending(next);
     setSubmittedAt("");
+    if (storageKey) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(next));
+      } catch {
+        // Ignore storage quota
+      }
+    }
   }
+
+  // FR-EVAL-13: Listen for online event and auto-sync queued drafts
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onOnline = () => {
+      setIsOnline(true);
+      if (
+        editable &&
+        !submitting &&
+        Object.keys(pendingRef.current).length > 0
+      ) {
+        void save();
+      }
+    };
+    const onOffline = () => {
+      setIsOnline(false);
+    };
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, [editable, submitting, save]);
+
   async function submit() {
     if (submitLock.current) return false;
     submitLock.current = true;
@@ -185,6 +259,13 @@ export function useEvaluationDraft(
         pendingRef.current = {};
         editRevision.current = null;
         setPending({});
+        if (storageKey) {
+          try {
+            localStorage.removeItem(storageKey);
+          } catch {
+            // Ignore
+          }
+        }
         setSubmittedAt(
           updated.evaluationSubmissions?.at(-1)?.submittedAt ??
             new Date().toISOString(),
@@ -211,6 +292,7 @@ export function useEvaluationDraft(
     error,
     savedAt,
     submittedAt,
+    isOnline,
     dirty: Object.keys(pending).length > 0,
   };
 }

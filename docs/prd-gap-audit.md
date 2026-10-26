@@ -18,11 +18,9 @@ evidence of an integrated feature.
 
 ## Required functionality still missing or partial
 
-| Requirement                                                | Remaining work                                                                                                                                                                                |
-| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | FR-ASSIGN-01, FR-ASSIGN-05 (Resolved)                      | Artifact URL, separate deadlines in assignment model, classroom timezone display.                                                                                                             |
 | FR-ASSIGN-02 (Resolved)                                    | 100% criteria weight sum validation before publish in previewRegeneration, with weight percentages displayed in CriteriaPanel.                                                                |
-| FR-EVAL-02                                                 | Card supports artifact URLs and an empty state, but assignment/group artifact entry and data wiring are missing.                                                                              |
+| FR-EVAL-02 (Resolved)                                      | Artifact URLs wired from Group/Assignment with standard fallback "อาจารย์ยังไม่ได้ระบุ".                                                                                                       |
 | FR-PAIR-10, FR-NOTIF-05 (Resolved); FR-REPORT-03 (partial) | Additional evaluator assignment and notifications are implemented. Teacher self-evaluation and pair mean actions still require verification.                                                  |
 | FR-SCORE-03 (Resolved)                                     | The scoring function passes evaluator roles and instructor weight in generated-results, reports panels, and export.                                                                           |
 | FR-SCORE-06 (Resolved)                                     | Daily 02:00 classroom-timezone recomputation helper (`isInterimRecomputationDue`), cron script, and explicit on-demand teacher recompute operation (`/recompute`).                            |
@@ -47,8 +45,8 @@ evidence of an integrated feature.
 
 - FR-AUTHZ-03: TA roster import is implemented; different instructor/student roles per classroom still require verification because the user role is global.
 - FR-ASSIGN-06 (Resolved): Clone assignment creates a new draft with fresh future deadline, copied config/criteria and zeroed answers.
-- FR-EVAL-10: countdown below 48 hours.
-- FR-EVAL-13: durable offline answer queue and automatic reconnect synchronization. Current hook retains unsaved answers in memory and offers retry.
+- FR-EVAL-10 (Resolved): countdown below 48 hours implemented via useDeadlineCountdown and urgent banner.
+- FR-EVAL-13 (Resolved): durable offline answer queue via localStorage and automatic reconnect synchronization on browser online event.
 - FR-REPORT-05: score distribution chart per criterion.
 - FR-API-05: asynchronous export job and delivery link.
 - FR-APPEAL-01 / FR-APPEAL-02: implemented on 2026-10-25. Assignment appeals tab supports student requests within seven days and owning-teacher uphold/override decisions. Verified locally with domain/service tests and PostgreSQL/browser E2E; remote deployment remains unverified (see lab-status).
