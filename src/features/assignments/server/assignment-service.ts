@@ -112,6 +112,7 @@ export class AssignmentService {
               String(input.reason),
             )
           : undefined;
+      const ipAddress = (input.ipAddress as string) || null;
       if (
         await this.repository.update(
           updated,
@@ -183,6 +184,7 @@ export class AssignmentService {
               assignment_id: updated.id,
               classroom_id: updated.classroomId || null,
               reason: String(input.reason || ""),
+              ip_address: ipAddress,
               after_state: { score: input.score, targetId: input.targetId },
             })
             .catch(() => {});
@@ -195,6 +197,7 @@ export class AssignmentService {
               resource_id: String(input.pairId),
               assignment_id: updated.id,
               classroom_id: updated.classroomId || null,
+              ip_address: ipAddress,
               after_state: {
                 addedPairIds: updated.pairs
                   ?.filter((p) => !previousPairIds.has(p.id))
@@ -211,6 +214,7 @@ export class AssignmentService {
               resource_id: updated.id,
               assignment_id: updated.id,
               classroom_id: updated.classroomId || null,
+              ip_address: ipAddress,
               before_state: { status: "closed" },
               after_state: { status: "finalized" },
             })
@@ -225,8 +229,53 @@ export class AssignmentService {
               assignment_id: updated.id,
               classroom_id: updated.classroomId || null,
               reason: String(input.reason || ""),
+              ip_address: ipAddress,
               before_state: { status: "finalized" },
               after_state: { status: "closed" },
+            })
+            .catch(() => {});
+        } else if (input.action === "unpublishPairs") {
+          await this.auditService
+            ?.record({
+              actor_id: user.id,
+              action: "ASSIGNMENT_UNPUBLISH",
+              resource_type: "assignment",
+              resource_id: updated.id,
+              assignment_id: updated.id,
+              classroom_id: updated.classroomId || null,
+              reason: String(input.reason || ""),
+              ip_address: ipAddress,
+              before_state: {
+                status: previousStatus,
+                pairGeneration: previousGeneration,
+              },
+              after_state: { status: updated.status, pairingPaused: true },
+            })
+            .catch(() => {});
+        } else if (input.action === "regeneratePairs") {
+          const isInitialPublish =
+            previousStatus === "draft" && !record.assignment.pairs;
+          await this.auditService
+            ?.record({
+              actor_id: user.id,
+              action: isInitialPublish
+                ? "ASSIGNMENT_PUBLISH"
+                : "PAIRS_REGENERATE",
+              resource_type: "assignment",
+              resource_id: updated.id,
+              assignment_id: updated.id,
+              classroom_id: updated.classroomId || null,
+              reason: String(input.reason || ""),
+              ip_address: ipAddress,
+              before_state: {
+                status: previousStatus,
+                pairGeneration: previousGeneration,
+              },
+              after_state: {
+                status: updated.status,
+                pairGeneration: updated.pairGeneration,
+                scope: input.scope,
+              },
             })
             .catch(() => {});
         } else if (input.action === "updateDeadline") {
@@ -238,6 +287,7 @@ export class AssignmentService {
               resource_id: updated.id,
               assignment_id: updated.id,
               classroom_id: updated.classroomId || null,
+              ip_address: ipAddress,
               before_state: { deadline: record.assignment.deadline },
               after_state: { deadline: updated.deadline },
             })

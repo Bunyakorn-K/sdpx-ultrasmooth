@@ -710,6 +710,36 @@ paths:
         "404": { description: Assignment not found. }
         "409": { description: Concurrent updates could not be resolved. }
         "503": { description: Database unavailable. }
+  /api/assignments/{id}/audit:
+    get:
+      operationId: getAssignmentAuditLogs
+      summary: Owner retrieves append-only audit logs for an assignment
+      description: "Traceability: FR-AUDIT-01, FR-AUDIT-02, FR-AUDIT-03. Returns append-only chronological audit records including action, actor, resource, before/after states, UTC timestamp, IP, and reason."
+      tags: [Assignments]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: List of audit log entries.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      type: object
+        "401": { description: Sign-in required. }
+        "403":
+          {
+            description: Assignment owner teacher and same-origin request required.,
+          }
+        "404": { description: Assignment not found. }
+        "503": { description: Database unavailable. }
   /api/health:
     get:
       operationId: health
