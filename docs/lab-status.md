@@ -560,6 +560,30 @@ data and the reported deployed page were not accessible for authenticated browse
 verification. E2E remains paused; this change must be deployed before the hosted
 site reflects the fix.
 
+## Appeals & Audit completion — FR-APPEAL-01..02 & FR-AUDIT-01..03 (2026-10-26)
+
+The Appeals and Audit Logging module is completed and verified:
+
+- **FR-APPEAL-01 (Student Score Appeals):**
+  Students can submit an appeal with an explanation message within 7 days of finalization (`APPEAL_WINDOW_MS = 7 days`). Reopened, unfinalized, or expired assignments reject appeal submissions with HTTP 409, and only one appeal is permitted per student per finalized cycle.
+- **FR-APPEAL-02 (Instructor Resolution):**
+  Instructors review submitted appeals, respond with explanatory text, and choose to uphold the original score or override it with an adjusted score bounded by the assignment maximum. Score overrides reflect immediately on student scorecards, reports, and exports.
+- **FR-AUDIT-01 (Audit Coverage of Core Activities):**
+  Audit logging covers all 7 mandated activities:
+  1. Publish (`ASSIGNMENT_PUBLISH`)
+  2. Unpublish (`ASSIGNMENT_UNPUBLISH`)
+  3. Pair regeneration (`PAIRS_REGENERATE`)
+  4. Score override (`SCORE_OVERRIDE`)
+  5. Finalize & Reopen (`ASSIGNMENT_FINALIZE`, `ASSIGNMENT_REOPEN`)
+  6. Identified export & Evaluator identity access (`EXPORT_IDENTITY`, `VIEW_EVALUATOR_IDENTITY`)
+  7. Role changes (`ROLE_CHANGE`)
+- **FR-AUDIT-02 (Completeness of Audit Records & Reason Enforcement):**
+  Audit records capture actor ID, action, resource type/ID, before/after states, UTC ISO timestamp, and client IP address. Mandatory non-empty reasons are enforced in `AuditService.record()` for `SCORE_OVERRIDE`, `ASSIGNMENT_REOPEN`, `ASSIGNMENT_UNPUBLISH`, and `PAIRS_REGENERATE`.
+- **FR-AUDIT-03 (Append-Only Integrity & Owner Audit API):**
+  No update or delete APIs or database mutations exist for audit logs. Added read-only route `GET /api/assignments/:id/audit` restricted to the assignment owner teacher to inspect append-only audit histories.
+
+Verified locally: `tests/unit/appeals.test.ts` (9 passed), `tests/unit/appeals-and-audit.test.ts` (4 passed), `tests/unit/audit-service.test.ts` (5 passed), `tests/e2e/specs/appeals.spec.ts` (passed), lint (Oxlint), typecheck, OpenAPI validation, production build, host E2E, and containerized E2E with disposable PostgreSQL (36 passed).
+
 ## Earlier verification
 
 Testing was paused at the user's request on 2026-10-20. Completed checks: lint, TypeScript, OpenAPI validation and production build; host E2E 27/27 (9 scenarios × 3); Docker E2E 9/9 after declaring a UTF-8 locale for Thai download filenames. Business coverage measured 97.52% lines, 90.34% branches and 97.14% functions. The Docker unit run exposed that the redaction probe inherited `LOG_LEVEL=silent`; the probe now explicitly enables its own logger. Further testing and final evidence consolidation are deferred.
