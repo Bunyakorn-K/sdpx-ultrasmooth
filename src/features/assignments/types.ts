@@ -109,6 +109,9 @@ export type Assignment = {
   description: string;
   subject: string;
   deadline: string;
+  groupDeadline?: string;
+  individualDeadline?: string;
+  artifactUrl?: string;
   status: "draft" | "active" | "closed" | "finalized";
   scoreOverrides?: ScoreOverride[];
   finalizedSnapshot?: FinalizedSnapshot;
@@ -116,6 +119,7 @@ export type Assignment = {
   reopenReason?: string;
   evaluationMode?: EvaluationMode;
   questions: string[];
+  criteriaWeights?: Record<string, number>;
   groups: Group[];
   students: { id: string; name: string }[];
   votes: Vote[];

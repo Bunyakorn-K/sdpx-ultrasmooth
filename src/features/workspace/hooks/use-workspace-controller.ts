@@ -20,12 +20,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 export type WorkspaceModal =
-  | "login"
-  | "register"
-  | "create"
-  | "group"
-  | "questions"
-  | null;
+  "login" | "register" | "create" | "group" | "questions" | null;
 const parseQuestions = (text: string) =>
   text
     .split("\n")
@@ -271,6 +266,31 @@ export function useWorkspaceController() {
     await action("recomputeScores", { id: active.id });
     setToast("คำนวณคะแนนใหม่เรียบร้อยแล้ว");
   }
+  async function cloneAssignment(assignment: Assignment) {
+    if (!teacher) return;
+    await runTask(async () => {
+      const cloned = await execute({
+        action: "clone",
+        id: assignment.id,
+      });
+      setSelected(cloned.id);
+      setToast("คัดลอก assignment เรียบร้อยแล้ว (สถานะ Draft)");
+    });
+  }
+  async function updateDeadline(assignment: Assignment, deadline: string) {
+    if (!teacher) return;
+    await action("updateDeadline", { id: assignment.id, deadline });
+    setToast("แก้ไขกำหนดส่งเรียบร้อยแล้ว");
+  }
+  async function unpublish(assignment: Assignment, reason: string) {
+    if (!teacher) return;
+    await action("unpublishPairs", {
+      id: assignment.id,
+      reason,
+      expectedGeneration: assignment.pairGeneration ?? 0,
+    });
+    setToast("นำกลับเป็น Draft เรียบร้อยแล้ว (FR-ASSIGN-03)");
+  }
   return {
     view: currentView,
     setView,
@@ -324,6 +344,9 @@ export function useWorkspaceController() {
     exportCsv,
     overrideScore,
     recomputeScores,
+    cloneAssignment,
+    updateDeadline,
+    unpublish,
     filtered,
     signOut,
   };

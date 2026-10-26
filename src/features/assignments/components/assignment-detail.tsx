@@ -5,14 +5,30 @@ import { RegeneratePairsDialog } from "@/features/pairwise/components/regenerate
 import { PublishPairsDialog } from "@/features/pairwise/components/publish-pairs-dialog";
 import { GeneratedEvaluationPanel } from "@/features/pairwise/components/generated-evaluation-panel";
 import { statusLabels } from "@/features/assignments/constants";
-import { AccessTime, ArrowBack, PlayArrow, Stop } from "@mui/icons-material";
+import {
+  AccessTime,
+  ArrowBack,
+  ContentCopy,
+  EditOutlined,
+  OpenInNew,
+  PlayArrow,
+  Stop,
+  Undo,
+} from "@mui/icons-material";
 import {
   Alert,
+  Box,
   Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
   Stack,
   Tab,
   Tabs,
+  TextField,
   Typography,
 } from "@mui/material";
 import { GroupsPanel } from "./groups-panel";
@@ -52,10 +68,30 @@ type AssignmentDetailProps = {
     reason: string,
   ) => Promise<void>;
   recomputeScores?: () => Promise<void>;
+  cloneAssignment?: (assignment: Assignment) => Promise<void>;
+  updateDeadline?: (assignment: Assignment, deadline: string) => Promise<void>;
+  unpublish?: (assignment: Assignment, reason: string) => Promise<void>;
+  classrooms?: Array<{ id: string; name: string; timezone?: string }>;
 };
 export function AssignmentDetail(props: AssignmentDetailProps) {
   const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [deadlineOpen, setDeadlineOpen] = useState(false);
+  const [newDeadlineVal, setNewDeadlineVal] = useState("");
+  const [deadlineError, setDeadlineError] = useState("");
+  const [deadlineSubmitting, setDeadlineSubmitting] = useState(false);
+
+  const [unpublishOpen, setUnpublishOpen] = useState(false);
+  const [unpublishReasonVal, setUnpublishReasonVal] = useState("");
+  const [unpublishError, setUnpublishError] = useState("");
+  const [unpublishSubmitting, setUnpublishSubmitting] = useState(false);
+
+  const toLocalDateTimeString = (date: string | Date) => {
+    const d = new Date(date);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16);
+  };
   const {
     setSelected,
     active,
@@ -111,12 +147,50 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
           >
             {active.description}
           </Typography>
+          {active.artifactUrl && (
+            <Box sx={{ mt: 1, mb: 1.5 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                color="secondary"
+                startIcon={<OpenInNew />}
+                href={active.artifactUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{ textTransform: "none" }}
+              >
+                ดูผลงานต้นฉบับ (Artifact Link)
+              </Button>
+            </Box>
+          )}
           <div className="detail-meta">
             <span>
               {isIndividualEvaluation(active) ? "ประเมินรายคน" : "ประเมินกลุ่ม"}
             </span>
             <span>
-              <AccessTime /> {new Date(active.deadline).toLocaleString("th-TH")}
+              <AccessTime />{" "}
+              {new Date(active.deadline).toLocaleString("th-TH", {
+                timeZone:
+                  props.classrooms?.find((c) => c.id === active.classroomId)
+                    ?.timezone || "Asia/Bangkok",
+              })}
+              {teacher &&
+                active.status !== "finalized" &&
+                props.updateDeadline && (
+                  <IconButton
+                    size="small"
+                    aria-label="แก้ไขกำหนดส่ง"
+                    onClick={() => {
+                      setNewDeadlineVal(toLocalDateTimeString(active.deadline));
+                      setDeadlineError("");
+                      setDeadlineOpen(true);
+                    }}
+                    title="แก้ไขกำหนดส่ง (FR-ASSIGN-04)"
+                    sx={{ ml: 0.5, p: 0.2 }}
+                  >
+                    <EditOutlined sx={{ fontSize: 16 }} />
+                  </IconButton>
+                )}
             </span>
           </div>
         </div>
@@ -192,13 +266,41 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
                   สร้างคู่ประเมินใหม่ (Re-generate Pairs)
                 </Button>
               )}
+            {teacher &&
+              (active.status === "active" || active.status === "closed") &&
+              props.unpublish && (
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  startIcon={<Undo />}
+                  disabled={busy}
+                  onClick={() => {
+                    setUnpublishReasonVal("");
+                    setUnpublishError("");
+                    setUnpublishOpen(true);
+                  }}
+                >
+                  นำกลับเป็น Draft (Unpublish)
+                </Button>
+              )}
+            {teacher && props.cloneAssignment && (
+              <Button
+                variant="outlined"
+                startIcon={<ContentCopy />}
+                disabled={busy}
+                onClick={() => void props.cloneAssignment?.(active)}
+              >
+                คัดลอกงาน (Clone)
+              </Button>
+            )}
           </Stack>
         )}
       </div>
       {teacher && !active.pairwiseRequired && !active.pairs && (
         <Alert severity="info" sx={{ mb: 3 }}>
-          งานนี้ใช้การประเมินรูปแบบเดิม หากต้องการเปลี่ยนเป็นประเมินแบบคู่ ให้ใช้ Re-generate
-          Pairs และยืนยันการเปลี่ยนระบบ คำตอบเดิมจะถูกเก็บเป็นประวัติ
+          งานนี้ใช้การประเมินรูปแบบเดิม หากต้องการเปลี่ยนเป็นประเมินแบบคู่
+          ให้ใช้ Re-generate Pairs และยืนยันการเปลี่ยนระบบ
+          คำตอบเดิมจะถูกเก็บเป็นประวัติ
         </Alert>
       )}
       {publishOpen &&
@@ -296,6 +398,169 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
             setError={setError}
           />
         ))}
+
+      {/* FR-ASSIGN-04: Edit Deadline Dialog */}
+      <Dialog
+        open={deadlineOpen}
+        onClose={() => !deadlineSubmitting && setDeadlineOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>แก้ไขกำหนดส่งงาน</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            กำหนดส่งเดิม:{" "}
+            {new Date(active.deadline).toLocaleString("th-TH", {
+              timeZone:
+                props.classrooms?.find((c) => c.id === active.classroomId)
+                  ?.timezone || "Asia/Bangkok",
+            })}
+          </Typography>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            สามารถขยายเวลาได้ตลอดเวลา
+            แต่การร่นเวลาเข้าทำได้เฉพาะเมื่อยังไม่ถึงกำหนดส่งเดิมเท่านั้น
+            (FR-ASSIGN-04)
+          </Alert>
+          {deadlineError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {deadlineError}
+            </Alert>
+          )}
+          <TextField
+            label="กำหนดส่งใหม่"
+            type="datetime-local"
+            fullWidth
+            value={newDeadlineVal}
+            onChange={(e) => setNewDeadlineVal(e.target.value)}
+            slotProps={{
+              inputLabel: { shrink: true },
+              htmlInput: {
+                min: toLocalDateTimeString(
+                  new Date(Math.floor(Date.now() / 60000) * 60000 + 60000),
+                ),
+              },
+            }}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setDeadlineOpen(false)}
+            disabled={deadlineSubmitting}
+            color="inherit"
+          >
+            ยกเลิก
+          </Button>
+          <Button
+            variant="contained"
+            disabled={deadlineSubmitting || !newDeadlineVal}
+            onClick={async () => {
+              if (!newDeadlineVal || !props.updateDeadline) return;
+              const newTime = new Date(newDeadlineVal).getTime();
+              const oldTime = new Date(active.deadline).getTime();
+              const now = Date.now();
+              if (isNaN(newTime)) {
+                setDeadlineError("รูปแบบวันเวลาไม่ถูกต้อง");
+                return;
+              }
+              if (newTime < oldTime && now >= oldTime) {
+                setDeadlineError(
+                  "ไม่สามารถร่นกำหนดส่งได้เนื่องจากเลยกำหนดส่งเดิมแล้ว (FR-ASSIGN-04)",
+                );
+                return;
+              }
+              if (newTime < oldTime && newTime <= now) {
+                setDeadlineError("กำหนดส่งที่ร่นเข้ามาต้องเป็นเวลาในอนาคต");
+                return;
+              }
+              setDeadlineSubmitting(true);
+              setDeadlineError("");
+              try {
+                await props.updateDeadline(
+                  active,
+                  new Date(newDeadlineVal).toISOString(),
+                );
+                setDeadlineOpen(false);
+              } catch (err: unknown) {
+                setDeadlineError(
+                  err instanceof Error ? err.message : "เกิดข้อผิดพลาด",
+                );
+              } finally {
+                setDeadlineSubmitting(false);
+              }
+            }}
+          >
+            {deadlineSubmitting ? "กำลังบันทึก..." : "บันทึกกำหนดส่ง"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* FR-ASSIGN-03: Unpublish Confirmation Dialog */}
+      <Dialog
+        open={unpublishOpen}
+        onClose={() => !unpublishSubmitting && setUnpublishOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          ยืนยันนำกลับเป็น Draft (Unpublish)
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            การนำกลับเป็น Draft จะยกเลิกคู่ประเมินและคำตอบเดิมที่นักศึกษาส่งแล้ว
+            เพื่อให้สามารถแก้ไขเกณฑ์หรือรายชื่อได้ (FR-ASSIGN-03)
+          </Alert>
+          {unpublishError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {unpublishError}
+            </Alert>
+          )}
+          <TextField
+            label="เหตุผลในการนำกลับเป็น Draft (จำเป็น)"
+            multiline
+            rows={3}
+            fullWidth
+            value={unpublishReasonVal}
+            onChange={(e) => setUnpublishReasonVal(e.target.value)}
+            placeholder="เช่น ปรับปรุงเกณฑ์การประเมิน หรือเพิ่มสมาชิกในกลุ่ม"
+            required
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setUnpublishOpen(false)}
+            disabled={unpublishSubmitting}
+            color="inherit"
+          >
+            ยกเลิก
+          </Button>
+          <Button
+            variant="contained"
+            color="warning"
+            disabled={unpublishSubmitting || !unpublishReasonVal.trim()}
+            onClick={async () => {
+              if (!unpublishReasonVal.trim() || !props.unpublish) return;
+              setUnpublishSubmitting(true);
+              setUnpublishError("");
+              try {
+                await props.unpublish(active, unpublishReasonVal.trim());
+                setUnpublishOpen(false);
+              } catch (err: unknown) {
+                setUnpublishError(
+                  err instanceof Error ? err.message : "เกิดข้อผิดพลาด",
+                );
+              } finally {
+                setUnpublishSubmitting(false);
+              }
+            }}
+          >
+            {unpublishSubmitting
+              ? "กำลังดำเนินการ..."
+              : "ยืนยันนำกลับเป็น Draft"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

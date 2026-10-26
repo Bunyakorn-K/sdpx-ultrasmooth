@@ -65,7 +65,10 @@ paths:
         "403": { description: Owner and same-origin request required. }
         "404": { description: Assignment missing. }
         "409": { description: Assignment has no pairwise data. }
-        "503": { description: Database or audit unavailable; no identified file is returned. }
+        "503":
+          {
+            description: Database or audit unavailable; no identified file is returned.,
+          }
   /api/appeals:
     post:
       operationId: submitAppeal
@@ -525,6 +528,57 @@ paths:
           {
             description: "Stale preview or generation, invalid lifecycle state, or duplicate submission.",
           }
+        "503": { description: Database unavailable. }
+  /api/assignments/{id}/clone:
+    post:
+      operationId: cloneAssignment
+      summary: Owner clones an assignment into a fresh draft
+      description: "Traceability: FR-ASSIGN-06. Duplicates title, description, subject, criteria, artifact link, and scoring configuration into a new assignment in draft state with a future deadline. Zeroes answers, pairs, and submissions."
+      tags: [Assignments]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "201": { description: Cloned assignment created in draft state. }
+        "401": { description: Sign-in required. }
+        "403": { description: Teacher role and same-origin request required. }
+        "404": { description: Source assignment not found. }
+        "503": { description: Database unavailable. }
+  /api/assignments/{id}/deadline:
+    post:
+      operationId: updateAssignmentDeadline
+      summary: Owner updates assignment deadline (extension or shortening)
+      description: "Traceability: FR-ASSIGN-04. Extension is allowed anytime; shortening is allowed only before the original deadline arrives."
+      tags: [Assignments]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [deadline]
+              properties:
+                deadline: { type: string, format: date-time }
+      responses:
+        "200": { description: Assignment with updated deadline. }
+        "400":
+          {
+            description: "Invalid deadline format, shortening after original deadline, or assignment finalized.",
+          }
+        "401": { description: Sign-in required. }
+        "403":
+          {
+            description: Assignment owner teacher and same-origin request required.,
+          }
+        "404": { description: Assignment not found. }
+        "409": { description: Concurrent updates could not be resolved. }
         "503": { description: Database unavailable. }
   /api/assignments/{id}/finalize:
     post:
