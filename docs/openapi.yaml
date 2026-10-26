@@ -1659,7 +1659,9 @@ components:
           type: object
           description: Own aggregate result only after close or finalize; individual score is null below anonymity threshold.
           properties:
-            groupScore: { type: number }
+            groupScore:
+              type: [number, "null"]
+              description: Null until all enabled group criteria have effective submitted comparisons; zero is a valid score or disabled component, not a missing-data placeholder.
             individualScore: { type: [number, "null"] }
             finalScore: { type: [number, "null"] }
         evaluationMode:

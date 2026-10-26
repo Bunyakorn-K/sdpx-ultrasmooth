@@ -560,6 +560,31 @@ data and the reported deployed page were not accessible for authenticated browse
 verification. E2E remains paused; this change must be deployed before the hosted
 site reflects the fix.
 
+## Missing evaluation scores — FR-SCORE-14 (2026-10-26)
+
+Clarified the previously unspecified zero-evidence case in the PRD. Current
+calculations expose null q, ratio and weighted score for criteria without
+effective submitted evidence. Totals remain unavailable until all enabled
+criteria have evidence; criteria with real answers still show provisional
+results and LOW_CONFIDENCE. Empty criteria lists do not produce initial scores;
+disabled components and genuine calculated zero scores remain zero.
+
+Teacher summaries, student results, the API's nullable groupScore contract and
+generated XLSX/CSV exports use this rule. Excel cells remain empty rather than
+containing a made-up average. Explicit overrides, including zero, still apply.
+Frozen stored outputs are not rewritten. Historical finalized workbook inputs
+without a pairing generation retain their existing calculation contract for
+backward compatibility; current generated reports do not use that compatibility
+mode. Existing assertions for these historical exports were preserved.
+
+Local unit/integration verification: 219 tests passed, including five new tests
+covering empty evidence, drafts/exclusions, zero effective weight, partial
+criteria, real zero scores, generated student results and XLSX/CSV outputs.
+Formatting, Oxlint, TypeScript, OpenAPI validation, production build, coverage
+(96.76% lines / 99.33% functions / 88.03% branches) and mutation fidelity passed.
+Authenticated production/browser verification remains pending; E2E stays paused
+as previously requested. No database migration is required.
+
 ## Earlier verification
 
 Testing was paused at the user's request on 2026-10-20. Completed checks: lint, TypeScript, OpenAPI validation and production build; host E2E 27/27 (9 scenarios × 3); Docker E2E 9/9 after declaring a UTF-8 locale for Thai download filenames. Business coverage measured 97.52% lines, 90.34% branches and 97.14% functions. The Docker unit run exposed that the redaction probe inherited `LOG_LEVEL=silent`; the probe now explicitly enables its own logger. Further testing and final evidence consolidation are deferred.

@@ -439,8 +439,9 @@ export function GeneratedReportsPanel({
                             color="secondary.main"
                             sx={{ fontWeight: 700, whiteSpace: "nowrap" }}
                           >
-                            {formatScore(s.totalScore)} /{" "}
-                            {active.groupMaxScore ?? 15}
+                            {s.totalScore === null
+                              ? s.displayStatus
+                              : `${formatScore(s.totalScore)} / ${active.groupMaxScore ?? 15}`}
                           </Typography>
                         </Stack>
                       </Stack>
@@ -459,13 +460,17 @@ export function GeneratedReportsPanel({
                         {s.criterionScores.map((c) => (
                           <TableRow key={c.criterionId}>
                             <TableCell>{c.criterionName}</TableCell>
-                            <TableCell>{c.q}</TableCell>
+                            <TableCell>{c.q ?? "—"}</TableCell>
                             <TableCell>{c.comparisonCount}</TableCell>
                             <TableCell>
-                              {formatScore(c.weightedScore)}
+                              {c.weightedScore === null
+                                ? "—"
+                                : formatScore(c.weightedScore)}
                             </TableCell>
                             <TableCell>
-                              {c.flags.length ? (
+                              {c.q === null ? (
+                                "ยังไม่มีผลประเมิน"
+                              ) : c.flags.length ? (
                                 <Chip
                                   size="small"
                                   color="warning"

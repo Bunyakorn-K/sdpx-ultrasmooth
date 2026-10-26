@@ -32,6 +32,10 @@ export async function buildPairEvalWorkbook(data: ExportData) {
     ? { [assignment.created_by]: "OWNER" as const }
     : {};
   const instructorWeight = assignment.instructor_weight ?? 1.0;
+  // Historical finalized exports without a persisted pairing generation retain
+  // their original calculation contract. Current/generated reports never impute scores.
+  const preserveLegacyBaseline =
+    data.generation === undefined && assignment.status === "FINALIZED";
 
   // 1. Sheet 1: Group Summary
   const groupSheet = wb.addWorksheet("Group Summary");
@@ -59,6 +63,7 @@ export async function buildPairEvalWorkbook(data: ExportData) {
       assignment.min_comparisons,
       evaluatorRoles,
       instructorWeight,
+      preserveLegacyBaseline,
     );
     for (const c of scores.criterionScores) {
       groupSheet.addRow([
@@ -122,6 +127,7 @@ export async function buildPairEvalWorkbook(data: ExportData) {
           assignment.min_comparisons,
           evaluatorRoles,
           instructorWeight,
+          preserveLegacyBaseline,
         ).totalScore
       : 0;
 
@@ -131,17 +137,26 @@ export async function buildPairEvalWorkbook(data: ExportData) {
       assignment.criteria,
       pairs,
       comparisons,
-      assignment.individual_max_score,
+      !preserveLegacyBaseline &&
+        members.filter(
+          (member) =>
+            member.role === "STUDENT" && member.group_id === student.group_id,
+        ).length <= 2
+        ? 0
+        : assignment.individual_max_score,
       assignment.score_floor,
       assignment.score_ceiling,
       assignment.min_comparisons,
       evaluatorRoles,
       instructorWeight,
+      preserveLegacyBaseline,
     );
 
     const personalFinal =
       data.finalScoreOverrides?.[student.user_id] ??
-      Number(((groupScores + indivScores.totalScore) * M).toFixed(2));
+      (groupScores === null || indivScores.totalScore === null
+        ? null
+        : Number(((groupScores + indivScores.totalScore) * M).toFixed(2)));
 
     for (const c of indivScores.criterionScores) {
       indivSheet.addRow([

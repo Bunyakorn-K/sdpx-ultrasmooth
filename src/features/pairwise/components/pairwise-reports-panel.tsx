@@ -177,13 +177,15 @@ export function PairwiseReportsPanel({
     // Group score component
     const groupComponent =
       groupScores.find((gs) => gs.group.id === studentGroup?.id)?.scores
-        .totalScore ?? 0;
+        .totalScore ?? null;
     const individualComponent = 0; // Or from individual criteria if enabled
     const finalScore = appealScore(
       active,
       student.id,
-      Number(((groupComponent + individualComponent) * M).toFixed(2)),
-    )!;
+      groupComponent === null
+        ? null
+        : Number(((groupComponent + individualComponent) * M).toFixed(2)),
+    );
 
     return {
       student,
@@ -353,7 +355,9 @@ export function PairwiseReportsPanel({
                   data-testid="result-score"
                   sx={{ fontWeight: 700 }}
                 >
-                  {scores.totalScore.toFixed(2)}{" "}
+                  {scores.totalScore === null
+                    ? scores.displayStatus
+                    : scores.totalScore.toFixed(2)}{" "}
                   <Typography
                     component="span"
                     variant="body2"
@@ -398,13 +402,17 @@ export function PairwiseReportsPanel({
                           {c.criterionName}
                         </TableCell>
                         <TableCell align="right">{c.weightPct}%</TableCell>
-                        <TableCell align="right">{c.q.toFixed(3)}</TableCell>
+                        <TableCell align="right">
+                          {c.q?.toFixed(3) ?? "—"}
+                        </TableCell>
                         <TableCell align="right">{c.comparisonCount}</TableCell>
                         <TableCell align="right">
-                          {(c.scoreRatio * 100).toFixed(1)}%
+                          {c.scoreRatio === null
+                            ? "—"
+                            : `${(c.scoreRatio * 100).toFixed(1)}%`}
                         </TableCell>
                         <TableCell align="right" sx={{ fontWeight: 600 }}>
-                          {c.weightedScore.toFixed(3)}
+                          {c.weightedScore?.toFixed(3) ?? "—"}
                         </TableCell>
                         <TableCell>
                           {c.flags.length > 0 ? (
@@ -483,13 +491,13 @@ export function PairwiseReportsPanel({
                       />
                     </TableCell>
                     <TableCell align="right">
-                      {row.groupComponent.toFixed(2)}
+                      {row.groupComponent?.toFixed(2) ?? "—"}
                     </TableCell>
                     <TableCell
                       align="right"
                       sx={{ fontWeight: 700, color: "secondary.main" }}
                     >
-                      {row.finalScore.toFixed(2)}
+                      {row.finalScore?.toFixed(2) ?? "ยังไม่มีผลประเมิน"}
                     </TableCell>
                   </TableRow>
                 ))}

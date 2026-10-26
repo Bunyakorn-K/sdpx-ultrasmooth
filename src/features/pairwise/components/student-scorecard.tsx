@@ -148,8 +148,10 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
         )
       : null;
 
-  const groupComponent = groupScores?.totalScore ?? 0;
-  const individualComponent = individualScores?.displayScore ?? 0;
+  const groupComponent = groupScores?.totalScore ?? null;
+  const individualComponent = individualScores
+    ? individualScores.displayScore
+    : 0;
   const individualHasSufficientData = individualScores
     ? individualScores.kAnonymity.isSatisfied
     : true;
@@ -161,7 +163,9 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
     : appealScore(
         active,
         user?.id ?? "",
-        Number(((groupComponent + individualComponent) * M).toFixed(2)),
+        groupComponent === null || individualComponent === null
+          ? null
+          : Number(((groupComponent + individualComponent) * M).toFixed(2)),
       );
 
   return (
@@ -224,7 +228,7 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
               คะแนนสุทธิส่วนบุคคลของคุณ (Personal Final Score)
             </Typography>
             <Typography variant="h3" color="secondary" sx={{ fontWeight: 800 }}>
-              {personalFinalScore}{" "}
+              {personalFinalScore ?? "ยังไม่มีผลประเมิน"}{" "}
               <Typography
                 component="span"
                 variant="h6"
@@ -239,8 +243,9 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
               {appealScore(active, user?.id ?? "", null) !== null &&
                 "คะแนนรวมปรับตามผลอุทธรณ์ · คะแนนคำนวณเดิม: "}
-              คำนวณจาก (คะแนนกลุ่ม {groupComponent.toFixed(2)} + รายคน{" "}
-              {individualComponent.toFixed(2)}) × ตัวคูณการมีส่วนร่วม {M.toFixed(2)}
+              คำนวณจาก (คะแนนกลุ่ม {groupComponent?.toFixed(2) ?? "—"} + รายคน{" "}
+              {individualComponent?.toFixed(2) ?? "—"}) × ตัวคูณการมีส่วนร่วม{" "}
+              {M.toFixed(2)}
             </Typography>
           </Box>
 
@@ -309,9 +314,11 @@ export function StudentScorecard({ active, user }: StudentScorecardProps) {
                       {c.criterionName}
                     </TableCell>
                     <TableCell align="right">{c.weightPct}%</TableCell>
-                    <TableCell align="right">{c.q.toFixed(3)}</TableCell>
+                    <TableCell align="right">
+                      {c.q?.toFixed(3) ?? "—"}
+                    </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700 }}>
-                      {c.weightedScore.toFixed(3)}
+                      {c.weightedScore?.toFixed(3) ?? "—"}
                     </TableCell>
                   </TableRow>
                 ))}

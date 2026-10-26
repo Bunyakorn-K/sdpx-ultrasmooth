@@ -216,7 +216,7 @@ function finalizeAssignment({ assignment, isOwner, user }: PolicyContext) {
   const snapshotScores: Record<
     string,
     {
-      groupScore: number;
+      groupScore: number | null;
       individualScore: number | null;
       finalScore: number | null;
       participation: number;
