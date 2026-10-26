@@ -51,7 +51,9 @@ test.describe("Database-backed authenticated journeys", () => {
     await page
       .getByLabel("รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)")
       .fill(users.student.password);
-    await page.getByRole("button", { name: "เข้าสู่ระบบ", exact: true }).click();
+    await page
+      .getByRole("button", { name: "เข้าสู่ระบบ", exact: true })
+      .click();
     await expect(
       page.getByRole("heading", { name: "ห้องเรียนของฉัน (Classrooms)" }),
     ).toBeVisible();
@@ -163,6 +165,21 @@ test.describe("Database-backed authenticated journeys", () => {
       expect((await (await other.get(root)).json()).assignment.votes).toEqual(
         [],
       );
+      // FR-PAIR-10: assign additional pairs endpoint
+      expect(
+        (
+          await student.post(`${root}/pairs/additional`, {
+            data: { pairId: "invalid", count: 1 },
+          })
+        ).status(),
+      ).toBe(403);
+      expect(
+        (
+          await teacher.post(`${root}/pairs/additional`, {
+            data: { pairId: "invalid", count: 1 },
+          })
+        ).status(),
+      ).toBe(404);
       expect(
         (await teacher.post(`${root}/voting/stop`, { data: {} })).status(),
       ).toBe(200);

@@ -25,6 +25,7 @@ export function generatedCriteria(a: Assignment): Criterion[] {
 type Edge = { to: number; rev: number; capacity: number };
 // Integral max-flow: each pair receives exactly R distinct eligible evaluators.
 // Reverse edges allow reassignment when a greedy placement would strand a pair.
+// Enforces INV-4: difference between evaluator workloads <= 1.
 function distribute(a: Assignment, coverage: number, seed: number) {
   const rng = new SeededRng(seed);
   const groups = a.groups.filter((g) => g.members.length);
@@ -34,6 +35,14 @@ function distribute(a: Assignment, coverage: number, seed: number) {
   const items = groups.flatMap((g, i) =>
     groups.slice(i + 1).map((h) => ({ a: g.id, b: h.id })),
   );
+  if (!students.length || !items.length) return null;
+
+  const totalSlots = items.length * coverage;
+  const maximum = a.maxWorkload ?? 8;
+  const kMin = Math.floor(totalSlots / students.length);
+  const kMax = Math.min(maximum, Math.ceil(totalSlots / students.length));
+  const numExtra = totalSlots % students.length;
+
   const sink = 1 + items.length + students.length;
   const graph: Edge[][] = Array.from({ length: sink + 1 }, () => []);
   function edge(from: number, to: number, capacity: number) {
@@ -58,33 +67,58 @@ function distribute(a: Assignment, coverage: number, seed: number) {
       });
     });
   });
-  students.forEach((_, j) =>
-    edge(items.length + j + 1, sink, a.maxWorkload ?? 8),
-  );
-  let flow = 0;
-  while (true) {
-    const previous: { node: number; edge: Edge }[] = [];
-    const seen = new Set([0]);
-    const queue = [0];
-    for (let head = 0; head < queue.length && !seen.has(sink); head++) {
-      const node = queue[head];
-      for (const e of graph[node]) {
-        if (!e.capacity || seen.has(e.to)) continue;
-        seen.add(e.to);
-        previous[e.to] = { node, edge: e };
-        queue.push(e.to);
+
+  // Stage 1: Enforce INV-4 (workload difference <= 1) by initializing student capacity to kMin / kMin+1
+  const studentSinkEdges: Edge[] = [];
+  students.forEach((_, j) => {
+    const cap = j < numExtra ? kMin + 1 : kMin;
+    studentSinkEdges.push(edge(items.length + j + 1, sink, cap));
+  });
+
+  function runFlow() {
+    let flow = 0;
+    while (true) {
+      const previous: { node: number; edge: Edge }[] = [];
+      const seen = new Set([0]);
+      const queue = [0];
+      for (let head = 0; head < queue.length && !seen.has(sink); head++) {
+        const node = queue[head];
+        for (const e of graph[node]) {
+          if (!e.capacity || seen.has(e.to)) continue;
+          seen.add(e.to);
+          previous[e.to] = { node, edge: e };
+          queue.push(e.to);
+        }
       }
+      if (!seen.has(sink)) break;
+      for (let node = sink; node !== 0;) {
+        const step = previous[node];
+        step.edge.capacity--;
+        graph[node][step.edge.rev].capacity++;
+        node = step.node;
+      }
+      flow++;
     }
-    if (!seen.has(sink)) break;
-    for (let node = sink; node !== 0;) {
-      const step = previous[node];
-      step.edge.capacity--;
-      graph[node][step.edge.rev].capacity++;
-      node = step.node;
-    }
-    flow++;
+    return flow;
   }
-  return flow === items.length * coverage && items.length > 0
+
+  let totalFlow = runFlow();
+  // If strict balanced distribution cannot saturate flow due to group constraints,
+  // progressively relax student capacity up to maximum (maxWorkload)
+  if (totalFlow < totalSlots && kMax < maximum) {
+    for (
+      let extra = 1;
+      extra <= maximum - kMax && totalFlow < totalSlots;
+      extra++
+    ) {
+      studentSinkEdges.forEach((e) => {
+        e.capacity += 1;
+      });
+      totalFlow += runFlow();
+    }
+  }
+
+  return totalFlow === totalSlots && items.length > 0
     ? assignments.filter((x) => x.edge.capacity === 0)
     : null;
 }
@@ -114,7 +148,9 @@ export function previewRegeneration(a: Assignment, scope: PairScope) {
     maximum < 1 ||
     maximum > 100
   )
-    throw new AppError("Coverage ต้องอยู่ระหว่าง 1–50 และ workload ระหว่าง 1–100");
+    throw new AppError(
+      "Coverage ต้องอยู่ระหว่าง 1–50 และ workload ระหว่าง 1–100",
+    );
   const pairs: PairAssignment[] = [];
   let coverage = 0;
   const timestamp = a.createdAt;

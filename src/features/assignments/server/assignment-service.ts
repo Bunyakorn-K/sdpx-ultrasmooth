@@ -72,6 +72,9 @@ export class AssignmentService {
           throw new AppError("คุณไม่มีสิทธิ์เข้าถึง assignment นี้", 403);
         }
       }
+      const previousPairIds = new Set(
+        record.assignment.pairs?.map((p) => p.id),
+      );
       const previousStatus = record.assignment.status;
       const previousGeneration = record.assignment.pairGeneration ?? 0;
       const appealBefore =
@@ -99,7 +102,22 @@ export class AssignmentService {
         await this.repository.update(
           updated,
           record.version,
-          regenerationEvent ??
+          (input.action === "assignAdditional"
+            ? {
+                kind: "additional_evaluation" as const,
+                key: `${updated.id}:additional:${record.version + 1}`,
+                recipientIds: [
+                  ...new Set(
+                    updated
+                      .pairs!.filter((p) => !previousPairIds.has(p.id))
+                      .map((p) => p.evaluator_user_id),
+                  ),
+                ],
+                scope: String(input.pairId),
+                generation: updated.pairGeneration,
+              }
+            : undefined) ??
+            regenerationEvent ??
             (input.action === "unpublishPairs"
               ? {
                   kind: "pairs_paused" as const,
@@ -152,6 +170,22 @@ export class AssignmentService {
               classroom_id: updated.classroomId || null,
               reason: String(input.reason || ""),
               after_state: { score: input.score, targetId: input.targetId },
+            })
+            .catch(() => {});
+        } else if (input.action === "assignAdditional") {
+          await this.auditService
+            ?.record({
+              actor_id: user.id,
+              action: "PAIRS_ASSIGN_EXTRA",
+              resource_type: "assignment_pairs",
+              resource_id: String(input.pairId),
+              assignment_id: updated.id,
+              classroom_id: updated.classroomId || null,
+              after_state: {
+                addedPairIds: updated.pairs
+                  ?.filter((p) => !previousPairIds.has(p.id))
+                  .map((p) => p.id),
+              },
             })
             .catch(() => {});
         } else if (input.action === "finalize") {

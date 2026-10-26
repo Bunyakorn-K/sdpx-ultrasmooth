@@ -406,6 +406,23 @@ Verified locally: 176 unit/integration tests pass, lint (Oxlint), typecheck,
 OpenAPI validation, production build, host Playwright E2E (24 passed / 12 skipped),
 and containerized E2E with disposable PostgreSQL (36 passed).
 
+## Pairing Engine completion — FR-PAIR-01..14 & Invariants INV-1..5 (2026-10-26)
+
+The Pairing Engine module and its 5 invariants are completed and verified:
+
+- **INV-1 (FR-PAIR-02 & FR-PAIR-03):** Group evaluation strictly excludes pairs containing the evaluator's own group; individual evaluation strictly excludes self and compares peers within the same group only.
+- **INV-2 (FR-PAIR-07):** Evaluators never receive duplicate pairs within the same criterion.
+- **INV-3 (FR-PAIR-06):** Balanced pair coverage: $\max(\text{coverage}) - \min(\text{coverage}) \le 1$.
+- **INV-4 (§8.4 Workload balance):** Balanced evaluator workload: $\max(\text{workload}) - \min(\text{workload}) \le 1$. Fixed in `distribute()` in `src/features/pairwise/domain/regeneration.ts` by initializing student capacity to $k_{\min} / k_{\min}+1$.
+- **INV-5 (FR-PAIR-09):** Deterministic with same seed across runs.
+- **FR-PAIR-04 & FR-PAIR-05 (Feasibility & Auto-reduction):** `solveFeasibility` calculates feasible coverage, workload, and total comparisons, reducing coverage with exact numeric reasoning when infeasible.
+- **FR-PAIR-08 (Randomized left/right):** Left/right presentation order is randomized and stored in `display_left_item_id`.
+- **FR-PAIR-10 (Assign additional evaluators):** Implemented `assignAdditional` command, domain logic in `src/features/pairwise/domain/additional-evaluations.ts`, dialog in `GeneratedReportsPanel`, and notification generation (`FR-NOTIF-05`).
+- **FR-PAIR-11 (Group changes after publish):** Guarded via `unpublishPairs` -> edit in draft -> `regeneratePairs` with audit and notification dispatch.
+- **FR-PAIR-12 & FR-PAIR-13:** Groups with $m \le 2$ have individual evaluation disabled; groups with $m = 3$ have pairs generated and flagged `LOW_CONFIDENCE`.
+
+Verified locally: `tests/unit/pairing-invariants.test.ts` (3 passed), `tests/unit/additional-evaluations.test.ts` (6 passed), 199 total unit/integration tests pass, lint (Oxlint), typecheck, OpenAPI validation, production build, host E2E (24 passed / 12 skipped), and containerized E2E with disposable PostgreSQL (36 passed).
+
 ## Earlier verification
 
 Testing was paused at the user's request on 2026-10-20. Completed checks: lint, TypeScript, OpenAPI validation and production build; host E2E 27/27 (9 scenarios × 3); Docker E2E 9/9 after declaring a UTF-8 locale for Thai download filenames. Business coverage measured 97.52% lines, 90.34% branches and 97.14% functions. The Docker unit run exposed that the redaction probe inherited `LOG_LEVEL=silent`; the probe now explicitly enables its own logger. Further testing and final evidence consolidation are deferred.
@@ -439,7 +456,6 @@ No student/team names, human code approvals, clean-clone observations from other
 - Local verification: 3 appeals E2E journeys passed (1280px, 390px and guarded isolated PostgreSQL authorization/privacy/concurrency/audit). No production database was changed. Deployment and hosted authentication are not externally verified.
 - Required checks passed: 156 unit/integration tests, lint, typecheck, OpenAPI lint, production build, coverage (97.34% lines / 100% functions / 87.45% branches), and mutation fidelity. Excel/CSV regression verifies nonzero and zero personal-total overrides without changing another student's result.
 - Current limitations: no email/push delivery, attachments or multi-message conversation; users read requests/responses in the Assignment tab. Existing broader scoring/finalized-output snapshot gaps in `prd-gap-audit.md` remain separate work.
-
 
 ## Raw comparison and confirmed identity export (2026-10-25)
 
