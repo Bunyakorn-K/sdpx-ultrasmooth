@@ -44,6 +44,7 @@ export type Group = {
   id: string;
   name: string;
   members: { id: string; name: string }[];
+  artifactUrl?: string;
 };
 export type EvaluationMode = "group" | "individual";
 type VoteAnswer = {

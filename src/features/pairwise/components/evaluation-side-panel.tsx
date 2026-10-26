@@ -16,10 +16,10 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { SendOutlined } from "@mui/icons-material";
+import { AccessTime, SendOutlined } from "@mui/icons-material";
 import type { Assignment } from "@/features/assignments/types";
 import type { CriterionSide } from "../types";
-import { useDeadline } from "@/features/assignments/hooks/use-deadline";
+import { useDeadlineCountdown } from "@/features/assignments/hooks/use-deadline";
 import {
   useEvaluationDraft,
   type EvaluationCommand,
@@ -46,7 +46,8 @@ export function EvaluationSidePanel({
     severity: "success" | "error";
     message: string;
   } | null>(null);
-  const expired = useDeadline(active.deadline);
+  const countdown = useDeadlineCountdown(active.deadline);
+  const expired = countdown.expired;
   const editable = active.status === "active" && !expired;
   const draft = useEvaluationDraft(
     active,
@@ -87,6 +88,14 @@ export function EvaluationSidePanel({
     active.groups.find((g) => g.id === id)?.name ??
     active.groups.flatMap((g) => g.members).find((m) => m.id === id)?.name ??
     "รายการเดิม";
+  const getArtifactUrl = (id: string) => {
+    const group = active.groups.find((g) => g.id === id);
+    return (
+      (group as { artifactUrl?: string })?.artifactUrl ||
+      active.artifactUrl ||
+      undefined
+    );
+  };
   const label = side === "GROUP" ? "ประเมินผลงานกลุ่ม" : "ประเมินเพื่อนในกลุ่ม";
   const snackbar = (
     <Snackbar
@@ -111,6 +120,17 @@ export function EvaluationSidePanel({
     return <Alert severity="info">ไม่มีคู่ที่ได้รับมอบหมายในส่วนนี้</Alert>;
   return (
     <Stack spacing={2}>
+      {!draft.isOnline && (
+        <Alert severity="warning">
+          กำลังทำงานในโหมดออฟไลน์ —
+          คำตอบจะถูกบันทึกไว้ในอุปกรณ์ของคุณและซิงค์ขึ้นเซิร์ฟเวอร์อัตโนมัติเมื่ออินเทอร์เน็ตกลับมาเชื่อมต่อ
+        </Alert>
+      )}
+      {active.status === "active" && countdown.isUrgent && (
+        <Alert severity="warning" icon={<AccessTime />}>
+          เหลือเวลาส่งผลประเมินอีก {countdown.formatted} (ก่อนปิดรับคำตอบ)
+        </Alert>
+      )}
       <Alert severity="info">
         เลือกคำตอบได้ต่อเนื่อง ระบบบันทึกฉบับร่างอัตโนมัติ แล้วกดส่งผลประเมินรวมด้านล่าง
         ฉบับร่างยังไม่นำไปคำนวณคะแนน
@@ -173,15 +193,16 @@ export function EvaluationSidePanel({
             </Stack>
             {items.map((p) => {
               const left = p.display_left_item_id;
+              const right = left === p.item_a_id ? p.item_b_id : p.item_a_id;
               return (
                 <PairwiseCard
                   key={p.id}
                   pairId={p.id}
                   criterionName={title}
                   leftItemName={name(left)}
-                  rightItemName={name(
-                    left === p.item_a_id ? p.item_b_id : p.item_a_id,
-                  )}
+                  rightItemName={name(right)}
+                  leftArtifactUrl={getArtifactUrl(left)}
+                  rightArtifactUrl={getArtifactUrl(right)}
                   currentChoice={draft.answers[p.id]?.choice}
                   busy={busy || !editable || draft.submitting}
                   onChoiceChange={(choice) => draft.choose(p.id, choice)}

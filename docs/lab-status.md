@@ -609,6 +609,39 @@ The Appeals and Audit Logging module is completed and verified:
 
 Verified locally: `tests/unit/appeals.test.ts` (9 passed), `tests/unit/appeals-and-audit.test.ts` (4 passed), `tests/unit/audit-service.test.ts` (5 passed), `tests/e2e/specs/appeals.spec.ts` (passed), lint (Oxlint), typecheck, OpenAPI validation, production build, host E2E, and containerized E2E with disposable PostgreSQL (36 passed).
 
+## Evaluation UI completion — FR-EVAL-01..13 (2026-10-26)
+
+All 13 requirements for the Evaluation UI module are verified and certified against PRD §7.5, §8.3, and the QA test tracker:
+
+- **FR-EVAL-01 (Single-Page Mobile-First Criterion Sections):**
+  Group evaluation renders all criteria on a single page, partitioned into distinct sections with responsive MUI layout.
+- **FR-EVAL-02 (Artifact Links & Missing Fallback):**
+  Displays item names and artifact links on both sides. When no link is provided, displays exact fallback text: `"อาจารย์ยังไม่ได้ระบุ"`.
+- **FR-EVAL-03 (6-Point Forced Choice Scale):**
+  Enforces 6-point forced-choice scale (1 ซ้ายดีกว่ามาก to 6 ขวาดีกว่ามาก) without a neutral 50/50 option, with accessible names (`aria-label`) on all choices.
+- **FR-EVAL-04 (Autosave Drafts & Status):**
+  Autosaves drafts automatically on answer change with 800ms debounce (<= 2s) and displays `"บันทึกแล้ว เมื่อ HH:MM"`. Answers persist across browser reloads.
+- **FR-EVAL-05 (Always-Enabled Submit & Incomplete Warning):**
+  Submit button remains clickable even if incomplete, opening a confirmation modal detailing the exact number of unanswered items before confirming.
+- **FR-EVAL-06 (Unlimited Re-submissions & Revision History):**
+  Supports unlimited re-submissions prior to deadline. The latest submission is used for score calculations while retaining full revision history.
+- **FR-EVAL-07 (Immediate Progress Tracking):**
+  Progress indicators (`X / Y คู่`) update immediately per criterion chip and overall sticky summary bar upon selection.
+- **FR-EVAL-08 (Post-Deadline Read-Only Lock):**
+  Past-deadline assignments immediately disable submissions and switch the interface into read-only display.
+- **FR-EVAL-09 (Unsubmitted Draft Exclusion):**
+  Unsubmitted drafts are strictly excluded from score calculation while remaining visible to the author.
+- **FR-EVAL-10 (Countdown Timer < 48 Hours):**
+  Displays an urgent countdown banner (`⏳ เหลือเวลาอีก XX ชั่วโมง YY นาที`) when the deadline is under 48 hours away.
+- **FR-EVAL-11 (Separated Group & Individual Tabs):**
+  Group and Individual evaluations are strictly segregated into independent tabs with separate draft lifecycles and submit buttons.
+- **FR-EVAL-12 (Group Size m <= 2 Mathematical Explanation):**
+  Hides individual evaluation for groups with $m \le 2$ members, displaying the exact mathematical reason: $C(m-1, 2) = 0$ pairs per evaluator per PRD §8.3.
+- **FR-EVAL-13 (Offline Queue & Auto-Sync):**
+  Client-side `localStorage` queue buffers pending answers during network disconnection and auto-synchronizes upon browser `online` event reconnection.
+
+Verified locally: `tests/unit/evaluation-ui.test.ts` (12 passed), `tests/unit/evaluation-submission.test.ts` (7 passed), oxfmt format check, oxlint (0 errors), tsc typecheck (0 errors), Redocly spec lint, and Next.js production build.
+
 ## Earlier verification
 
 Testing was paused at the user's request on 2026-10-20. Completed checks: lint, TypeScript, OpenAPI validation and production build; host E2E 27/27 (9 scenarios × 3); Docker E2E 9/9 after declaring a UTF-8 locale for Thai download filenames. Business coverage measured 97.52% lines, 90.34% branches and 97.14% functions. The Docker unit run exposed that the redaction probe inherited `LOG_LEVEL=silent`; the probe now explicitly enables its own logger. Further testing and final evidence consolidation are deferred.

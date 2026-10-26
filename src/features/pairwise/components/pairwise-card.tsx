@@ -142,7 +142,7 @@ export function PairwiseCard({
             </Button>
           ) : (
             <Typography variant="caption" color="text.disabled">
-              ยังไม่มีลิงก์ผลงาน
+              อาจารย์ยังไม่ได้ระบุ
             </Typography>
           )}
         </Box>
@@ -193,7 +193,7 @@ export function PairwiseCard({
             </Button>
           ) : (
             <Typography variant="caption" color="text.disabled">
-              ยังไม่มีลิงก์ผลงาน
+              อาจารย์ยังไม่ได้ระบุ
             </Typography>
           )}
         </Box>
