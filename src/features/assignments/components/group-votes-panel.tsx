@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import type { Assignment, Group } from "../types";
 import { average } from "../domain/scoring";
+import { PairwiseGroupVotesPanel } from "./pairwise-group-votes-panel";
 import {
   canEvaluateTarget,
   evaluationTargets,
@@ -24,6 +25,18 @@ import {
 } from "../domain/evaluation-targets";
 
 export function GroupVotesPanel({
+  assignment,
+  group,
+}: {
+  assignment: Assignment;
+  group: Group;
+}) {
+  if (assignment.pairs !== undefined || assignment.pairwiseRequired)
+    return <PairwiseGroupVotesPanel assignment={assignment} group={group} />;
+  return <LegacyGroupVotesPanel assignment={assignment} group={group} />;
+}
+
+function LegacyGroupVotesPanel({
   assignment,
   group,
 }: {
