@@ -1,14 +1,14 @@
 import { AppError } from "@/shared/domain/app-error";
+import { normalizeEmail } from "@/features/classroom/domain/roster-parser";
 import type { User } from "../types";
 
 export function parseCredentials(input: Record<string, unknown>) {
-  const email = String(input.email || "")
-    .trim()
-    .toLowerCase();
+  const rawEmail = String(input.email || "").trim();
+  const email = normalizeEmail(rawEmail);
   const password = String(input.password || "");
   if (
-    email.length > 254 ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+    rawEmail.length > 254 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) ||
     password.length < 8 ||
     password.length > 128
   )

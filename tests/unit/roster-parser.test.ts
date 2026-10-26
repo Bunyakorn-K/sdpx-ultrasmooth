@@ -5,11 +5,13 @@ import {
   parseRosterCsv,
 } from "@/features/classroom/domain/roster-parser";
 
-test("FR-AUTH-03: normalizeEmail removes dots and +tags in gmail and lowercases", () => {
+test("FR-AUTH-03: normalizeEmail removes dots and +tags across domains and lowercases", () => {
   assert.equal(
     normalizeEmail("Somchai.A+test@gmail.com"),
     "somchaia@gmail.com",
   );
+  assert.equal(normalizeEmail("Somchai.A+x@uni.ac.th"), "somchaia@uni.ac.th");
+  assert.equal(normalizeEmail("somchaia@uni.ac.th"), "somchaia@uni.ac.th");
   assert.equal(normalizeEmail("STUDENT@uni.ac.th"), "student@uni.ac.th");
 });
 

@@ -452,6 +452,47 @@ Verified locally: `tests/unit/assignment-lifecycle.test.ts` (4 passed),
 (25 passed / 12 skipped), containerized E2E with disposable PostgreSQL
 (37 passed), lint (Oxlint), typecheck, and OpenAPI validation.
 
+## Authentication & Authorization completion — FR-AUTH-01..04 & FR-AUTHZ-01..03 (2026-10-26)
+
+The Authentication and Authorization requirements are completed and verified:
+
+- **FR-AUTH-03 (Full Email Normalization):**
+  Updated `normalizeEmail` to strip dots (`.`) and `+tags` across all domains
+  (including academic `.ac.th`, `.edu`, and institutional domains). Standardized
+  its usage in `roster-parser.ts`, `auth-validation.ts` (local register/login),
+  `classroom-service.ts` (roster activation), and `session-service.ts`.
+  `Somchai.A+x@uni.ac.th` in roster matches `somchaia@uni.ac.th` on login/activation,
+  fulfilling the PRD §7.1 acceptance test and resolving tester Aom's issue.
+- **FR-AUTHZ-03 (TA Roster Import Permissions & Staff UI):**
+  Updated `ClassroomService.importRoster` to permit `TA` role members to import
+  rosters alongside `OWNER` and `CO_TEACHER` per PRD §3 Role Matrix.
+  Updated `classroom-detail.tsx` so staff members (`canManageRoster`) can access
+  and trigger the Roster Import dialog and CSV upload buttons, resolving tester
+  Oak's issue.
+- **FR-AUTH-04 (12-Hour Session Lifetime and Silent Refresh):**
+  Updated `session-service.ts` and `src/app/auth/callback/route.ts` to use
+  12-hour session lifetime (`now() + interval '12 hours'`, cookie maxAge 43,200).
+  Implemented silent refresh in `currentUser()`: active sessions with less than
+  4 hours remaining are automatically extended by 12 hours without interrupting
+  the user's work, resolving Oak's issue.
+- **FR-AUTHZ-02 (Cross-Classroom Resource Access Returns 404):**
+  Updated `AssignmentService.get` and `ClassroomService.get` so that students
+  attempting to access resources from classrooms they do not belong to receive
+  HTTP 404 Not Found instead of 403 Forbidden, preventing resource existence leaks
+  per PRD §7.1.
+- **FR-AUTH-02 (Classroom Allowed Email Domains Enforcement):**
+  Enforced domain check during atomic CSV roster import in `applyRosterImport`:
+  rejects CSV files containing emails outside the classroom's `allowed_email_domains`
+  with exact row number and disallowed domain message.
+- **FR-AUTH-01 (Google OAuth & Local Dev Auth):**
+  Google OAuth 2.0 / Supabase Auth serves as primary authentication for production
+  flows, with local password authentication retained for development, testing,
+  and offline evaluations per stakeholder guidance.
+
+Verified locally: 190 unit and integration tests pass, lint (Oxlint), typecheck,
+OpenAPI validation, production build, host Playwright E2E (24 passed / 12 skipped),
+and containerized E2E with disposable PostgreSQL (36 passed).
+
 ## Earlier verification
 
 Testing was paused at the user's request on 2026-10-20. Completed checks: lint, TypeScript, OpenAPI validation and production build; host E2E 27/27 (9 scenarios × 3); Docker E2E 9/9 after declaring a UTF-8 locale for Thai download filenames. Business coverage measured 97.52% lines, 90.34% branches and 97.14% functions. The Docker unit run exposed that the redaction probe inherited `LOG_LEVEL=silent`; the probe now explicitly enables its own logger. Further testing and final evidence consolidation are deferred.

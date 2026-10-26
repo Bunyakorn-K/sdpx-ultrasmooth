@@ -46,6 +46,10 @@ export class AssignmentService {
     if (!isOwner && !isJoined) {
       const hasAccess = await this.checkClassroomAccess(user, assignment);
       if (!hasAccess) {
+        // FR-AUTHZ-02: student of classroom A requesting resource of classroom B gets 404 (not 403 to avoid leaking existence)
+        if (assignment.classroomId) {
+          throw new AppError("ไม่พบ assignment", 404);
+        }
         throw new AppError("คุณไม่มีสิทธิ์เข้าถึง assignment นี้", 403);
       }
     }
