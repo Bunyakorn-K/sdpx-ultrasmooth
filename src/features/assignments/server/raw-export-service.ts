@@ -21,10 +21,7 @@ export class RawExportService {
     if (!record) throw new AppError("ไม่พบ assignment", 404);
     const a = record.assignment;
     if (user.role !== "teacher" || a.ownerId !== user.id)
-      throw new AppError(
-        "เฉพาะ Owner ของ Assignment เท่านั้นที่ส่งออกข้อมูลดิบได้",
-        403,
-      );
+      throw new AppError("เฉพาะ Owner ของ Assignment เท่านั้นที่ส่งออกข้อมูลดิบได้", 403);
     const classroom = a.classroomId
       ? (await this.classrooms?.findById(a.classroomId))?.classroom
       : undefined;
@@ -40,8 +37,7 @@ export class RawExportService {
       a.status === "finalized" && a.finalizedSnapshot?.inputs.pairs
         ? a.finalizedSnapshot.inputs
         : a;
-    if (!source.pairs)
-      throw new AppError("งานนี้ยังไม่มีข้อมูลประเมินแบบคู่", 409);
+    if (!source.pairs) throw new AppError("งานนี้ยังไม่มีข้อมูลประเมินแบบคู่", 409);
     const pairs = new Map(source.pairs.map((p) => [p.id, p]));
     // Only committed comparisons from the current/finalized set; never drafts or archived generations.
     const comparisons = (source.comparisons ?? []).filter(
