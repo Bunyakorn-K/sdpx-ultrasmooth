@@ -542,6 +542,24 @@ database before using additional-evaluation notifications. No hosted database
 was modified during integration. Historical E2E results above refer to the
 individual feature branches, not this combined branch.
 
+## Teacher group submission status fix (2026-10-26)
+
+The teacher-only group detail page previously read legacy `votes` even for
+persisted pairwise assignments, incorrectly showing students as not submitted.
+It now reads current assigned pairs and their submitted comparisons, displaying
+group/individual tasks, criterion, saved left/right order, submission timestamp
+and choice. Drafts, removed pairs and evaluator-mismatched responses do not count
+as submitted. Excluded responses retain their submitted status with an exclusion
+label. Added tasks remain pending; finalized assignments use frozen inputs.
+Legacy assignments retain their existing vote display and owner access controls.
+
+Local verification: 214 unit/integration tests passed, including four regression
+tests that submit through the evaluation domain and inspect the teacher-visible
+data. Oxlint, TypeScript, OpenAPI and formatting checks passed. Production account
+data and the reported deployed page were not accessible for authenticated browser
+verification. E2E remains paused; this change must be deployed before the hosted
+site reflects the fix.
+
 ## Earlier verification
 
 Testing was paused at the user's request on 2026-10-20. Completed checks: lint, TypeScript, OpenAPI validation and production build; host E2E 27/27 (9 scenarios × 3); Docker E2E 9/9 after declaring a UTF-8 locale for Thai download filenames. Business coverage measured 97.52% lines, 90.34% branches and 97.14% functions. The Docker unit run exposed that the redaction probe inherited `LOG_LEVEL=silent`; the probe now explicitly enables its own logger. Further testing and final evidence consolidation are deferred.
