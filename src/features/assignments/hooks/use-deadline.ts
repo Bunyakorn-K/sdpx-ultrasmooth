@@ -20,13 +20,10 @@ export interface DeadlineCountdown {
   formatted: string;
 }
 
-export function useDeadlineCountdown(deadline: string): DeadlineCountdown {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
+export function calculateDeadlineCountdown(
+  deadline: string,
+  now = Date.now(),
+): DeadlineCountdown {
   const deadlineTime = new Date(deadline).getTime();
   if (Number.isNaN(deadlineTime)) {
     return {
@@ -63,4 +60,13 @@ export function useDeadlineCountdown(deadline: string): DeadlineCountdown {
     seconds,
     formatted,
   };
+}
+
+export function useDeadlineCountdown(deadline: string): DeadlineCountdown {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return calculateDeadlineCountdown(deadline, now);
 }

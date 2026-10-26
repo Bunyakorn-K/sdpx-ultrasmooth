@@ -38,12 +38,23 @@ function existingAnswers(
   );
 }
 
-function getInitialOfflineDraft(
+export function getOfflineDraftStorageKey(
+  assignmentId: string,
+  userId: string,
+  side: CriterionSide,
+): string {
+  return `peereval_offline_draft_${assignmentId}_${userId}_${side}`;
+}
+
+export function getInitialOfflineDraft(
   key: string | null,
+  storage: Pick<Storage, "getItem"> | null = typeof window !== "undefined"
+    ? localStorage
+    : null,
 ): Record<string, PendingAnswer> {
-  if (!key || typeof window === "undefined") return {};
+  if (!key || !storage) return {};
   try {
-    const cached = localStorage.getItem(key);
+    const cached = storage.getItem(key);
     if (cached) {
       const parsed = JSON.parse(cached) as Record<string, PendingAnswer>;
       if (
@@ -70,7 +81,7 @@ export function useEvaluationDraft(
 ) {
   const storageKey =
     typeof window !== "undefined"
-      ? `peereval_offline_draft_${a.id}_${userId}_${side}`
+      ? getOfflineDraftStorageKey(a.id, userId, side)
       : null;
   const [isOnline, setIsOnline] = useState(
     typeof navigator !== "undefined" ? navigator.onLine : true,
@@ -87,6 +98,14 @@ export function useEvaluationDraft(
   const lastInteraction = useRef<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(submitting);
+  const editableRef = useRef(editable);
+  useEffect(() => {
+    submittingRef.current = submitting;
+  }, [submitting]);
+  useEffect(() => {
+    editableRef.current = editable;
+  }, [editable]);
   const [error, setError] = useState("");
   const [savedAt, setSavedAt] = useState("");
   const [submittedAt, setSubmittedAt] = useState("");
@@ -209,8 +228,8 @@ export function useEvaluationDraft(
     const onOnline = () => {
       setIsOnline(true);
       if (
-        editable &&
-        !submitting &&
+        editableRef.current &&
+        !submittingRef.current &&
         Object.keys(pendingRef.current).length > 0
       ) {
         void save();
@@ -225,7 +244,7 @@ export function useEvaluationDraft(
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
-  }, [editable, submitting, save]);
+  }, [save]);
 
   async function submit() {
     if (submitLock.current) return false;

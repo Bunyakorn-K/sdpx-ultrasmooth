@@ -6,6 +6,12 @@ import { applyAssignmentCommand } from "@/features/assignments/domain/assignment
 import { previewRegeneration } from "@/features/pairwise/domain/regeneration";
 import { generatedResult } from "@/features/pairwise/domain/generated-results";
 import { evaluationRevision } from "@/features/pairwise/domain/evaluation-submission";
+import { CHOICE_POINTS } from "@/features/pairwise/domain/scoring-engine";
+import { calculateDeadlineCountdown } from "@/features/assignments/hooks/use-deadline";
+import {
+  getOfflineDraftStorageKey,
+  getInitialOfflineDraft,
+} from "@/features/pairwise/hooks/use-evaluation-draft";
 
 const teacher: User = {
   id: "t-1",
@@ -119,18 +125,15 @@ test("FR-EVAL-02: Item artifacts fallback to 'อาจารย์ยังไ�
 });
 
 test("FR-EVAL-03: 6-point forced choice scale has all 6 choices without neutral option", () => {
-  const CHOICES = [
-    { value: 1, label: "ซ้ายดีกว่ามาก", weight: { left: 1.0, right: 0.0 } },
-    { value: 2, label: "ซ้ายดีกว่า", weight: { left: 0.8, right: 0.2 } },
-    { value: 3, label: "ซ้ายดีกว่าเล็กน้อย", weight: { left: 0.6, right: 0.4 } },
-    { value: 4, label: "ขวาดีกว่าเล็กน้อย", weight: { left: 0.4, right: 0.6 } },
-    { value: 5, label: "ขวาดีกว่า", weight: { left: 0.2, right: 0.8 } },
-    { value: 6, label: "ขวาดีกว่ามาก", weight: { left: 0.0, right: 1.0 } },
-  ];
+  const choices = Object.entries(CHOICE_POINTS).map(([val, data]) => ({
+    value: Number(val),
+    label: data.label,
+    weight: { left: data.s_left, right: data.s_right },
+  }));
 
-  assert.equal(CHOICES.length, 6, "Must strictly have 6 choices");
+  assert.equal(choices.length, 6, "Must strictly have 6 choices");
   // Ensure no neutral 50/50 option exists (Decision D1)
-  const neutral = CHOICES.find(
+  const neutral = choices.find(
     (c) => c.weight.left === 0.5 && c.weight.right === 0.5,
   );
   assert.equal(
@@ -140,7 +143,7 @@ test("FR-EVAL-03: 6-point forced choice scale has all 6 choices without neutral 
   );
 
   // Ensure each choice has valid labels and numeric point
-  CHOICES.forEach((c, index) => {
+  choices.forEach((c, index) => {
     assert.equal(c.value, index + 1);
     assert.ok(c.label.length > 0, "Each choice must have text label");
   });
@@ -287,29 +290,28 @@ test("FR-EVAL-09: Unsubmitted drafts MUST NOT be included in score calculations"
 });
 
 test("FR-EVAL-10: Countdown timer triggers when deadline is under 48 hours", () => {
-  // Test case 1: 36 hours remaining (< 48 hrs)
-  const remainingMs36h = 36 * 3600 * 1000;
-  const deadline36h = new Date(Date.now() + remainingMs36h).toISOString();
-  assert.ok(deadline36h);
-  const isUrgent36h = remainingMs36h < 48 * 3600 * 1000;
-  assert.equal(isUrgent36h, true);
+  const baseTime = 1700000000000;
 
-  const hours36 = Math.floor(remainingMs36h / (3600 * 1000));
-  const minutes36 = Math.floor((remainingMs36h % (3600 * 1000)) / (60 * 1000));
-  const formatted36 = `${hours36} ชั่วโมง ${minutes36} นาที`;
-  assert.equal(formatted36, "36 ชั่วโมง 0 นาที");
+  // Test case 1: 36 hours remaining (< 48 hrs)
+  const deadline36h = new Date(baseTime + 36 * 3600 * 1000).toISOString();
+  const res36h = calculateDeadlineCountdown(deadline36h, baseTime);
+  assert.equal(res36h.isUrgent, true);
+  assert.equal(res36h.expired, false);
+  assert.equal(res36h.hours, 36);
+  assert.equal(res36h.minutes, 0);
+  assert.equal(res36h.formatted, "36 ชั่วโมง 0 นาที");
 
   // Test case 2: 72 hours remaining (> 48 hrs)
-  const remainingMs72h = 72 * 3600 * 1000;
-  const isUrgent72h = remainingMs72h < 48 * 3600 * 1000;
-  assert.equal(isUrgent72h, false);
+  const deadline72h = new Date(baseTime + 72 * 3600 * 1000).toISOString();
+  const res72h = calculateDeadlineCountdown(deadline72h, baseTime);
+  assert.equal(res72h.isUrgent, false);
+  assert.equal(res72h.expired, false);
 
   // Test case 3: Already expired
-  const remainingMsExpired = -1000;
-  const expired = remainingMsExpired <= 0;
-  const isUrgentExpired = !expired && remainingMsExpired < 48 * 3600 * 1000;
-  assert.equal(expired, true);
-  assert.equal(isUrgentExpired, false);
+  const deadlineExpired = new Date(baseTime - 1000).toISOString();
+  const resExpired = calculateDeadlineCountdown(deadlineExpired, baseTime);
+  assert.equal(resExpired.expired, true);
+  assert.equal(resExpired.isUrgent, false);
 });
 
 test("FR-EVAL-11: Individual evaluation side is strictly segregated from group evaluation side", () => {
@@ -368,18 +370,37 @@ test("FR-EVAL-13: Client-side offline draft queue key and state isolation", () =
   const assignmentId = "asgn-123";
   const userId = "usr-456";
   const side = "GROUP";
-  const expectedKey = `peereval_offline_draft_${assignmentId}_${userId}_${side}`;
+  const key = getOfflineDraftStorageKey(assignmentId, userId, side);
 
-  assert.equal(expectedKey, "peereval_offline_draft_asgn-123_usr-456_GROUP");
+  assert.equal(key, "peereval_offline_draft_asgn-123_usr-456_GROUP");
 
-  // Test payload serialization
+  // Test payload serialization and loading via getInitialOfflineDraft
   const pendingAnswers = {
-    "pair-1": { pairId: "pair-1", choice: 3, timeOnTaskMs: 1200, sequence: 1 },
-    "pair-2": { pairId: "pair-2", choice: 5, timeOnTaskMs: 2400, sequence: 2 },
+    "pair-1": {
+      pairId: "pair-1",
+      choice: 3 as const,
+      timeOnTaskMs: 1200,
+      sequence: 1,
+    },
+    "pair-2": {
+      pairId: "pair-2",
+      choice: 5 as const,
+      timeOnTaskMs: 2400,
+      sequence: 2,
+    },
   };
 
-  const serialized = JSON.stringify(pendingAnswers);
-  const deserialized = JSON.parse(serialized);
-  assert.deepEqual(deserialized, pendingAnswers);
-  assert.equal(Object.keys(deserialized).length, 2);
+  const mockStorage = {
+    getItem: (k: string) => (k === key ? JSON.stringify(pendingAnswers) : null),
+  };
+  const loaded = getInitialOfflineDraft(key, mockStorage);
+  assert.deepEqual(loaded, pendingAnswers);
+  assert.equal(Object.keys(loaded).length, 2);
+
+  // Missing or corrupted storage returns empty object safely
+  assert.deepEqual(getInitialOfflineDraft(null, mockStorage), {});
+  assert.deepEqual(
+    getInitialOfflineDraft("other-key", { getItem: () => "invalid json" }),
+    {},
+  );
 });
