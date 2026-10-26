@@ -43,6 +43,8 @@ const commandEndpoints: Record<
   recomputeScores: { suffix: "recompute", method: "POST" },
   clone: { suffix: "clone", method: "POST" },
   updateDeadline: { suffix: "deadline", method: "POST" },
+
+  assignAdditional: { suffix: "pairs/additional", method: "POST" },
 };
 export async function sendAssignmentCommand(input: Record<string, unknown>) {
   const { action, id, ...payload } = input;

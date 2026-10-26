@@ -37,6 +37,8 @@ const commands = new Set([
   "recomputeScores",
   "clone",
   "updateDeadline",
+
+  "assignAdditional",
 ]);
 const events: Record<string, string> = {
   submitAppeal: "appeal_submitted",
@@ -60,6 +62,7 @@ const events: Record<string, string> = {
   reopen: "assignment_reopened",
   overrideScore: "score_overridden",
   recomputeScores: "interim_scores_recomputed",
+  assignAdditional: "additional_pairs_assigned",
 };
 export const listAssignmentsResponse = withApi(
   "/api/assignments",

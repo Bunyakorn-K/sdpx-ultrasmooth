@@ -385,6 +385,40 @@ paths:
             description: "Stale preview or generation, invalid lifecycle state, or duplicate submission.",
           }
         "503": { description: Database unavailable. }
+  /api/assignments/{id}/pairs/additional:
+    post:
+      operationId: assignAdditionalEvaluations
+      summary: Owner assigns additional evaluators to a specific pair
+      description: "Traceability: FR-PAIR-10, FR-REPORT-03, FR-NOTIF-05. Evaluators are drawn randomly from eligible students who have not yet evaluated the pair, excluding members of the compared items, without exceeding max workload."
+      tags: [Assignments]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                [pairId, count, expectedGeneration, expectedAssignedCount]
+              properties:
+                pairId: { type: string }
+                count: { type: integer, minimum: 1, maximum: 100 }
+                expectedGeneration: { type: integer, minimum: 0 }
+                expectedAssignedCount: { type: integer, minimum: 0 }
+      responses:
+        "200":
+          description: Additional pairs assigned and notifications dispatched to recipients.
+        "400": { description: Invalid count or input payload. }
+        "401": { description: Sign-in required. }
+        "403": { description: Owning teacher and same origin required. }
+        "404": { description: Assignment or pair not found. }
+        "409":
+          description: "Stale generation, stale assigned count, insufficient eligible candidates, or assignment not active."
+        "503": { description: Database unavailable. }
   /api/assignments/{id}/pairs/drafts:
     put:
       operationId: saveEvaluationDrafts
