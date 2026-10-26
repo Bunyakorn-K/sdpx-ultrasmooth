@@ -64,8 +64,8 @@ export function CriteriaPanel({
             />
           </Stack>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            เกณฑ์และน้ำหนักสำหรับการเปรียบเทียบคู่ (Pairwise Comparison) ตาม PRD
-            §7.3 & FR-ASSIGN-02
+            เกณฑ์และน้ำหนักสำหรับการเปรียบเทียบคู่ (Pairwise Comparison) ตาม PRD §7.3 &
+            FR-ASSIGN-02
           </Typography>
         </div>
 

@@ -72,9 +72,7 @@ export function AuthScreen({
           </section>
           <section className="auth-card" aria-labelledby="auth-title">
             <h1 id="auth-title">
-              {registering
-                ? "เริ่มต้นการเรียนรู้ร่วมกัน"
-                : "ยินดีต้อนรับกลับมา"}
+              {registering ? "เริ่มต้นการเรียนรู้ร่วมกัน" : "ยินดีต้อนรับกลับมา"}
             </h1>
             <AuthForm
               key={mode}

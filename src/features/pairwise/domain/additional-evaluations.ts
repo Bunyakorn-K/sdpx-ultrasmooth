@@ -58,10 +58,7 @@ export function assignAdditionalEvaluations(
     !Number.isFinite(Date.parse(a.deadline)) ||
     Date.parse(a.deadline) <= Date.now()
   )
-    throw new AppError(
-      "ส่งประเมินเพิ่มได้ขณะเปิดประเมินและยังไม่หมดเวลาเท่านั้น",
-      409,
-    );
+    throw new AppError("ส่งประเมินเพิ่มได้ขณะเปิดประเมินและยังไม่หมดเวลาเท่านั้น", 409);
   if (input.expectedGeneration !== a.pairGeneration)
     throw new AppError("ชุดคู่เปลี่ยนแล้ว กรุณาโหลดข้อมูลล่าสุด", 409);
   const pair = a.pairs?.find((p) => p.id === input.pairId);

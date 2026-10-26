@@ -179,9 +179,7 @@ export function previewRegeneration(a: Assignment, scope: PairScope) {
     maximum < 1 ||
     maximum > 100
   )
-    throw new AppError(
-      "Coverage ต้องอยู่ระหว่าง 1–50 และ workload ระหว่าง 1–100",
-    );
+    throw new AppError("Coverage ต้องอยู่ระหว่าง 1–50 และ workload ระหว่าง 1–100");
   const pairs: PairAssignment[] = [];
   let coverage = 0;
   const timestamp = a.createdAt;

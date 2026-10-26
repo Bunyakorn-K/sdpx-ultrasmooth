@@ -42,10 +42,7 @@ test("US03: outsider cannot read another assignment", async () => {
   const service = new AssignmentService(
     new FakeAssignmentRepository([assignment]),
   );
-  await assert.rejects(
-    () => service.get(makeUser(), assignment.id),
-    /ไม่มีสิทธิ์/,
-  );
+  await assert.rejects(() => service.get(makeUser(), assignment.id), /ไม่มีสิทธิ์/);
 });
 test("US03: joined student can read assignment while missing IDs return 404", async () => {
   const { student, assignment } = makeVotingFixture();
@@ -53,10 +50,7 @@ test("US03: joined student can read assignment while missing IDs return 404", as
     new FakeAssignmentRepository([assignment]),
   );
   assert.equal((await service.get(student, assignment.id)).id, assignment.id);
-  await assert.rejects(
-    () => service.get(student, crypto.randomUUID()),
-    /ไม่พบ/,
-  );
+  await assert.rejects(() => service.get(student, crypto.randomUUID()), /ไม่พบ/);
 });
 test("US03: student in classroom can list and read assignment without prior join", async () => {
   const teacher = makeUser({ role: "teacher" });

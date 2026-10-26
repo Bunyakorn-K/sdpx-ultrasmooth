@@ -278,9 +278,7 @@ export function AssignmentList(props: AssignmentListProps) {
       </div>
       <div className="dashboard-bottom">
         <span>✳</span>
-        <p>
-          ความคิดเห็นเล็ก ๆ วันนี้ อาจเป็นการเรียนรู้ที่ยิ่งใหญ่ในวันพรุ่งนี้
-        </p>
+        <p>ความคิดเห็นเล็ก ๆ วันนี้ อาจเป็นการเรียนรู้ที่ยิ่งใหญ่ในวันพรุ่งนี้</p>
       </div>
     </>
   );

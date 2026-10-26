@@ -76,23 +76,20 @@ export function AdditionalEvaluationsDialog({
       maxWidth="sm"
       aria-labelledby="additional-evaluations-title"
     >
-      <DialogTitle id="additional-evaluations-title">
-        ส่งประเมินเพิ่ม
-      </DialogTitle>
+      <DialogTitle id="additional-evaluations-title">ส่งประเมินเพิ่ม</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
           <DialogContentText>{label}</DialogContentText>
           <Alert severity="info">
-            ระบบจะสุ่มนักศึกษาที่มีสิทธิ์ ยังไม่เคยได้รับคู่นี้ในเกณฑ์นี้ และมี
-            workload เหลือ โดยเก็บคำตอบเดิมไว้ พร้อมแจ้งเตือนเฉพาะคนที่ถูกเลือก
+            ระบบจะสุ่มนักศึกษาที่มีสิทธิ์ ยังไม่เคยได้รับคู่นี้ในเกณฑ์นี้ และมี workload เหลือ
+            โดยเก็บคำตอบเดิมไว้ พร้อมแจ้งเตือนเฉพาะคนที่ถูกเลือก
           </Alert>
           <DialogContentText>
             เลือกได้อีก {available} คน · ใช้กำหนดส่งเดิมของ Assignment
           </DialogContentText>
           {available === 0 ? (
             <Alert severity="warning">
-              ไม่มีผู้ประเมินที่มีสิทธิ์เหลือสำหรับคู่นี้
-              รายบุคคลที่มอบหมายครบทุกคนแล้วจะเพิ่มไม่ได้
+              ไม่มีผู้ประเมินที่มีสิทธิ์เหลือสำหรับคู่นี้ รายบุคคลที่มอบหมายครบทุกคนแล้วจะเพิ่มไม่ได้
             </Alert>
           ) : (
             <TextField

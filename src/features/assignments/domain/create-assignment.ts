@@ -4,8 +4,7 @@ import type { Assignment } from "../types";
 
 export function validateArtifactUrl(value: unknown): string | undefined {
   if (value === undefined || value === null || value === "") return undefined;
-  if (typeof value !== "string")
-    throw new AppError("ลิงก์ผลงานไม่ถูกต้อง", 400);
+  if (typeof value !== "string") throw new AppError("ลิงก์ผลงานไม่ถูกต้อง", 400);
   const trimmed = value.trim();
   if (!trimmed) return undefined;
   if (trimmed.length > 2000)
@@ -14,10 +13,7 @@ export function validateArtifactUrl(value: unknown): string | undefined {
   try {
     parsed = new URL(trimmed);
   } catch {
-    throw new AppError(
-      "ลิงก์ผลงานต้องเป็น URL ที่ถูกต้อง (เช่น https://...)",
-      400,
-    );
+    throw new AppError("ลิงก์ผลงานต้องเป็น URL ที่ถูกต้อง (เช่น https://...)", 400);
   }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new AppError("ลิงก์ผลงานต้องเริ่มต้นด้วย http:// หรือ https://", 400);
@@ -55,9 +51,7 @@ export function createAssignment(
     !Number.isFinite(deadline.getTime()) ||
     deadline.getTime() <= Date.now()
   )
-    throw new AppError(
-      "กรุณากรอกชื่องานไม่เกิน 200 ตัวอักษรและวันสิ้นสุดในอนาคต",
-    );
+    throw new AppError("กรุณากรอกชื่องานไม่เกิน 200 ตัวอักษรและวันสิ้นสุดในอนาคต");
   const groupMaxScore =
     input.groupMaxScore !== undefined && input.groupMaxScore !== ""
       ? Number(input.groupMaxScore)

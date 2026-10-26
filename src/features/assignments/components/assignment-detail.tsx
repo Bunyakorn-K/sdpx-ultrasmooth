@@ -298,9 +298,8 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
       </div>
       {teacher && !active.pairwiseRequired && !active.pairs && (
         <Alert severity="info" sx={{ mb: 3 }}>
-          งานนี้ใช้การประเมินรูปแบบเดิม หากต้องการเปลี่ยนเป็นประเมินแบบคู่
-          ให้ใช้ Re-generate Pairs และยืนยันการเปลี่ยนระบบ
-          คำตอบเดิมจะถูกเก็บเป็นประวัติ
+          งานนี้ใช้การประเมินรูปแบบเดิม หากต้องการเปลี่ยนเป็นประเมินแบบคู่ ให้ใช้ Re-generate
+          Pairs และยืนยันการเปลี่ยนระบบ คำตอบเดิมจะถูกเก็บเป็นประวัติ
         </Alert>
       )}
       {publishOpen &&
@@ -418,8 +417,7 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
           </Typography>
           <Alert severity="info" sx={{ mb: 2 }}>
             สามารถขยายเวลาได้ตลอดเวลา
-            แต่การร่นเวลาเข้าทำได้เฉพาะเมื่อยังไม่ถึงกำหนดส่งเดิมเท่านั้น
-            (FR-ASSIGN-04)
+            แต่การร่นเวลาเข้าทำได้เฉพาะเมื่อยังไม่ถึงกำหนดส่งเดิมเท่านั้น (FR-ASSIGN-04)
           </Alert>
           {deadlineError && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -555,9 +553,7 @@ export function AssignmentDetail(props: AssignmentDetailProps) {
               }
             }}
           >
-            {unpublishSubmitting
-              ? "กำลังดำเนินการ..."
-              : "ยืนยันนำกลับเป็น Draft"}
+            {unpublishSubmitting ? "กำลังดำเนินการ..." : "ยืนยันนำกลับเป็น Draft"}
           </Button>
         </DialogActions>
       </Dialog>

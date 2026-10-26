@@ -127,9 +127,7 @@ export function ClassroomDetail({
       setStaffEmail("");
       setStaffName("");
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการเพิ่มผู้สอน",
-      );
+      setError(err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการเพิ่มผู้สอน");
     }
   }
 
@@ -155,9 +153,7 @@ export function ClassroomDetail({
       await onArchive();
       setToast("เก็บ Classroom ถาวรแล้ว");
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "ไม่สามารถเก็บ Classroom ได้",
-      );
+      setError(err instanceof Error ? err.message : "ไม่สามารถเก็บ Classroom ได้");
     }
   }
 
@@ -345,8 +341,7 @@ export function ClassroomDetail({
                         setLinkOpen(true);
                       }}
                     >
-                      เชื่อมโยง Assignment ที่มีอยู่ (
-                      {unlinkedAssignments.length})
+                      เชื่อมโยง Assignment ที่มีอยู่ ({unlinkedAssignments.length})
                     </Button>
                   )}
                 </Stack>
@@ -370,8 +365,7 @@ export function ClassroomDetail({
                         setLinkOpen(true);
                       }}
                     >
-                      เชื่อมโยง Assignment ที่มีอยู่ (
-                      {unlinkedAssignments.length})
+                      เชื่อมโยง Assignment ที่มีอยู่ ({unlinkedAssignments.length})
                     </Button>
                   </Box>
                 )}
@@ -424,8 +418,8 @@ export function ClassroomDetail({
                 รายชื่อนักศึกษาและกลุ่มผลงาน (Roster & Groups)
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                จัดการรายชื่อนักศึกษา กลุ่ม และสถานะการเปิดใช้งาน (FR-CLASS-01
-                ถึง FR-CLASS-05)
+                จัดการรายชื่อนักศึกษา กลุ่ม และสถานะการเปิดใช้งาน (FR-CLASS-01 ถึง
+                FR-CLASS-05)
               </Typography>
             </Box>
             {canManageRoster && classroom.status === "ACTIVE" && (
@@ -469,9 +463,7 @@ export function ClassroomDetail({
               <Table size="medium">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>
-                      ชื่อ - นามสกุล
-                    </TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>ชื่อ - นามสกุล</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>อีเมล</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>รหัสนักศึกษา</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>กลุ่ม</TableCell>
@@ -557,8 +549,7 @@ export function ClassroomDetail({
                 ผู้สอนร่วมและผู้ช่วยสอน (Co-teachers & TAs)
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                อาจารย์ผู้รับผิดชอบสามารถเพิ่มหรือถอดถอนผู้สอนร่วมและ TA ได้
-                (FR-CLASS-06)
+                อาจารย์ผู้รับผิดชอบสามารถเพิ่มหรือถอดถอนผู้สอนร่วมและ TA ได้ (FR-CLASS-06)
               </Typography>
             </Box>
             {teacher && classroom.status === "ACTIVE" && (
@@ -615,9 +606,7 @@ export function ClassroomDetail({
                       <Chip
                         size="small"
                         label={
-                          staff.status === "ACTIVE"
-                            ? "เข้าใช้งานแล้ว"
-                            : "รอล็อกอิน"
+                          staff.status === "ACTIVE" ? "เข้าใช้งานแล้ว" : "รอล็อกอิน"
                         }
                         variant="outlined"
                       />
@@ -707,9 +696,7 @@ export function ClassroomDetail({
         fullWidth
       >
         <form onSubmit={handleAddStaffSubmit}>
-          <DialogTitle sx={{ fontWeight: 700 }}>
-            เพิ่มผู้สอนหรือผู้ช่วยสอน
-          </DialogTitle>
+          <DialogTitle sx={{ fontWeight: 700 }}>เพิ่มผู้สอนหรือผู้ช่วยสอน</DialogTitle>
           <DialogContent sx={{ pt: 1 }}>
             <Stack spacing={2}>
               <TextField

@@ -28,9 +28,7 @@ function csvRecords(text: string): { cols: string[]; rowNumber: number }[] {
     const char = source[i];
     if (quoted) {
       if (char === undefined)
-        throw new AppError(
-          `แถวที่ ${rowNumber}: เครื่องหมายคำพูดใน CSV ไม่ครบ`,
-        );
+        throw new AppError(`แถวที่ ${rowNumber}: เครื่องหมายคำพูดใน CSV ไม่ครบ`);
       if (char === '"') {
         if (source[i + 1] === '"') {
           cell += '"';
@@ -133,9 +131,7 @@ export function parseRosterCsv(csvText: string): ParseRosterResult {
   for (let i = 1; i < lines.length; i++) {
     const { rowNumber, cols } = lines[i];
     if (cols.length !== headerCols.length)
-      throw new AppError(
-        `แถวที่ ${rowNumber}: จำนวนคอลัมน์ไม่ตรงกับหัวตาราง CSV`,
-      );
+      throw new AppError(`แถวที่ ${rowNumber}: จำนวนคอลัมน์ไม่ตรงกับหัวตาราง CSV`);
 
     const rawEmail = cols[emailIdx] || "";
     const groupName = cols[groupIdx] || "";
@@ -148,9 +144,7 @@ export function parseRosterCsv(csvText: string): ParseRosterResult {
     }
 
     if (!rawEmail || !emailRegex.test(rawEmail)) {
-      throw new AppError(
-        `แถวที่ ${rowNumber}: รูปแบบอีเมล "${rawEmail}" ไม่ถูกต้อง`,
-      );
+      throw new AppError(`แถวที่ ${rowNumber}: รูปแบบอีเมล "${rawEmail}" ไม่ถูกต้อง`);
     }
 
     const normalized = normalizeEmail(rawEmail);
@@ -180,9 +174,7 @@ export function parseRosterCsv(csvText: string): ParseRosterResult {
   const warnings: string[] = [];
   for (const [group, count] of groupCounts.entries()) {
     if (count < 2) {
-      warnings.push(
-        `กลุ่ม "${group}" มีสมาชิกเพียง ${count} คน (น้อยกว่า 2 คน)`,
-      );
+      warnings.push(`กลุ่ม "${group}" มีสมาชิกเพียง ${count} คน (น้อยกว่า 2 คน)`);
     }
   }
 

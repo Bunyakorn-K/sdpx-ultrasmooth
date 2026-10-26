@@ -212,10 +212,7 @@ export class ClassroomService {
       const classroom = record.classroom;
 
       if (classroom.status === "ARCHIVED") {
-        throw new AppError(
-          "ห้องเรียนนี้ถูกเก็บถาวรแล้ว ไม่สามารถเข้าร่วมได้",
-          400,
-        );
+        throw new AppError("ห้องเรียนนี้ถูกเก็บถาวรแล้ว ไม่สามารถเข้าร่วมได้", 400);
       }
 
       if (

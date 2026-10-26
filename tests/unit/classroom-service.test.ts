@@ -32,10 +32,7 @@ test("FR-AUTHZ-02: ClassroomService: Outsider receives 404 on cross-classroom ac
   const service = new ClassroomService(repo);
 
   const created = await service.create(teacher, { name: "วิชาลับ" });
-  await assert.rejects(
-    () => service.get(outsider, created.id),
-    /ไม่พบห้องเรียน/,
-  );
+  await assert.rejects(() => service.get(outsider, created.id), /ไม่พบห้องเรียน/);
 });
 
 test("FR-AUTHZ-03: TA can import classroom roster successfully", async () => {

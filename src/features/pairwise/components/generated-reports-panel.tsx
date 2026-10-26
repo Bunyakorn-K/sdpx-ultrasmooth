@@ -237,9 +237,7 @@ export function GeneratedReportsPanel({
             />
             <Chip
               size="small"
-              label={
-                provisional ? "ชั่วคราว — อาจเปลี่ยนแปลงได้" : "ยืนยันผลแล้ว"
-              }
+              label={provisional ? "ชั่วคราว — อาจเปลี่ยนแปลงได้" : "ยืนยันผลแล้ว"}
               color={provisional ? "warning" : "secondary"}
               variant="outlined"
             />
@@ -307,9 +305,7 @@ export function GeneratedReportsPanel({
           sx={{ justifyContent: "space-between", gap: 2, alignItems: "center" }}
         >
           <Box>
-            <Typography sx={{ fontWeight: 700 }}>
-              ความคืบหน้าการประเมิน
-            </Typography>
+            <Typography sx={{ fontWeight: 700 }}>ความคืบหน้าการประเมิน</Typography>
             <Typography variant="body2" color="text.secondary">
               ส่งแล้ว {submittedCount} / {pairs.length} งานเปรียบเทียบ
             </Typography>
@@ -330,8 +326,7 @@ export function GeneratedReportsPanel({
           sx={{ height: 8, borderRadius: 4, my: 2, bgcolor: "#dfede5" }}
         />
         <Typography variant="caption" color="text.secondary">
-          คำนวณเฉพาะคำตอบที่ส่งแล้วในคู่ชุดปัจจุบัน ·
-          ไม่นับฉบับร่างและประวัติที่ถูกแทนที่
+          คำนวณเฉพาะคำตอบที่ส่งแล้วในคู่ชุดปัจจุบัน · ไม่นับฉบับร่างและประวัติที่ถูกแทนที่
         </Typography>
       </Paper>
 
@@ -367,9 +362,7 @@ export function GeneratedReportsPanel({
                 กดแต่ละกลุ่มเพื่อดูรายละเอียดรายเกณฑ์
               </Typography>
               {active.groups.length === 0 && (
-                <Alert severity="info">
-                  ยังไม่มีกลุ่มสำหรับแสดงผลการประเมิน
-                </Alert>
+                <Alert severity="info">ยังไม่มีกลุ่มสำหรับแสดงผลการประเมิน</Alert>
               )}
               {active.groups.map((g) => {
                 const s = calculateItemScores(
@@ -499,9 +492,7 @@ export function GeneratedReportsPanel({
                 คะแนนรวมคำนวณร่วมกับสัดส่วนการส่งประเมินของนักศึกษาแต่ละคน
               </Typography>
               {active.groups.every((g) => !g.members.length) ? (
-                <Alert severity="info">
-                  ยังไม่มีนักศึกษาในกลุ่มสำหรับแสดงคะแนน
-                </Alert>
+                <Alert severity="info">ยังไม่มีนักศึกษาในกลุ่มสำหรับแสดงคะแนน</Alert>
               ) : (
                 <ReportTable
                   label="สรุปคะแนนรายบุคคล"
@@ -514,12 +505,7 @@ export function GeneratedReportsPanel({
                           "คะแนนรวม",
                           "การจัดการ",
                         ]
-                      : [
-                          "นักศึกษา / กลุ่ม",
-                          "คะแนนกลุ่ม",
-                          "คะแนนรายบุคคล",
-                          "คะแนนรวม",
-                        ]
+                      : ["นักศึกษา / กลุ่ม", "คะแนนกลุ่ม", "คะแนนรายบุคคล", "คะแนนรวม"]
                   }
                 >
                   {active.groups.flatMap((g) =>
@@ -663,13 +649,10 @@ export function GeneratedReportsPanel({
           {tab === 3 && (
             <Stack spacing={2}>
               <Alert severity="info">
-                สัญญาณเหล่านี้ใช้ประกอบการทบทวน
-                โดยไม่ลบคำตอบหรือลดคะแนนอัตโนมัติ
+                สัญญาณเหล่านี้ใช้ประกอบการทบทวน โดยไม่ลบคำตอบหรือลดคะแนนอัตโนมัติ
               </Alert>
               {signals.length === 0 ? (
-                <Alert severity="success">
-                  ไม่พบสัญญาณที่ต้องทบทวนในข้อมูลปัจจุบัน
-                </Alert>
+                <Alert severity="success">ไม่พบสัญญาณที่ต้องทบทวนในข้อมูลปัจจุบัน</Alert>
               ) : (
                 signals.map((signal, index) => (
                   <Paper
@@ -705,9 +688,7 @@ export function GeneratedReportsPanel({
                 เพื่อให้เห็นภาพรวมของห้องเรียน
               </Typography>
               {distribution.every((entry) => entry.total === 0) ? (
-                <Alert severity="info">
-                  ยังไม่มีคำตอบที่ส่งแล้วให้แสดงการกระจายตัว
-                </Alert>
+                <Alert severity="info">ยังไม่มีคำตอบที่ส่งแล้วให้แสดงการกระจายตัว</Alert>
               ) : (
                 distribution.map((entry) => {
                   const peak = Math.max(
@@ -776,8 +757,7 @@ export function GeneratedReportsPanel({
           {tab === 4 && (
             <Stack spacing={2}>
               <Typography variant="body2" color="text.secondary">
-                ประวัติการสร้างคู่ (อ่านอย่างเดียว) ·
-                ไม่นำคำตอบชุดเก่ามารวมคะแนนปัจจุบัน
+                ประวัติการสร้างคู่ (อ่านอย่างเดียว) · ไม่นำคำตอบชุดเก่ามารวมคะแนนปัจจุบัน
               </Typography>
               {!active.pairHistory?.length && (
                 <Alert severity="info">ยังไม่มีประวัติการสร้างคู่ใหม่</Alert>
@@ -848,8 +828,8 @@ export function GeneratedReportsPanel({
         </DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            อาจารย์สามารถปรับคะแนนใหม่ได้
-            โดยระบบจะบังคับระบุเหตุผลและบันทึกประวัติลง Audit Log (FR-SCORE-08)
+            อาจารย์สามารถปรับคะแนนใหม่ได้ โดยระบบจะบังคับระบุเหตุผลและบันทึกประวัติลง Audit
+            Log (FR-SCORE-08)
           </Typography>
           {overrideError && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -897,9 +877,7 @@ export function GeneratedReportsPanel({
                 return;
               }
               if (!overrideReasonVal.trim()) {
-                setOverrideError(
-                  "กรุณาระบุเหตุผลในการแก้ไขคะแนน (FR-SCORE-08)",
-                );
+                setOverrideError("กรุณาระบุเหตุผลในการแก้ไขคะแนน (FR-SCORE-08)");
                 return;
               }
               setOverrideSubmitting(true);

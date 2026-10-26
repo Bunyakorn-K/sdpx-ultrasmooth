@@ -510,6 +510,38 @@ The Pairing Engine module and its 5 invariants are completed and verified:
 
 Verified locally: `tests/unit/pairing-invariants.test.ts` (3 passed), `tests/unit/additional-evaluations.test.ts` (6 passed), 199 total unit/integration tests pass, lint (Oxlint), typecheck, OpenAPI validation, production build, host E2E (24 passed / 12 skipped), and containerized E2E with disposable PostgreSQL (36 passed).
 
+## Open PR integration — #57–#60 (2026-10-26)
+
+Branch `integration/open-prs-57-60` combines the four open PR heads on top of
+`origin/main` (`2e8a31e`):
+
+- #57 (`51c9a44`): development auth debugger and scoring checks.
+- #58 (`a8f15ab`): assignment artifact link, criteria weights, deadline editing,
+  timezone display, unpublish confirmation and assignment cloning.
+- #59 (`4bd21bd`): email normalization, allowed-domain validation, TA roster
+  import, session renewal and cross-classroom resource isolation.
+- #60 (`ae336a1`): pairing invariants, additional evaluator assignment and
+  additional-evaluation notifications.
+
+Resolved overlapping command registries by retaining clone, deadline and
+additional-pair commands together. Kept each feature's status documentation.
+The failing CI job was stopped by Oxfmt before its unit-test step; formatting
+was fixed without weakening assertions. Fixed the notification schema's CREATE
+and ALTER constraints to accept `additional_evaluation`, with a regression test
+that checks both constraints against every application notification kind.
+
+Local verification: 210 unit/integration tests passed with zero failures or
+skips; formatting, Oxlint, TypeScript, OpenAPI validation and production build
+passed. Coverage passed configured thresholds; mutation fidelity detected the
+intentional failure and restored the source without changing existing tests.
+
+E2E remains paused as requested. Docker is unavailable on this workstation, so
+the merged branch's database migration and real browser/database flows have not
+been reverified here. Run `npm run db:init` against the intended deployment
+database before using additional-evaluation notifications. No hosted database
+was modified during integration. Historical E2E results above refer to the
+individual feature branches, not this combined branch.
+
 ## Earlier verification
 
 Testing was paused at the user's request on 2026-10-20. Completed checks: lint, TypeScript, OpenAPI validation and production build; host E2E 27/27 (9 scenarios × 3); Docker E2E 9/9 after declaring a UTF-8 locale for Thai download filenames. Business coverage measured 97.52% lines, 90.34% branches and 97.14% functions. The Docker unit run exposed that the redaction probe inherited `LOG_LEVEL=silent`; the probe now explicitly enables its own logger. Further testing and final evidence consolidation are deferred.

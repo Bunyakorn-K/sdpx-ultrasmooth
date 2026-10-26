@@ -52,10 +52,7 @@ export function saveEvaluation(
       new Set(input.expectedPairIds).size !== pairs.length ||
       pairs.some((p) => !(input.expectedPairIds as unknown[]).includes(p.id)))
   )
-    throw new AppError(
-      "มีการมอบหมายคู่เพิ่ม กรุณาโหลดข้อมูลล่าสุดก่อนส่งผลประเมิน",
-      409,
-    );
+    throw new AppError("มีการมอบหมายคู่เพิ่ม กรุณาโหลดข้อมูลล่าสุดก่อนส่งผลประเมิน", 409);
   if (!Array.isArray(input.answers) || input.answers.length > pairs.length)
     throw new AppError("รายการคำตอบไม่ถูกต้อง");
   const ids = new Set(pairs.map((p) => p.id));

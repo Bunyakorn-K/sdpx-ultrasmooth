@@ -226,10 +226,7 @@ export function DevAuthDebugger() {
               sx={{ mt: 0.8, mb: 2, flexWrap: "wrap", gap: 0.8 }}
             >
               {teachers.slice(0, 2).map((t) => (
-                <Tooltip
-                  key={t.id}
-                  title={`${t.email} (คลิกเพื่อเข้าสู่ระบบทันที)`}
-                >
+                <Tooltip key={t.id} title={`${t.email} (คลิกเพื่อเข้าสู่ระบบทันที)`}>
                   <Button
                     size="small"
                     variant="contained"
@@ -244,10 +241,7 @@ export function DevAuthDebugger() {
                 </Tooltip>
               ))}
               {students.slice(0, 2).map((s) => (
-                <Tooltip
-                  key={s.id}
-                  title={`${s.email} (คลิกเพื่อเข้าสู่ระบบทันที)`}
-                >
+                <Tooltip key={s.id} title={`${s.email} (คลิกเพื่อเข้าสู่ระบบทันที)`}>
                   <Button
                     size="small"
                     variant="outlined"
@@ -340,10 +334,7 @@ export function DevAuthDebugger() {
                 </li>
               )}
               renderInput={(params) => (
-                <TextField
-                  {...params}
-                  placeholder="พิมพ์ค้นหาชื่อ หรืออีเมล..."
-                />
+                <TextField {...params} placeholder="พิมพ์ค้นหาชื่อ หรืออีเมล..." />
               )}
             />
 
