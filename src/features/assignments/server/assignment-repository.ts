@@ -11,6 +11,10 @@ export type AppealAudit = {
   after: unknown;
   reason: string;
 };
+export type AuditMeta = {
+  actorId?: string;
+  ipAddress?: string | null;
+};
 export interface AssignmentRepository {
   listForUser(userId: string, userEmail?: string): Promise<Assignment[]>;
   findById(id: string): Promise<AssignmentRecord | null>;
@@ -21,6 +25,7 @@ export interface AssignmentRepository {
     event?: NotificationEvent,
     submissionAudit?: EvaluationSubmission,
     appealAudit?: AppealAudit,
+    auditMeta?: AuditMeta,
   ): Promise<boolean>;
 }
 function toRecord(
@@ -89,6 +94,7 @@ export class PostgresAssignmentRepository implements AssignmentRepository {
     event?: NotificationEvent,
     submissionAudit?: EvaluationSubmission,
     appealAudit?: AppealAudit,
+    auditMeta?: AuditMeta,
   ) {
     const sql = database();
     const rows = await sql`WITH updated AS (
@@ -105,24 +111,31 @@ export class PostgresAssignmentRepository implements AssignmentRepository {
             WHERE (c.id::text=a.data->>'classroomId' OR c.data->'assignment_ids' ? a.id::text)
             AND m->>'role'='STUDENT' AND (m->>'user_id'=u.id::text OR lower(m->>'email')=lower(u.email)))
         ) ON CONFLICT(user_id,event_key) DO NOTHING RETURNING id
-      ), audited AS (
-        INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,assignment_id,before_state,after_state,reason)
-        SELECT gen_random_uuid(),owner_id,
-          CASE ${event?.kind ?? null} WHEN 'assignment_opened' THEN 'ASSIGNMENT_PUBLISH' WHEN 'pairs_regenerated' THEN 'PAIRS_REGENERATE' WHEN 'pairs_paused' THEN 'ASSIGNMENT_UNPUBLISH' WHEN 'pairs_reopened' THEN 'ASSIGNMENT_REOPEN' ELSE 'ASSIGNMENT_FINALIZE' END,
-          'assignment',id::text,id,
-          ${JSON.stringify(event?.kind === "results_finalized" ? { status: "closed" } : { generation: event?.generation })}::jsonb,
-          ${JSON.stringify(event?.kind === "results_finalized" ? { status: "finalized" } : { generation: assignment.pairGeneration ?? 0, scope: event?.scope, status: assignment.status })}::jsonb,
-          ${event?.reason ?? null}
-        FROM updated WHERE ${event?.kind ?? null} IN ('assignment_opened','results_finalized','pairs_regenerated','pairs_paused','pairs_reopened') RETURNING id
       ), submission_audited AS (
-        INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,assignment_id,after_state)
-        SELECT gen_random_uuid(),${submissionAudit?.evaluatorId ?? null}::uuid,'EVALUATION_SUBMIT','assignment',id::text,id,
-          ${JSON.stringify(submissionAudit ? { side: submissionAudit.side, generation: submissionAudit.generation, revision: submissionAudit.revision, answered: submissionAudit.comparisons.length } : {})}::jsonb
+        INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,classroom_id,assignment_id,after_state,ip_address)
+        SELECT gen_random_uuid(),
+          ${submissionAudit?.evaluatorId ?? null}::uuid,
+          'EVALUATION_SUBMIT',
+          'assignment',
+          id::text,
+          (NULLIF(data->>'classroomId', ''))::uuid,
+          id,
+          ${JSON.stringify(submissionAudit ? { side: submissionAudit.side, generation: submissionAudit.generation, revision: submissionAudit.revision, answered: submissionAudit.comparisons.length } : {})}::jsonb,
+          ${auditMeta?.ipAddress ?? null}
         FROM updated WHERE ${submissionAudit !== undefined} RETURNING id
       ), appeal_audited AS (
-        INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,assignment_id,before_state,after_state,reason)
-        SELECT gen_random_uuid(),${appealAudit?.actorId ?? null}::uuid,${appealAudit?.action ?? null},'appeal',${appealAudit?.appealId ?? null},id,
-          ${JSON.stringify(appealAudit?.before ?? null)}::jsonb,${JSON.stringify(appealAudit?.after ?? null)}::jsonb,${appealAudit?.reason ?? null}
+        INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,classroom_id,assignment_id,before_state,after_state,reason,ip_address)
+        SELECT gen_random_uuid(),
+          ${appealAudit?.actorId ?? null}::uuid,
+          ${appealAudit?.action ?? null},
+          'appeal',
+          ${appealAudit?.appealId ?? null},
+          (NULLIF(data->>'classroomId', ''))::uuid,
+          id,
+          ${JSON.stringify(appealAudit?.before ?? null)}::jsonb,
+          ${JSON.stringify(appealAudit?.after ?? null)}::jsonb,
+          ${appealAudit?.reason ?? null},
+          ${auditMeta?.ipAddress ?? null}
         FROM updated WHERE ${appealAudit !== undefined} RETURNING id
       ) SELECT id FROM updated`;
     return rows.length > 0;

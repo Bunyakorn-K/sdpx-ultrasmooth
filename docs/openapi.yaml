@@ -740,6 +740,44 @@ paths:
           }
         "404": { description: Assignment not found. }
         "503": { description: Database unavailable. }
+  /api/assignments/{id}/evaluators:
+    get:
+      operationId: getAssignmentEvaluators
+      summary: Owner retrieves evaluator real identities (audited)
+      description: "Traceability: FR-AUDIT-01, FR-ANON-05. Owner views evaluator identities; operation is durably audited under VIEW_EVALUATOR_IDENTITY."
+      tags: [Assignments]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: List of evaluators and evaluation status.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  evaluators:
+                    type: array
+                    items:
+                      type: object
+                  pairs:
+                    type: array
+                    items:
+                      type: object
+                  submissions:
+                    type: array
+                    items:
+                      type: object
+        "401": { description: Sign-in required. }
+        "403":
+          {
+            description: Assignment owner teacher and same-origin request required.,
+          }
+        "404": { description: Assignment not found. }
+        "503": { description: Database unavailable. }
   /api/health:
     get:
       operationId: health

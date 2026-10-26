@@ -13,6 +13,30 @@ const codes: Record<number, string> = {
   429: "RATE_LIMITED",
   503: "SERVICE_UNAVAILABLE",
 };
+
+const IPV4_REGEX =
+  /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+const IPV6_REGEX =
+  /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::1$|^::$|^(?:[0-9a-fA-F]{1,4}:){1,7}:$/;
+
+export function isValidIp(ip: string): boolean {
+  return IPV4_REGEX.test(ip) || IPV6_REGEX.test(ip);
+}
+
+export function extractClientIp(request: Request): string {
+  const xForwardedFor = request.headers.get("x-forwarded-for");
+  if (xForwardedFor) {
+    const candidate = xForwardedFor.split(",")[0]?.trim();
+    if (candidate && isValidIp(candidate)) {
+      return candidate;
+    }
+  }
+  const xRealIp = request.headers.get("x-real-ip")?.trim();
+  if (xRealIp && isValidIp(xRealIp)) {
+    return xRealIp;
+  }
+  return "127.0.0.1";
+}
 export function requireSameOrigin(request: Request) {
   const origin = request.headers.get("origin");
   if (!origin) throw new AppError("คำขอไม่ถูกต้อง", 403);

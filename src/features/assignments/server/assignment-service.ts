@@ -172,37 +172,21 @@ export class AssignmentService {
                 };
               })()
             : undefined,
+          { actorId: user.id, ipAddress },
         )
       ) {
-        if (input.action === "overrideScore") {
+        if (input.action === "start") {
           await this.auditService
             ?.record({
               actor_id: user.id,
-              action: "SCORE_OVERRIDE",
-              resource_type: "assignment_score",
-              resource_id: String(input.targetId),
-              assignment_id: updated.id,
-              classroom_id: updated.classroomId || null,
-              reason: String(input.reason || ""),
-              ip_address: ipAddress,
-              after_state: { score: input.score, targetId: input.targetId },
-            })
-            .catch(() => {});
-        } else if (input.action === "assignAdditional") {
-          await this.auditService
-            ?.record({
-              actor_id: user.id,
-              action: "PAIRS_ASSIGN_EXTRA",
-              resource_type: "assignment_pairs",
-              resource_id: String(input.pairId),
+              action: "ASSIGNMENT_PUBLISH",
+              resource_type: "assignment",
+              resource_id: updated.id,
               assignment_id: updated.id,
               classroom_id: updated.classroomId || null,
               ip_address: ipAddress,
-              after_state: {
-                addedPairIds: updated.pairs
-                  ?.filter((p) => !previousPairIds.has(p.id))
-                  .map((p) => p.id),
-              },
+              before_state: { status: previousStatus },
+              after_state: { status: updated.status },
             })
             .catch(() => {});
         } else if (input.action === "finalize") {
@@ -253,14 +237,10 @@ export class AssignmentService {
             })
             .catch(() => {});
         } else if (input.action === "regeneratePairs") {
-          const isInitialPublish =
-            previousStatus === "draft" && !record.assignment.pairs;
           await this.auditService
             ?.record({
               actor_id: user.id,
-              action: isInitialPublish
-                ? "ASSIGNMENT_PUBLISH"
-                : "PAIRS_REGENERATE",
+              action: "PAIRS_REGENERATE",
               resource_type: "assignment",
               resource_id: updated.id,
               assignment_id: updated.id,
@@ -278,11 +258,48 @@ export class AssignmentService {
               },
             })
             .catch(() => {});
+        } else if (input.action === "overrideScore") {
+          const previousOverride = record.assignment.scoreOverrides?.find(
+            (o) => o.targetId === String(input.targetId),
+          );
+          await this.auditService
+            ?.record({
+              actor_id: user.id,
+              action: "SCORE_OVERRIDE",
+              resource_type: "assignment_score",
+              resource_id: String(input.targetId),
+              assignment_id: updated.id,
+              classroom_id: updated.classroomId || null,
+              reason: String(input.reason || ""),
+              ip_address: ipAddress,
+              before_state: previousOverride
+                ? { score: previousOverride.overriddenScore }
+                : null,
+              after_state: { score: input.score, targetId: input.targetId },
+            })
+            .catch(() => {});
+        } else if (input.action === "assignAdditional") {
+          await this.auditService
+            ?.record({
+              actor_id: user.id,
+              action: "PAIRS_ASSIGN_EXTRA",
+              resource_type: "assignment_pairs",
+              resource_id: String(input.pairId),
+              assignment_id: updated.id,
+              classroom_id: updated.classroomId || null,
+              ip_address: ipAddress,
+              after_state: {
+                addedPairIds: updated.pairs
+                  ?.filter((p) => !previousPairIds.has(p.id))
+                  .map((p) => p.id),
+              },
+            })
+            .catch(() => {});
         } else if (input.action === "updateDeadline") {
           await this.auditService
             ?.record({
               actor_id: user.id,
-              action: "ASSIGNMENT_PUBLISH",
+              action: "UPDATE_DEADLINE",
               resource_type: "assignment",
               resource_id: updated.id,
               assignment_id: updated.id,

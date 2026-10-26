@@ -286,3 +286,60 @@ test("FR-AUDIT-03: Append-only integrity (no delete or update capabilities)", ()
   assert.equal((repo as unknown as Record<string, unknown>).update, undefined);
   assert.equal((repo as unknown as Record<string, unknown>).delete, undefined);
 });
+
+test("FR-AUDIT-02: Safe Client IP extraction and anti-spoofing", async () => {
+  const { extractClientIp, isValidIp } = await import("@/shared/server/http");
+
+  assert.equal(isValidIp("192.168.1.1"), true);
+  assert.equal(isValidIp("203.0.113.195"), true);
+  assert.equal(isValidIp("::1"), true);
+  assert.equal(isValidIp("invalid-ip"), false);
+  assert.equal(isValidIp("192.168.1.1<script>"), false);
+  assert.equal(isValidIp("999.999.999.999"), false);
+
+  // Single valid x-forwarded-for
+  const req1 = new Request("http://localhost/api/test", {
+    headers: { "x-forwarded-for": "203.0.113.50" },
+  });
+  assert.equal(extractClientIp(req1), "203.0.113.50");
+
+  // Comma-delimited list: picks the first valid client IP
+  const req2 = new Request("http://localhost/api/test", {
+    headers: { "x-forwarded-for": "203.0.113.50, 10.0.0.1, 192.168.1.1" },
+  });
+  assert.equal(extractClientIp(req2), "203.0.113.50");
+
+  // Spoofed or malformed header falls back to x-real-ip or default
+  const req3 = new Request("http://localhost/api/test", {
+    headers: {
+      "x-forwarded-for": "malformed_ip_injection",
+      "x-real-ip": "198.51.100.22",
+    },
+  });
+  assert.equal(extractClientIp(req3), "198.51.100.22");
+
+  // No headers falls back to 127.0.0.1
+  const req4 = new Request("http://localhost/api/test");
+  assert.equal(extractClientIp(req4), "127.0.0.1");
+});
+
+test("FR-AUDIT-03: PostgreSQL schema defines append-only trigger on audit_logs", async () => {
+  const fs = await import("node:fs/promises");
+  const schemaSql = await fs.readFile(
+    new URL("../../scripts/schema.sql", import.meta.url),
+    "utf8",
+  );
+
+  assert.ok(
+    schemaSql.includes("prevent_audit_logs_mutation"),
+    "Must define prevent_audit_logs_mutation function in schema",
+  );
+  assert.ok(
+    schemaSql.includes("CREATE TRIGGER trg_audit_logs_immutable"),
+    "Must attach trg_audit_logs_immutable trigger",
+  );
+  assert.ok(
+    schemaSql.includes("BEFORE UPDATE OR DELETE ON audit_logs"),
+    "Trigger must fire BEFORE UPDATE OR DELETE on audit_logs",
+  );
+});

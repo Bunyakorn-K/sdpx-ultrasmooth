@@ -6,10 +6,14 @@ import {
   withApi,
 } from "@/shared/server/http";
 import { logBusinessEvent } from "@/shared/server/logger";
+import { AuditService } from "@/features/audit/server/audit-service";
 import { PostgresClassroomRepository } from "./classroom-repository";
 import { ClassroomService } from "./classroom-service";
 
-const classrooms = new ClassroomService(new PostgresClassroomRepository());
+const classrooms = new ClassroomService(
+  new PostgresClassroomRepository(),
+  new AuditService(),
+);
 
 export const listClassroomsResponse = withApi(
   "/api/classrooms",
