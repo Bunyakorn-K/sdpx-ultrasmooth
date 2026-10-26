@@ -8,6 +8,7 @@ import {
 } from "@/shared/server/http";
 import { logBusinessEvent } from "@/shared/server/logger";
 import { PostgresClassroomRepository } from "@/features/classroom/server/classroom-repository";
+import { AuditService } from "@/features/audit/server/audit-service";
 import { PostgresAssignmentRepository } from "./assignment-repository";
 import { AssignmentService } from "./assignment-service";
 
@@ -88,10 +89,15 @@ export function assignmentCommandResponse(
     if (!commands.has(action)) throw new AppError("คำขอไม่ถูกต้อง");
     const id = resourceId || String(input.id || "");
     if (action !== "create") requireResourceId(id);
+    const ipAddress =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      null;
     const assignment = await assignments.execute(user, {
       ...input,
       action,
       id,
+      ipAddress,
     });
     logBusinessEvent(
       events[action],
@@ -135,4 +141,18 @@ export async function pairPreviewResponse(request: Request, id: string) {
       });
     },
   )(request);
+}
+
+export async function assignmentAuditResponse(request: Request, id: string) {
+  return withApi("/api/assignments/:id/audit", async (_request, context) => {
+    const user = await requireUser();
+    context.userId = user.id;
+    const assignment = await assignments.get(user, requireResourceId(id));
+    if (user.role !== "teacher" || assignment.ownerId !== user.id) {
+      throw new AppError("เฉพาะอาจารย์เจ้าของงานเท่านั้นที่สามารถดู Audit Log ได้", 403);
+    }
+    const auditService = new AuditService();
+    const logs = await auditService.listByAssignment(id);
+    return Response.json({ logs });
+  })(request);
 }

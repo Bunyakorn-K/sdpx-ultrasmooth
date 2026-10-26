@@ -24,10 +24,12 @@ export class AuditService {
       );
     }
 
-    // FR-AUDIT-02 / FR-ASSIGN-03 / FR-SCORE-08: บังคับกรอกเหตุผลสำหรับการ override คะแนน หรือ reopen
+    // FR-AUDIT-02 / FR-ASSIGN-03 / FR-SCORE-08 / FR-PAIR-11: บังคับกรอกเหตุผลสำหรับการ override คะแนน, reopen, unpublish, หรือ regenerate
     if (
       (input.action === "SCORE_OVERRIDE" ||
-        input.action === "ASSIGNMENT_REOPEN") &&
+        input.action === "ASSIGNMENT_REOPEN" ||
+        input.action === "ASSIGNMENT_UNPUBLISH" ||
+        input.action === "PAIRS_REGENERATE") &&
       (!input.reason || !input.reason.trim())
     ) {
       throw new AppError("กรุณาระบุเหตุผลในการดำเนินการ (FR-AUDIT-02)", 400);

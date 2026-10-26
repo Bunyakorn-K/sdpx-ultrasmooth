@@ -294,6 +294,19 @@ test.describe("Database-backed authenticated journeys", () => {
       expect(finalized.finalizedSnapshot?.inputs.votes).toHaveLength(1);
       expect(finalized.finalizedSnapshot?.outputs.overrides).toHaveLength(1);
       expect(finalized.finalizedSnapshot?.outputs.scores).toBeDefined();
+
+      // FR-AUDIT-01, FR-AUDIT-02, FR-AUDIT-03: audit log read API & authorization
+      expect((await student.get(`${root}/audit`)).status()).toBe(403);
+      const auditRes = await teacher.get(`${root}/audit`);
+      expect(auditRes.status()).toBe(200);
+      const auditData = await auditRes.json();
+      expect(Array.isArray(auditData.logs)).toBe(true);
+      expect(auditData.logs.length).toBeGreaterThanOrEqual(1);
+      expect(
+        auditData.logs.some(
+          (l: { action: string }) => l.action === "ASSIGNMENT_FINALIZE",
+        ),
+      ).toBe(true);
     } finally {
       await Promise.all([
         teacher.dispose(),
