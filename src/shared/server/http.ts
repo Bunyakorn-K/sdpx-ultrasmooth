@@ -1,5 +1,6 @@
 import { AppError } from "@/shared/domain/app-error";
 import { randomUUID } from "node:crypto";
+import { isIP } from "node:net";
 import { logger, type RequestContext } from "./logger";
 
 const codes: Record<number, string> = {
@@ -13,6 +14,25 @@ const codes: Record<number, string> = {
   429: "RATE_LIMITED",
   503: "SERVICE_UNAVAILABLE",
 };
+
+export function isValidIp(ip: string): boolean {
+  return isIP(ip) === 4 || isIP(ip) === 6;
+}
+
+export function extractClientIp(request: Request): string {
+  const xForwardedFor = request.headers.get("x-forwarded-for");
+  if (xForwardedFor) {
+    const candidate = xForwardedFor.split(",")[0]?.trim();
+    if (candidate && isValidIp(candidate)) {
+      return candidate;
+    }
+  }
+  const xRealIp = request.headers.get("x-real-ip")?.trim();
+  if (xRealIp && isValidIp(xRealIp)) {
+    return xRealIp;
+  }
+  return "127.0.0.1";
+}
 export function requireSameOrigin(request: Request) {
   const origin = request.headers.get("origin");
   if (!origin) throw new AppError("คำขอไม่ถูกต้อง", 403);

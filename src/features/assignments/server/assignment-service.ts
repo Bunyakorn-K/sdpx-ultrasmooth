@@ -2,6 +2,7 @@ import type { User } from "@/features/auth/types";
 import type { AuditService } from "@/features/audit/server/audit-service";
 import type { ClassroomRepository } from "@/features/classroom/server/classroom-repository";
 import { AppError } from "@/shared/domain/app-error";
+import { logger } from "@/shared/server/logger";
 import { applyAssignmentCommand } from "../domain/assignment-policy";
 import { visibleAssignment } from "../domain/assignment-visibility";
 import { createAssignment, cloneAssignment } from "../domain/create-assignment";
@@ -172,39 +173,28 @@ export class AssignmentService {
                 };
               })()
             : undefined,
+          { actorId: user.id, ipAddress },
         )
       ) {
-        if (input.action === "overrideScore") {
+        if (input.action === "start") {
           await this.auditService
             ?.record({
               actor_id: user.id,
-              action: "SCORE_OVERRIDE",
-              resource_type: "assignment_score",
-              resource_id: String(input.targetId),
-              assignment_id: updated.id,
-              classroom_id: updated.classroomId || null,
-              reason: String(input.reason || ""),
-              ip_address: ipAddress,
-              after_state: { score: input.score, targetId: input.targetId },
-            })
-            .catch(() => {});
-        } else if (input.action === "assignAdditional") {
-          await this.auditService
-            ?.record({
-              actor_id: user.id,
-              action: "PAIRS_ASSIGN_EXTRA",
-              resource_type: "assignment_pairs",
-              resource_id: String(input.pairId),
+              action: "ASSIGNMENT_PUBLISH",
+              resource_type: "assignment",
+              resource_id: updated.id,
               assignment_id: updated.id,
               classroom_id: updated.classroomId || null,
               ip_address: ipAddress,
-              after_state: {
-                addedPairIds: updated.pairs
-                  ?.filter((p) => !previousPairIds.has(p.id))
-                  .map((p) => p.id),
-              },
+              before_state: { status: previousStatus },
+              after_state: { status: updated.status },
             })
-            .catch(() => {});
+            .catch((err) => {
+              logger.error(
+                { err, action: input.action },
+                "Failed to record audit log",
+              );
+            });
         } else if (input.action === "finalize") {
           await this.auditService
             ?.record({
@@ -218,7 +208,12 @@ export class AssignmentService {
               before_state: { status: "closed" },
               after_state: { status: "finalized" },
             })
-            .catch(() => {});
+            .catch((err) => {
+              logger.error(
+                { err, action: input.action },
+                "Failed to record audit log",
+              );
+            });
         } else if (input.action === "reopen") {
           await this.auditService
             ?.record({
@@ -233,7 +228,12 @@ export class AssignmentService {
               before_state: { status: "finalized" },
               after_state: { status: "closed" },
             })
-            .catch(() => {});
+            .catch((err) => {
+              logger.error(
+                { err, action: input.action },
+                "Failed to record audit log",
+              );
+            });
         } else if (input.action === "unpublishPairs") {
           await this.auditService
             ?.record({
@@ -251,16 +251,17 @@ export class AssignmentService {
               },
               after_state: { status: updated.status, pairingPaused: true },
             })
-            .catch(() => {});
+            .catch((err) => {
+              logger.error(
+                { err, action: input.action },
+                "Failed to record audit log",
+              );
+            });
         } else if (input.action === "regeneratePairs") {
-          const isInitialPublish =
-            previousStatus === "draft" && !record.assignment.pairs;
           await this.auditService
             ?.record({
               actor_id: user.id,
-              action: isInitialPublish
-                ? "ASSIGNMENT_PUBLISH"
-                : "PAIRS_REGENERATE",
+              action: "PAIRS_REGENERATE",
               resource_type: "assignment",
               resource_id: updated.id,
               assignment_id: updated.id,
@@ -277,12 +278,64 @@ export class AssignmentService {
                 scope: input.scope,
               },
             })
-            .catch(() => {});
+            .catch((err) => {
+              logger.error(
+                { err, action: input.action },
+                "Failed to record audit log",
+              );
+            });
+        } else if (input.action === "overrideScore") {
+          const previousOverride = record.assignment.scoreOverrides?.find(
+            (o) => o.targetId === String(input.targetId),
+          );
+          await this.auditService
+            ?.record({
+              actor_id: user.id,
+              action: "SCORE_OVERRIDE",
+              resource_type: "assignment_score",
+              resource_id: String(input.targetId),
+              assignment_id: updated.id,
+              classroom_id: updated.classroomId || null,
+              reason: String(input.reason || ""),
+              ip_address: ipAddress,
+              before_state: previousOverride
+                ? { score: previousOverride.overriddenScore }
+                : null,
+              after_state: { score: input.score, targetId: input.targetId },
+            })
+            .catch((err) => {
+              logger.error(
+                { err, action: input.action },
+                "Failed to record audit log",
+              );
+            });
+        } else if (input.action === "assignAdditional") {
+          await this.auditService
+            ?.record({
+              actor_id: user.id,
+              action: "PAIRS_ASSIGN_EXTRA",
+              resource_type: "assignment_pairs",
+              resource_id: String(input.pairId),
+              assignment_id: updated.id,
+              classroom_id: updated.classroomId || null,
+              ip_address: ipAddress,
+              after_state: {
+                addedPairIds: updated.pairs
+                  ?.filter((p) => !previousPairIds.has(p.id))
+                  .map((p) => p.id),
+              },
+            })
+            .catch((err) => {
+              logger.error(
+                { err, action: input.action },
+                "Failed to record audit log",
+              );
+            });
         } else if (input.action === "updateDeadline") {
           await this.auditService
             ?.record({
               actor_id: user.id,
-              action: "ASSIGNMENT_PUBLISH",
+              action: "UPDATE_DEADLINE",
               resource_type: "assignment",
               resource_id: updated.id,
               assignment_id: updated.id,
@@ -291,7 +344,12 @@ export class AssignmentService {
               before_state: { deadline: record.assignment.deadline },
               after_state: { deadline: updated.deadline },
             })
-            .catch(() => {});
+            .catch((err) => {
+              logger.error(
+                { err, action: input.action },
+                "Failed to record audit log",
+              );
+            });
         }
         return visibleAssignment(updated, user.id);
       }

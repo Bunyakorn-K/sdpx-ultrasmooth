@@ -11,7 +11,8 @@ export type AuditAction =
   | "ASSIGNMENT_REOPEN"
   | "EXPORT_IDENTITY"
   | "VIEW_EVALUATOR_IDENTITY"
-  | "ROLE_CHANGE";
+  | "ROLE_CHANGE"
+  | "UPDATE_DEADLINE";
 
 export interface AuditLogEntry {
   id: string;

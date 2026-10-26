@@ -605,9 +605,16 @@ The Appeals and Audit Logging module is completed and verified:
 - **FR-AUDIT-02 (Completeness of Audit Records & Reason Enforcement):**
   Audit records capture actor ID, action, resource type/ID, before/after states, UTC ISO timestamp, and client IP address. Mandatory non-empty reasons are enforced in `AuditService.record()` for `SCORE_OVERRIDE`, `ASSIGNMENT_REOPEN`, `ASSIGNMENT_UNPUBLISH`, and `PAIRS_REGENERATE`.
 - **FR-AUDIT-03 (Append-Only Integrity & Owner Audit API):**
-  No update or delete APIs or database mutations exist for audit logs. Added read-only route `GET /api/assignments/:id/audit` restricted to the assignment owner teacher to inspect append-only audit histories.
+  No update or delete APIs or database mutations exist for audit logs. Added read-only route `GET /api/assignments/:id/audit` restricted to the assignment owner teacher to inspect append-only audit histories. Added database-level trigger `trg_audit_logs_immutable` in PostgreSQL schema to reject any UPDATE or DELETE operations.
+- **Audit Hardening & Remediation (2026-10-26):**
+  - Injected `AuditService` into `AssignmentService` and `ClassroomService` in `http-handlers.ts` to ensure durable logging in production.
+  - Enriched repository CTEs (`audited`, `submission_audited`, `appeal_audited`) with `classroom_id`, `ip_address`, and explicit `actor_id` via `AuditMeta`.
+  - Deduplicated audit logs: repository-level CTE acts as the single atomic source of truth for assignment status transitions, eliminating duplicate service-level writes.
+  - Implemented safe client IP extraction (`extractClientIp`) with anti-spoofing and IPv4/IPv6 validation in `src/shared/server/http.ts`.
+  - Corrected `updateDeadline` audit action from `ASSIGNMENT_PUBLISH` to `UPDATE_DEADLINE`.
+  - Added audited endpoint `GET /api/assignments/:id/evaluators` restricted to owner teacher, recording `VIEW_EVALUATOR_IDENTITY`.
 
-Verified locally: `tests/unit/appeals.test.ts` (9 passed), `tests/unit/appeals-and-audit.test.ts` (4 passed), `tests/unit/audit-service.test.ts` (5 passed), `tests/e2e/specs/appeals.spec.ts` (passed), lint (Oxlint), typecheck, OpenAPI validation, production build, host E2E, and containerized E2E with disposable PostgreSQL (36 passed).
+Verified locally: `tests/unit/appeals.test.ts` (9 passed), `tests/unit/appeals-and-audit.test.ts` (6 passed), `tests/unit/audit-service.test.ts` (5 passed), `tests/e2e/specs/appeals.spec.ts` (passed), lint (Oxlint), typecheck, OpenAPI validation, production build, host E2E, and containerized E2E with disposable PostgreSQL (36 passed).
 
 ## Earlier verification
 

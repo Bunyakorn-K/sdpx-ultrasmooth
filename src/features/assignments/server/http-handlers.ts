@@ -1,6 +1,7 @@
 import { requireUser } from "@/features/auth/server/session-service";
 import { AppError } from "@/shared/domain/app-error";
 import {
+  extractClientIp,
   readJsonObject,
   requireResourceId,
   requireSameOrigin,
@@ -12,9 +13,11 @@ import { AuditService } from "@/features/audit/server/audit-service";
 import { PostgresAssignmentRepository } from "./assignment-repository";
 import { AssignmentService } from "./assignment-service";
 
+const auditService = new AuditService();
 const assignments = new AssignmentService(
   new PostgresAssignmentRepository(),
   new PostgresClassroomRepository(),
+  auditService,
 );
 const commands = new Set([
   "submitAppeal",
@@ -89,10 +92,7 @@ export function assignmentCommandResponse(
     if (!commands.has(action)) throw new AppError("คำขอไม่ถูกต้อง");
     const id = resourceId || String(input.id || "");
     if (action !== "create") requireResourceId(id);
-    const ipAddress =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      request.headers.get("x-real-ip") ||
-      null;
+    const ipAddress = extractClientIp(request);
     const assignment = await assignments.execute(user, {
       ...input,
       action,
@@ -155,4 +155,40 @@ export async function assignmentAuditResponse(request: Request, id: string) {
     const logs = await auditService.listByAssignment(id);
     return Response.json({ logs });
   })(request);
+}
+
+export async function assignmentEvaluatorsResponse(
+  request: Request,
+  id: string,
+) {
+  return withApi(
+    "/api/assignments/:id/evaluators",
+    async (_request, context) => {
+      const user = await requireUser();
+      context.userId = user.id;
+      const assignment = await assignments.get(user, requireResourceId(id));
+      if (user.role !== "teacher" || assignment.ownerId !== user.id) {
+        throw new AppError(
+          "เฉพาะอาจารย์เจ้าของงานเท่านั้นที่สามารถดูตัวตนผู้ประเมินได้",
+          403,
+        );
+      }
+      const ipAddress = extractClientIp(_request);
+      await auditService.record({
+        actor_id: user.id,
+        action: "VIEW_EVALUATOR_IDENTITY",
+        resource_type: "assignment_evaluators",
+        resource_id: assignment.id,
+        assignment_id: assignment.id,
+        classroom_id: assignment.classroomId || null,
+        ip_address: ipAddress,
+        reason: "Owner accessed real evaluator identities",
+      });
+      return Response.json({
+        evaluators: assignment.students,
+        pairs: assignment.pairs ?? [],
+        submissions: assignment.evaluationSubmissions ?? [],
+      });
+    },
+  )(request);
 }

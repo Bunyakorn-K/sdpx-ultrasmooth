@@ -69,3 +69,17 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 CREATE INDEX IF NOT EXISTS audit_logs_classroom ON audit_logs(classroom_id);
 CREATE INDEX IF NOT EXISTS audit_logs_assignment ON audit_logs(assignment_id);
 CREATE INDEX IF NOT EXISTS audit_logs_created_at ON audit_logs(created_at);
+
+-- FR-AUDIT-03: Append-only enforcement at database level
+CREATE OR REPLACE FUNCTION prevent_audit_logs_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'audit_logs table is append-only: updates and deletes are prohibited (FR-AUDIT-03)';
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_audit_logs_immutable ON audit_logs;
+CREATE TRIGGER trg_audit_logs_immutable
+BEFORE UPDATE OR DELETE ON audit_logs
+FOR EACH ROW
+EXECUTE FUNCTION prevent_audit_logs_mutation();

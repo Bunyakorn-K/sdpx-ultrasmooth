@@ -1,15 +1,20 @@
 import { requireUser } from "@/features/auth/server/session-service";
 import {
+  extractClientIp,
   readJsonObject,
   requireResourceId,
   requireSameOrigin,
   withApi,
 } from "@/shared/server/http";
 import { logBusinessEvent } from "@/shared/server/logger";
+import { AuditService } from "@/features/audit/server/audit-service";
 import { PostgresClassroomRepository } from "./classroom-repository";
 import { ClassroomService } from "./classroom-service";
 
-const classrooms = new ClassroomService(new PostgresClassroomRepository());
+const classrooms = new ClassroomService(
+  new PostgresClassroomRepository(),
+  new AuditService(),
+);
 
 export const listClassroomsResponse = withApi(
   "/api/classrooms",
@@ -92,6 +97,7 @@ export function manageMembersResponse(request: Request, id: string) {
     const user = await requireUser();
     context.userId = user.id;
     const resourceId = requireResourceId(id);
+    const ipAddress = extractClientIp(request);
 
     if (request.method === "DELETE") {
       const body = await readJsonObject(request);
@@ -100,6 +106,7 @@ export function manageMembersResponse(request: Request, id: string) {
         user,
         resourceId,
         memberId,
+        ipAddress,
       );
       logBusinessEvent(
         "member_removed",
@@ -115,11 +122,16 @@ export function manageMembersResponse(request: Request, id: string) {
     const name = String(body.name || "");
     const role = (body.role as "CO_TEACHER" | "TA") || "TA";
 
-    const classroom = await classrooms.addStaff(user, resourceId, {
-      email,
-      name,
-      role,
-    });
+    const classroom = await classrooms.addStaff(
+      user,
+      resourceId,
+      {
+        email,
+        name,
+        role,
+      },
+      ipAddress,
+    );
 
     logBusinessEvent(
       "member_added",
