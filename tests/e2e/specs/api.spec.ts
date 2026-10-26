@@ -51,9 +51,7 @@ test.describe("Database-backed authenticated journeys", () => {
     await page
       .getByLabel("รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)")
       .fill(users.student.password);
-    await page
-      .getByRole("button", { name: "เข้าสู่ระบบ", exact: true })
-      .click();
+    await page.getByRole("button", { name: "เข้าสู่ระบบ", exact: true }).click();
     await expect(
       page.getByRole("heading", { name: "ห้องเรียนของฉัน (Classrooms)" }),
     ).toBeVisible();

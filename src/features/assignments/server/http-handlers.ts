@@ -149,10 +149,7 @@ export async function assignmentAuditResponse(request: Request, id: string) {
     context.userId = user.id;
     const assignment = await assignments.get(user, requireResourceId(id));
     if (user.role !== "teacher" || assignment.ownerId !== user.id) {
-      throw new AppError(
-        "เฉพาะอาจารย์เจ้าของงานเท่านั้นที่สามารถดู Audit Log ได้",
-        403,
-      );
+      throw new AppError("เฉพาะอาจารย์เจ้าของงานเท่านั้นที่สามารถดู Audit Log ได้", 403);
     }
     const auditService = new AuditService();
     const logs = await auditService.listByAssignment(id);
