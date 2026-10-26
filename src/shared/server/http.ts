@@ -1,5 +1,6 @@
 import { AppError } from "@/shared/domain/app-error";
 import { randomUUID } from "node:crypto";
+import { isIP } from "node:net";
 import { logger, type RequestContext } from "./logger";
 
 const codes: Record<number, string> = {
@@ -14,13 +15,8 @@ const codes: Record<number, string> = {
   503: "SERVICE_UNAVAILABLE",
 };
 
-const IPV4_REGEX =
-  /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-const IPV6_REGEX =
-  /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::1$|^::$|^(?:[0-9a-fA-F]{1,4}:){1,7}:$/;
-
 export function isValidIp(ip: string): boolean {
-  return IPV4_REGEX.test(ip) || IPV6_REGEX.test(ip);
+  return isIP(ip) === 4 || isIP(ip) === 6;
 }
 
 export function extractClientIp(request: Request): string {

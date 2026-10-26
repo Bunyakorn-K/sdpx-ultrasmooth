@@ -2,6 +2,7 @@ import type { User } from "@/features/auth/types";
 import type { AuditService } from "@/features/audit/server/audit-service";
 import type { ClassroomRepository } from "@/features/classroom/server/classroom-repository";
 import { AppError } from "@/shared/domain/app-error";
+import { logger } from "@/shared/server/logger";
 import { applyAssignmentCommand } from "../domain/assignment-policy";
 import { visibleAssignment } from "../domain/assignment-visibility";
 import { createAssignment, cloneAssignment } from "../domain/create-assignment";
@@ -188,7 +189,12 @@ export class AssignmentService {
               before_state: { status: previousStatus },
               after_state: { status: updated.status },
             })
-            .catch(() => {});
+            .catch((err) => {
+              logger.error(
+                { err, action: input.action },
+                "Failed to record audit log",
+              );
+            });
         } else if (input.action === "finalize") {
           await this.auditService
             ?.record({
@@ -202,7 +208,12 @@ export class AssignmentService {
               before_state: { status: "closed" },
               after_state: { status: "finalized" },
             })
-            .catch(() => {});
+            .catch((err) => {
+              logger.error(
+                { err, action: input.action },
+                "Failed to record audit log",
+              );
+            });
         } else if (input.action === "reopen") {
           await this.auditService
             ?.record({
@@ -217,7 +228,12 @@ export class AssignmentService {
               before_state: { status: "finalized" },
               after_state: { status: "closed" },
             })
-            .catch(() => {});
+            .catch((err) => {
+              logger.error(
+                { err, action: input.action },
+                "Failed to record audit log",
+              );
+            });
         } else if (input.action === "unpublishPairs") {
           await this.auditService
             ?.record({
@@ -235,7 +251,12 @@ export class AssignmentService {
               },
               after_state: { status: updated.status, pairingPaused: true },
             })
-            .catch(() => {});
+            .catch((err) => {
+              logger.error(
+                { err, action: input.action },
+                "Failed to record audit log",
+              );
+            });
         } else if (input.action === "regeneratePairs") {
           await this.auditService
             ?.record({
@@ -257,7 +278,12 @@ export class AssignmentService {
                 scope: input.scope,
               },
             })
-            .catch(() => {});
+            .catch((err) => {
+              logger.error(
+                { err, action: input.action },
+                "Failed to record audit log",
+              );
+            });
         } else if (input.action === "overrideScore") {
           const previousOverride = record.assignment.scoreOverrides?.find(
             (o) => o.targetId === String(input.targetId),
@@ -277,7 +303,12 @@ export class AssignmentService {
                 : null,
               after_state: { score: input.score, targetId: input.targetId },
             })
-            .catch(() => {});
+            .catch((err) => {
+              logger.error(
+                { err, action: input.action },
+                "Failed to record audit log",
+              );
+            });
         } else if (input.action === "assignAdditional") {
           await this.auditService
             ?.record({
@@ -294,7 +325,12 @@ export class AssignmentService {
                   .map((p) => p.id),
               },
             })
-            .catch(() => {});
+            .catch((err) => {
+              logger.error(
+                { err, action: input.action },
+                "Failed to record audit log",
+              );
+            });
         } else if (input.action === "updateDeadline") {
           await this.auditService
             ?.record({
@@ -308,7 +344,12 @@ export class AssignmentService {
               before_state: { deadline: record.assignment.deadline },
               after_state: { deadline: updated.deadline },
             })
-            .catch(() => {});
+            .catch((err) => {
+              logger.error(
+                { err, action: input.action },
+                "Failed to record audit log",
+              );
+            });
         }
         return visibleAssignment(updated, user.id);
       }

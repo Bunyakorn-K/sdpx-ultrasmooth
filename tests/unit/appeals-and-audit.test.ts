@@ -293,6 +293,8 @@ test("FR-AUDIT-02: Safe Client IP extraction and anti-spoofing", async () => {
   assert.equal(isValidIp("192.168.1.1"), true);
   assert.equal(isValidIp("203.0.113.195"), true);
   assert.equal(isValidIp("::1"), true);
+  assert.equal(isValidIp("2001:db8::1"), true);
+  assert.equal(isValidIp("fe80::1ff:fe23:4567:890a"), true);
   assert.equal(isValidIp("invalid-ip"), false);
   assert.equal(isValidIp("192.168.1.1<script>"), false);
   assert.equal(isValidIp("999.999.999.999"), false);
@@ -342,4 +344,44 @@ test("FR-AUDIT-03: PostgreSQL schema defines append-only trigger on audit_logs",
     schemaSql.includes("BEFORE UPDATE OR DELETE ON audit_logs"),
     "Trigger must fire BEFORE UPDATE OR DELETE on audit_logs",
   );
+});
+
+test("FR-AUDIT-02: ROLE_CHANGE audit records include ip_address", async () => {
+  const { ClassroomService } =
+    await import("@/features/classroom/server/classroom-service");
+  const { FakeClassroomRepository } =
+    await import("../fakes/fake-classroom-repository");
+
+  const auditRepo = new InMemoryAuditRepository();
+  const auditService = new AuditService(auditRepo);
+  const classroomRepo = new FakeClassroomRepository();
+  const classroomService = new ClassroomService(classroomRepo, auditService);
+
+  const teacher: User = {
+    id: "teacher-1",
+    name: "Teacher",
+    email: "teacher@test.com",
+    role: "teacher",
+  };
+
+  const classroom = await classroomService.create(teacher, {
+    name: "Audited Classroom",
+  });
+
+  // Add staff with IP
+  await classroomService.addStaff(
+    teacher,
+    classroom.id,
+    { email: "ta@test.com", name: "TA Person", role: "TA" },
+    "203.0.113.195",
+  );
+
+  const addStaffAudit = auditRepo.records.find(
+    (r) =>
+      r.action === "ROLE_CHANGE" &&
+      (r.after_state as Record<string, unknown>)?.role === "TA",
+  );
+  assert.ok(addStaffAudit, "Must record ROLE_CHANGE on addStaff");
+  assert.equal(addStaffAudit.ip_address, "203.0.113.195");
+  assert.equal(addStaffAudit.classroom_id, classroom.id);
 });

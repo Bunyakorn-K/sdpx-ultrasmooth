@@ -1,6 +1,7 @@
 import type { User } from "@/features/auth/types";
 import type { AuditService } from "@/features/audit/server/audit-service";
 import { AppError } from "@/shared/domain/app-error";
+import { logger } from "@/shared/server/logger";
 import {
   createClassroom,
   applyRosterImport,
@@ -130,6 +131,7 @@ export class ClassroomService {
     user: User,
     id: string,
     input: { email: string; name: string; role: "CO_TEACHER" | "TA" },
+    ipAddress?: string | null,
   ): Promise<Classroom> {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       const record = await this.repository.findById(id);
@@ -145,8 +147,14 @@ export class ClassroomService {
             resource_id: updated.members[updated.members.length - 1].id,
             classroom_id: updated.id,
             after_state: { email: input.email, role: input.role },
+            ip_address: ipAddress || null,
           })
-          .catch(() => {});
+          .catch((err) => {
+            logger.error(
+              { err, action: "ROLE_CHANGE" },
+              "Failed to record audit log",
+            );
+          });
         return updated;
       }
     }
@@ -157,6 +165,7 @@ export class ClassroomService {
     user: User,
     id: string,
     memberId: string,
+    ipAddress?: string | null,
   ): Promise<Classroom> {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       const record = await this.repository.findById(id);
@@ -172,8 +181,14 @@ export class ClassroomService {
             resource_id: memberId,
             classroom_id: updated.id,
             before_state: { memberId },
+            ip_address: ipAddress || null,
           })
-          .catch(() => {});
+          .catch((err) => {
+            logger.error(
+              { err, action: "ROLE_CHANGE" },
+              "Failed to record audit log",
+            );
+          });
         return updated;
       }
     }
